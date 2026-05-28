@@ -18,13 +18,12 @@ namespace RagChatbotSystem.Business.Services
         {
             _httpClient = httpClient;
             _model = configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
-            // Kiểm tra API key đã được cấu hình ở DI level (Program.cs) hay chưa
+            // Kiểm tra API key đã được cấu hình ở DI level 
             _hasApiKey = !string.IsNullOrWhiteSpace(configuration["Groq:ApiKey"]);
         }
 
         public async Task<string> GenerateAnswerAsync(string prompt)
         {
-            // Nếu chưa cấu hình API key, trả về câu trả lời mock từ ngữ cảnh
             if (!_hasApiKey)
             {
                 return ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
@@ -53,7 +52,7 @@ namespace RagChatbotSystem.Business.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error calling Groq API: {ex.Message}");
-                // Dự phòng: trích xuất ngữ cảnh từ prompt khi API lỗi
+                
                 return ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
             }
         }
