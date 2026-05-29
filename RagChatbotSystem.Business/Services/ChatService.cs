@@ -70,11 +70,11 @@ namespace RagChatbotSystem.Business.Services
                 : "Khong tim thay tai lieu phu hop trong ngu canh.";
 
             var prompt =
-                "Ban la mot tro ly AI huu ich. Hay tra loi cau hoi cua nguoi dung bang tieng Viet dua vao phan Ngu canh duoc cung cap duoi day.\n" +
-                "Neu thong tin khong co trong Ngu canh, hay tra loi la \"Toi khong tim thay thong tin nay trong tai lieu cua ban.\" va khuyen nguoi dung bo sung tai lieu. Khong tu bia ra cau tra loi nam ngoai tai lieu.\n\n" +
-                $"Ngu canh:\n{contextText}\n\n" +
-                $"Cau hoi: {userQuestion}\n" +
-                "Cau tra loi:";
+                "Bạn là một trợ lý AI hữu ích. Hãy trả lời câu hỏi của người dùng bằng tiếng Việt dựa vào phần Ngữ cảnh được cung cấp dưới đây.\n" +
+                "Nếu thông tin không có trong Ngữ cảnh, hãy trả lời là \"Tôi không tìm thấy thông tin này trong tài liệu của bạn.\" và khuyên người dùng bổ sung tài liệu. Không tự bịa ra câu trả lời nằm ngoài tài liệu.\n\n" +
+                $"Ngữ cảnh:\n{contextText}\n\n" +
+                $"Câu hỏi: {userQuestion}\n" +
+                "Câu trả lời:";
 
             var aiResponse = await _llmService.GenerateAnswerAsync(prompt);
 

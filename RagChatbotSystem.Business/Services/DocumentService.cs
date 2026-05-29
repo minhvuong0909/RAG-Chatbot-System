@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using WordText = DocumentFormat.OpenXml.Wordprocessing.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Pgvector;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
@@ -26,12 +27,14 @@ namespace RagChatbotSystem.Business.Services
         private readonly AppDbContext _context;
         private readonly IRagApiClient _ragApiClient;
         private readonly IFileStorageService _fileStorageService;
+        private readonly ILogger<DocumentService> _logger;
 
-        public DocumentService(AppDbContext context, IRagApiClient ragApiClient, IFileStorageService fileStorageService)
+        public DocumentService(AppDbContext context, IRagApiClient ragApiClient, IFileStorageService fileStorageService, ILogger<DocumentService> logger)
         {
             _context = context;
             _ragApiClient = ragApiClient;
             _fileStorageService = fileStorageService;
+            _logger = logger;
         }
 
         public async Task<IReadOnlyList<DocumentDto>> GetDocumentsByDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default)
@@ -221,7 +224,7 @@ namespace RagChatbotSystem.Business.Services
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                Console.WriteLine($"Error processing document: {ex.Message}");
+                _logger.LogError(ex, "Error processing document '{FileName}' for dataset {DatasetId}.", fileName, datasetId);
                 throw;
             }
         }
@@ -234,7 +237,7 @@ namespace RagChatbotSystem.Business.Services
             var pythonDeleted = await _ragApiClient.DeleteDocumentAsync(documentId);
             if (!pythonDeleted)
             {
-                Console.WriteLine($"Warning: Failed to delete document {documentId} from Python RAG index.");
+                _logger.LogWarning("Failed to delete document {DocumentId} from Python RAG index.", documentId);
             }
 
             _context.Documents.Remove(document);

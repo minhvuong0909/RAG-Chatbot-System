@@ -25,73 +25,48 @@ namespace RagChatbotSystem.Presentation.Controllers
         }
 
         [HttpGet("run")]
-        public async Task<IActionResult> RunTestFlow([FromQuery] string question = "Where is the Burj Khalifa?")
+        public async Task<IActionResult> RunTestFlow(
+            [FromQuery] Guid documentId, 
+            [FromQuery] string question = "Burj Khalifa nằm ở đâu?")
         {
             try
             {
-                // 1. Ensure we have a test user
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == "testuser@example.com");
-                if (user == null)
-                {
-                    user = new User
-                    {
-                        UserId = Guid.NewGuid(),
-                        Email = "testuser@example.com",
-                        FullName = "Test User",
-                        Role = "User",
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.Users.Add(user);
-                    await _context.SaveChangesAsync();
-                }
+                // 1. Tìm tài liệu theo documentId
+                var document = await _context.Documents
+                    .Include(d => d.Dataset)
+                    .FirstOrDefaultAsync(d => d.DocumentId == documentId);
 
-                // 2. Ensure we have a test dataset (always recreate to force clean re-indexing in tests)
-                var dataset = await _context.Datasets.FirstOrDefaultAsync(d => d.Name == "Test Dataset");
-                if (dataset != null)
-                {
-                    _context.Datasets.Remove(dataset);
-                    await _context.SaveChangesAsync();
-                }
-
-                dataset = new Dataset
-                {
-                    DatasetId = Guid.NewGuid(),
-                    Name = "Test Dataset",
-                    Description = "Dataset created for integration testing",
-                    CreatedBy = user.UserId,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.Datasets.Add(dataset);
-                await _context.SaveChangesAsync();
-
-                // 3. Check if we already indexed a document
-                var document = await _context.Documents.FirstOrDefaultAsync(d => d.DatasetId == dataset.DatasetId);
                 if (document == null)
                 {
-                    var textContent = 
-                        "The Burj Khalifa is the tallest building in the world, located in Dubai, United Arab Emirates. It has a total height of 829.8 m (2,722 ft).\n\n" +
-                        "The Eiffel Tower is a wrought-iron lattice tower on the Champ de Mars in Paris, France. It is named after the engineer Gustave Eiffel.\n\n" +
-                        "The Great Wall of China is a series of fortifications that were built across the historical northern borders of ancient Chinese states.\n\n" +
-                        "Python is a high-level, general-purpose programming language. Its design philosophy emphasizes code readability with the use of significant indentation.";
-
-                    document = await _documentService.ProcessAndIndexDocumentAsync(
-                        dataset.DatasetId, 
-                        user.UserId, 
-                        "test_facts.txt", 
-                        textContent
-                    );
+                    return BadRequest(new { 
+                        Status = "Error", 
+                        Message = $"Không tìm thấy Document với ID: {documentId}. Vui lòng upload tài liệu trước." 
+                    });
                 }
 
-                // 4. Ensure we have a chat session
-                var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.DatasetId == dataset.DatasetId);
+                if (document.Status != "Completed")
+                {
+                    return BadRequest(new { 
+                        Status = "Error", 
+                        Message = $"Tài liệu '{document.FileName}' chưa được xử lý thành công (Trạng thái hiện tại: {document.Status}). Vui lòng xử lý tài liệu trước." 
+                    });
+                }
+
+                var datasetId = document.DatasetId;
+                var userId = document.UploadedBy;
+
+                // 2. Tìm hoặc tạo mới Chat Session cho dataset này
+                var session = await _context.ChatSessions
+                    .FirstOrDefaultAsync(s => s.DatasetId == datasetId && s.UserId == userId);
+
                 if (session == null)
                 {
                     session = new ChatSession
                     {
                         SessionId = Guid.NewGuid(),
-                        UserId = user.UserId,
-                        DatasetId = dataset.DatasetId,
-                        Title = "Test Chat Session",
+                        UserId = userId,
+                        DatasetId = datasetId,
+                        Title = $"Chat Test - {document.FileName}",
                         StartedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
@@ -99,10 +74,10 @@ namespace RagChatbotSystem.Presentation.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                // 5. Send chat query
+                // 3. Gửi câu hỏi chat
                 var chatResponse = await _chatService.SendChatMessageAsync(session.SessionId, question);
 
-                // 6. Fetch citations
+                // 4. Lấy các trích dẫn (citations) nguồn từ câu trả lời
                 var citations = await _context.Citations
                     .Include(c => c.Chunk)
                     .Where(c => c.MessageId == chatResponse.AssistantMessage.MessageId)
@@ -118,6 +93,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                 return Ok(new
                 {
                     Status = "Success",
+                    DocumentName = document.FileName,
                     Question = question,
                     Answer = chatResponse.AssistantMessage.Content,
                     SessionId = session.SessionId,

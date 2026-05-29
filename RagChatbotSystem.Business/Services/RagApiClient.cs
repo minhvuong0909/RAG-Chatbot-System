@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 
@@ -10,10 +11,12 @@ namespace RagChatbotSystem.Business.Services
     public class RagApiClient : IRagApiClient
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<RagApiClient> _logger;
 
-        public RagApiClient(HttpClient httpClient)
+        public RagApiClient(HttpClient httpClient, ILogger<RagApiClient> logger)
         {
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         public async Task<IndexResponseDto> IndexDocumentsAsync(IndexRequestDto request)
@@ -43,7 +46,7 @@ namespace RagChatbotSystem.Business.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error calling Python delete API: {ex.Message}");
+                _logger.LogWarning(ex, "Failed to delete document {DocumentId} from Python RAG index.", documentId);
                 return false;
             }
         }

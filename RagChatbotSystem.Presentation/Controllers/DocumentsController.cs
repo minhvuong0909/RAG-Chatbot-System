@@ -39,28 +39,33 @@ namespace RagChatbotSystem.Presentation.Controllers
             return document == null ? NotFound() : Ok(document);
         }
 
+        public class UploadDocumentRequest
+        {
+            public Guid UploadedBy { get; set; }
+            public IFormFile File { get; set; } = null!;
+        }
+
         [HttpPost("api/datasets/{datasetId:guid}/documents")]
         [RequestSizeLimit(50_000_000)]
         public async Task<IActionResult> UploadDocument(
             Guid datasetId,
-            [FromForm] Guid uploadedBy,
-            [FromForm] IFormFile file,
+            [FromForm] UploadDocumentRequest request,
             CancellationToken cancellationToken)
         {
-            if (file == null || file.Length == 0)
+            if (request?.File == null || request.File.Length == 0)
             {
                 return BadRequest(new { message = "File is required." });
             }
 
             try
             {
-                await using var stream = file.OpenReadStream();
+                await using var stream = request.File.OpenReadStream();
                 var document = await _documentService.UploadDocumentAsync(
                     datasetId,
-                    uploadedBy,
+                    request.UploadedBy,
                     stream,
-                    file.FileName,
-                    file.Length,
+                    request.File.FileName,
+                    request.File.Length,
                     cancellationToken);
 
                 return CreatedAtAction(nameof(GetDocument), new { documentId = document.DocumentId }, document);
