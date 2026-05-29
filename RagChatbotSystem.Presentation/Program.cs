@@ -3,6 +3,7 @@ using RagChatbotSystem.DataAccess.Data;
 using Pgvector;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Business.Services;
+using RagChatbotSystem.Presentation.Services;
 
 namespace RagChatbotSystem.Presentation
 {
@@ -23,7 +24,8 @@ namespace RagChatbotSystem.Presentation
             // Cấu hình HttpClient cho Python RAG API (timeout 120s cho các thao tác nặng)
             builder.Services.AddHttpClient<IRagApiClient, RagApiClient>(client =>
             {
-                var baseUrl = builder.Configuration["RagApi:BaseUrl"];
+                var baseUrl = builder.Configuration["RagApi:BaseUrl"]
+                    ?? throw new InvalidOperationException("RagApi:BaseUrl is not configured.");
                 client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(120);
             });
@@ -43,8 +45,12 @@ namespace RagChatbotSystem.Presentation
             });
 
             // Đăng ký các dịch vụ Business Layer
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IDatasetService, DatasetService>();
+            builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
 
             var app = builder.Build();
 

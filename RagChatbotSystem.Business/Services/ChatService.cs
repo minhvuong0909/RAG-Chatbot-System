@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RagChatbotSystem.Business.DTOs;
@@ -23,66 +24,60 @@ namespace RagChatbotSystem.Business.Services
             _llmService = llmService;
         }
 
-        public async Task<ChatMessage> SendChatMessageAsync(Guid sessionId, string userQuestion)
+        public async Task<SendChatMessageResponse> SendChatMessageAsync(Guid sessionId, string userQuestion)
         {
-            // 1. Lấy thông tin phiên chat
-            var session = await _context.ChatSessions
-                .FirstOrDefaultAsync(s => s.SessionId == sessionId);
+            if (string.IsNullOrWhiteSpace(userQuestion))
+            {
+                throw new ArgumentException("Question is required.", nameof(userQuestion));
+            }
 
+            var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.SessionId == sessionId);
             if (session == null)
             {
                 throw new ArgumentException("Chat session not found.");
             }
 
             var now = DateTime.UtcNow;
-
-            // 2. Lưu tin nhắn người dùng
             var userMessage = new ChatMessage
             {
                 MessageId = Guid.NewGuid(),
                 SessionId = sessionId,
                 Role = "User",
-                Content = userQuestion,
+                Content = userQuestion.Trim(),
                 CreatedAt = now
             };
 
             _context.ChatMessages.Add(userMessage);
 
-            // 3. Truy vấn ngữ cảnh từ Python RAG API
-            var retrieveRequest = new RetrieveRequestDto
+            var retrieveResult = await _ragApiClient.RetrieveAsync(new RetrieveRequestDto
             {
                 Query = userQuestion,
                 TopK = 10,
                 SemanticWeight = 0.7,
                 LexicalWeight = 0.3,
                 EnableRerank = true
-            };
+            });
 
-            var retrieveResult = await _ragApiClient.RetrieveAsync(retrieveRequest);
-
-            // Lọc kết quả chỉ lấy đoạn văn thuộc đúng DatasetId của phiên chat
             var datasetIdStr = session.DatasetId.ToString();
-            var contextDocs = retrieveResult?.Documents?
+            var contextDocs = retrieveResult.Documents
                 .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
                     && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
                 .Take(3)
-                .ToList() ?? new List<DocumentModelDto>();
+                .ToList();
 
-            // 4. Xây dựng Prompt cho LLM
             var contextText = contextDocs.Count > 0
                 ? string.Join("\n\n---\n\n", contextDocs.Select(d => d.PageContent))
-                : "Không tìm thấy tài liệu phù hợp trong ngữ cảnh.";
+                : "Khong tim thay tai lieu phu hop trong ngu canh.";
 
-            var prompt = $"Bạn là một trợ lý AI hữu ích. Hãy trả lời câu hỏi của người dùng bằng tiếng Việt dựa vào phần Ngữ cảnh được cung cấp dưới đây.\n" +
-                         $"Nếu thông tin không có trong Ngữ cảnh, hãy trả lời là \"Tôi không tìm thấy thông tin này trong tài liệu của bạn.\" và khuyên người dùng bổ sung tài liệu. Không tự bịa ra câu trả lời nằm ngoài tài liệu.\n\n" +
-                         $"Ngữ cảnh:\n{contextText}\n\n" +
-                         $"Câu hỏi: {userQuestion}\n" +
-                         $"Câu trả lời:";
+            var prompt =
+                "Ban la mot tro ly AI huu ich. Hay tra loi cau hoi cua nguoi dung bang tieng Viet dua vao phan Ngu canh duoc cung cap duoi day.\n" +
+                "Neu thong tin khong co trong Ngu canh, hay tra loi la \"Toi khong tim thay thong tin nay trong tai lieu cua ban.\" va khuyen nguoi dung bo sung tai lieu. Khong tu bia ra cau tra loi nam ngoai tai lieu.\n\n" +
+                $"Ngu canh:\n{contextText}\n\n" +
+                $"Cau hoi: {userQuestion}\n" +
+                "Cau tra loi:";
 
-            // 5. Gọi LLM sinh câu trả lời
             var aiResponse = await _llmService.GenerateAnswerAsync(prompt);
 
-            // 6. Lưu tin nhắn của AI
             var assistantMessage = new ChatMessage
             {
                 MessageId = Guid.NewGuid(),
@@ -94,39 +89,109 @@ namespace RagChatbotSystem.Business.Services
 
             _context.ChatMessages.Add(assistantMessage);
 
-            // 7. Tạo trích dẫn nguồn (Citations) cho câu trả lời
-            if (contextDocs.Count > 0)
+            var citations = BuildCitations(contextDocs, assistantMessage.MessageId);
+            if (citations.Count > 0)
             {
-                var citations = new List<Citation>(contextDocs.Count);
-                foreach (var doc in contextDocs)
+                _context.Citations.AddRange(citations);
+            }
+
+            session.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new SendChatMessageResponse(
+                ToDto(userMessage),
+                ToDto(assistantMessage),
+                citations.Select(ToDto).ToList());
+        }
+
+        private static List<Citation> BuildCitations(IReadOnlyList<DocumentModelDto> contextDocs, Guid messageId)
+        {
+            var citations = new List<Citation>(contextDocs.Count);
+
+            foreach (var doc in contextDocs)
+            {
+                if (!doc.Metadata.TryGetValue("id", out var chunkIdObj) ||
+                    !Guid.TryParse(chunkIdObj?.ToString(), out var chunkId) ||
+                    !doc.Metadata.TryGetValue("document_id", out var docIdObj) ||
+                    !Guid.TryParse(docIdObj?.ToString(), out var docId))
                 {
-                    if (doc.Metadata.TryGetValue("id", out var chunkIdObj) && Guid.TryParse(chunkIdObj?.ToString(), out Guid chunkId) &&
-                        doc.Metadata.TryGetValue("document_id", out var docIdObj) && Guid.TryParse(docIdObj?.ToString(), out Guid docId))
-                    {
-                        citations.Add(new Citation
-                        {
-                            CitationId = Guid.NewGuid(),
-                            MessageId = assistantMessage.MessageId,
-                            DocumentId = docId,
-                            ChunkId = chunkId,
-                            PageNumber = 1,
-                            QuoteText = doc.PageContent.Length > 200 ? doc.PageContent[..200] : doc.PageContent,
-                            SourceLabel = "Chunk Reference",
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
+                    continue;
                 }
 
-                if (citations.Count > 0)
+                citations.Add(new Citation
                 {
-                    _context.Citations.AddRange(citations);
+                    CitationId = Guid.NewGuid(),
+                    MessageId = messageId,
+                    DocumentId = docId,
+                    ChunkId = chunkId,
+                    PageNumber = GetMetadataInt(doc.Metadata, "page_number") ?? 1,
+                    QuoteText = doc.PageContent,
+                    SourceLabel = GetMetadataString(doc.Metadata, "file_name") ?? "Chunk Reference",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            return citations;
+        }
+
+        private static ChatMessageDto ToDto(ChatMessage message)
+        {
+            return new ChatMessageDto(
+                message.MessageId,
+                message.SessionId,
+                message.Role,
+                message.Content,
+                message.CreatedAt);
+        }
+
+        private static CitationDto ToDto(Citation citation)
+        {
+            return new CitationDto(
+                citation.CitationId,
+                citation.MessageId,
+                citation.DocumentId,
+                citation.ChunkId,
+                citation.PageNumber,
+                citation.QuoteText,
+                citation.SourceLabel,
+                citation.CreatedAt);
+        }
+
+        private static int? GetMetadataInt(Dictionary<string, object> metadata, string key)
+        {
+            if (!metadata.TryGetValue(key, out var value) || value == null)
+            {
+                return null;
+            }
+
+            if (value is int intValue) return intValue;
+            if (value is long longValue) return checked((int)longValue);
+            if (value is JsonElement element)
+            {
+                if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out var jsonInt))
+                {
+                    return jsonInt;
+                }
+
+                if (element.ValueKind == JsonValueKind.String && int.TryParse(element.GetString(), out var jsonStringInt))
+                {
+                    return jsonStringInt;
                 }
             }
 
-            // Ghi tất cả thay đổi vào DB trong 1 lần duy nhất (tối ưu I/O)
-            await _context.SaveChangesAsync();
+            return int.TryParse(value.ToString(), out var parsed) ? parsed : null;
+        }
 
-            return assistantMessage;
+        private static string? GetMetadataString(Dictionary<string, object> metadata, string key)
+        {
+            if (!metadata.TryGetValue(key, out var value) || value == null)
+            {
+                return null;
+            }
+
+            return value is JsonElement element && element.ValueKind == JsonValueKind.String
+                ? element.GetString()
+                : value.ToString();
         }
     }
 }

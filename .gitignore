@@ -30,3 +30,19 @@ Desktop.ini
 .env
 .env.local
 .env.*.local
+
+# Runtime uploaded files
+**/wwwroot/uploads/
+
+# Python RAG API local/runtime files
+RAG-Retrieval-Indexing-API/**/.env
+RAG-Retrieval-Indexing-API/**/.env.*
+RAG-Retrieval-Indexing-API/**/.venv/
+RAG-Retrieval-Indexing-API/**/venv/
+RAG-Retrieval-Indexing-API/**/__pycache__/
+RAG-Retrieval-Indexing-API/**/.pytest_cache/
+RAG-Retrieval-Indexing-API/**/cache/
+RAG-Retrieval-Indexing-API/**/*.pkl
+RAG-Retrieval-Indexing-API/**/*.pickle
+RAG-Retrieval-Indexing-API/**/*.faiss
+RAG-Retrieval-Indexing-API/**/*.index
