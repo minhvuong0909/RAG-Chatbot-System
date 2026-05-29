@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+.git/
+.gitignore
+.env
+.env.local
+.env.*.local
+run-auth-*.log
+plan_tas5.md
+note.md

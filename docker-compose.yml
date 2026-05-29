@@ -31,6 +31,41 @@ services:
       postgres:
         condition: service_healthy
 
+  web-app:
+    build:
+      context: .
+      dockerfile: RagChatbotSystem.Presentation/Dockerfile
+    container_name: rag-web-app
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=rag_chatbot;Username=rag_user;Password=123456
+      RagApi__BaseUrl: http://python-api:8000
+      Groq__ApiKey: ${GROQ_API_KEY:-}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+    ports:
+      - "5259:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Enable this service after the Python API folder has a Dockerfile/app entrypoint.
+  # Run with: docker compose --profile python-api up -d --build
+  python-api:
+    profiles:
+      - python-api
+    build:
+      context: ./RAG-Retrieval-Indexing-API
+    container_name: rag-python-api
+    environment:
+      DATABASE_URL: postgresql://rag_user:123456@postgres:5432/rag_chatbot
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   pgadmin_data:
