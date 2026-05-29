@@ -75,6 +75,28 @@ namespace RagChatbotSystem.Presentation.Controllers
             }
         }
 
+        [HttpPost("api/documents/{documentId:guid}/process")]
+        public async Task<IActionResult> ProcessDocument(Guid documentId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var document = await _documentService.ProcessUploadedDocumentAsync(documentId, cancellationToken);
+                return Ok(document);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (NotSupportedException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpDelete("api/documents/{documentId:guid}")]
         public async Task<IActionResult> DeleteDocument(Guid documentId)
         {

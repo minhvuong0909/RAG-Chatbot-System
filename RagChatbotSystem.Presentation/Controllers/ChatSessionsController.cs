@@ -13,10 +13,12 @@ namespace RagChatbotSystem.Presentation.Controllers
     public class ChatSessionsController : ControllerBase
     {
         private readonly IChatSessionService _chatSessionService;
+        private readonly IChatService _chatService;
 
-        public ChatSessionsController(IChatSessionService chatSessionService)
+        public ChatSessionsController(IChatSessionService chatSessionService, IChatService chatService)
         {
             _chatSessionService = chatSessionService;
+            _chatService = chatService;
         }
 
         [HttpGet("{sessionId:guid}")]
@@ -51,6 +53,20 @@ namespace RagChatbotSystem.Presentation.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{sessionId:guid}/messages")]
+        public async Task<IActionResult> SendMessage(Guid sessionId, [FromBody] SendChatMessageRequest request)
+        {
+            try
+            {
+                var response = await _chatService.SendChatMessageAsync(sessionId, request.Question);
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
     }
