@@ -25,7 +25,13 @@ namespace RagChatbotSystem.Business.Services
             return await _context.ChatSessions
                 .AsNoTracking()
                 .Where(s => s.SessionId == sessionId)
-                .Select(s => ToDto(s))
+                .Select(s => new ChatSessionDto(
+                    s.SessionId,
+                    s.UserId,
+                    s.DatasetId,
+                    s.Title,
+                    s.StartedAt,
+                    s.UpdatedAt))
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
@@ -72,7 +78,12 @@ namespace RagChatbotSystem.Business.Services
                 .AsNoTracking()
                 .Where(m => m.SessionId == sessionId)
                 .OrderBy(m => m.CreatedAt)
-                .Select(m => ToDto(m))
+                .Select(m => new ChatMessageDto(
+                    m.MessageId,
+                    m.SessionId,
+                    m.Role,
+                    m.Content,
+                    m.CreatedAt))
                 .ToListAsync(cancellationToken);
         }
 

@@ -25,7 +25,12 @@ namespace RagChatbotSystem.Business.Services
             return await _context.Users
                 .AsNoTracking()
                 .OrderBy(u => u.FullName)
-                .Select(u => ToDto(u))
+                .Select(u => new UserDto(
+                    u.UserId,
+                    u.FullName,
+                    u.Email,
+                    u.Role,
+                    u.CreatedAt))
                 .ToListAsync(cancellationToken);
         }
 
@@ -34,7 +39,12 @@ namespace RagChatbotSystem.Business.Services
             return await _context.Users
                 .AsNoTracking()
                 .Where(u => u.UserId == userId)
-                .Select(u => ToDto(u))
+                .Select(u => new UserDto(
+                    u.UserId,
+                    u.FullName,
+                    u.Email,
+                    u.Role,
+                    u.CreatedAt))
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
