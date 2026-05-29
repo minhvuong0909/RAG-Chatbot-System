@@ -100,12 +100,12 @@ namespace RagChatbotSystem.Presentation.Controllers
                 }
 
                 // 5. Send chat query
-                var reply = await _chatService.SendChatMessageAsync(session.SessionId, question);
+                var chatResponse = await _chatService.SendChatMessageAsync(session.SessionId, question);
 
                 // 6. Fetch citations
                 var citations = await _context.Citations
                     .Include(c => c.Chunk)
-                    .Where(c => c.MessageId == reply.MessageId)
+                    .Where(c => c.MessageId == chatResponse.AssistantMessage.MessageId)
                     .Select(c => new {
                         c.CitationId,
                         c.PageNumber,
@@ -119,7 +119,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                 {
                     Status = "Success",
                     Question = question,
-                    Answer = reply.Content,
+                    Answer = chatResponse.AssistantMessage.Content,
                     SessionId = session.SessionId,
                     Citations = citations
                 });

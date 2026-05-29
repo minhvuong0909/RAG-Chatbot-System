@@ -1,11 +1,11 @@
 using System;
 using System.Threading.Tasks;
-using RagChatbotSystem.DataAccess.Models;
+using RagChatbotSystem.Business.DTOs;
 
 namespace RagChatbotSystem.Business.Interfaces
 {
     public interface IChatService
     {
-        Task<ChatMessage> SendChatMessageAsync(Guid sessionId, string userQuestion);
+        Task<SendChatMessageResponse> SendChatMessageAsync(Guid sessionId, string userQuestion);
     }
 }
