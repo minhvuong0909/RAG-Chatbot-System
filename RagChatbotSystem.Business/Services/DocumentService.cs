@@ -39,7 +39,17 @@ namespace RagChatbotSystem.Business.Services
                 .AsNoTracking()
                 .Where(d => d.DatasetId == datasetId)
                 .OrderByDescending(d => d.UploadedAt)
-                .Select(d => ToDto(d))
+                .Select(d => new DocumentDto(
+                    d.DocumentId,
+                    d.DatasetId,
+                    d.FileName,
+                    d.FilePath,
+                    d.FileType,
+                    d.FileSize,
+                    d.Status,
+                    d.UploadedBy,
+                    d.UploadedAt,
+                    d.UpdatedAt))
                 .ToListAsync(cancellationToken);
         }
 
@@ -48,7 +58,17 @@ namespace RagChatbotSystem.Business.Services
             return await _context.Documents
                 .AsNoTracking()
                 .Where(d => d.DocumentId == documentId)
-                .Select(d => ToDto(d))
+                .Select(d => new DocumentDto(
+                    d.DocumentId,
+                    d.DatasetId,
+                    d.FileName,
+                    d.FilePath,
+                    d.FileType,
+                    d.FileSize,
+                    d.Status,
+                    d.UploadedBy,
+                    d.UploadedAt,
+                    d.UpdatedAt))
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
