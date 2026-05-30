@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 
@@ -10,45 +11,30 @@ namespace RagChatbotSystem.Business.Services
     public class RagApiClient : IRagApiClient
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<RagApiClient> _logger;
 
-        public RagApiClient(HttpClient httpClient)
+        public RagApiClient(HttpClient httpClient, ILogger<RagApiClient> logger)
         {
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         public async Task<IndexResponseDto> IndexDocumentsAsync(IndexRequestDto request)
         {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync("/index", request);
-                response.EnsureSuccessStatusCode();
+            var response = await _httpClient.PostAsJsonAsync("/index", request);
+            await EnsureSuccessAsync(response, "/index");
 
-                var result = await response.Content.ReadFromJsonAsync<IndexResponseDto>();
-                return result ?? new IndexResponseDto();
-            }
-            catch (Exception ex)
-            {
-                // Trong môi trường thực tế, hãy ghi log lỗi này
-                Console.WriteLine($"Error calling Python /index: {ex.Message}");
-                return new IndexResponseDto { Message = $"Error: {ex.Message}" };
-            }
+            var result = await response.Content.ReadFromJsonAsync<IndexResponseDto>();
+            return result ?? throw new InvalidOperationException("Python /index returned an empty response body.");
         }
 
         public async Task<RetrieveResponseDto> RetrieveAsync(RetrieveRequestDto request)
         {
-            try
-            {
-                var response = await _httpClient.PostAsJsonAsync("/retrieve", request);
-                response.EnsureSuccessStatusCode();
+            var response = await _httpClient.PostAsJsonAsync("/retrieve", request);
+            await EnsureSuccessAsync(response, "/retrieve");
 
-                var result = await response.Content.ReadFromJsonAsync<RetrieveResponseDto>();
-                return result ?? new RetrieveResponseDto();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error calling Python /retrieve: {ex.Message}");
-                return new RetrieveResponseDto { Query = request.Query };
-            }
+            var result = await response.Content.ReadFromJsonAsync<RetrieveResponseDto>();
+            return result ?? throw new InvalidOperationException("Python /retrieve returned an empty response body.");
         }
 
         public async Task<bool> DeleteDocumentAsync(Guid documentId)
@@ -60,9 +46,20 @@ namespace RagChatbotSystem.Business.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error calling Python delete API: {ex.Message}");
+                _logger.LogWarning(ex, "Failed to delete document {DocumentId} from Python RAG index.", documentId);
                 return false;
             }
+        }
+
+        private static async Task EnsureSuccessAsync(HttpResponseMessage response, string endpoint)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return;
+            }
+
+            var body = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"Python RAG API {endpoint} failed with {(int)response.StatusCode} {response.ReasonPhrase}. Body: {body}");
         }
     }
 }

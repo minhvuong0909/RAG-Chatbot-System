@@ -5,26 +5,36 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Packaging;
+using WordText = DocumentFormat.OpenXml.Wordprocessing.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Pgvector;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.DataAccess.Data;
 using RagChatbotSystem.DataAccess.Models;
-using Pgvector;
+using UglyToad.PdfPig;
 
 namespace RagChatbotSystem.Business.Services
 {
     public class DocumentService : IDocumentService
     {
+        private const int DefaultChunkSize = 600;
+        private const int DefaultChunkOverlap = 120;
+        private const string EmbeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
+
         private readonly AppDbContext _context;
         private readonly IRagApiClient _ragApiClient;
         private readonly IFileStorageService _fileStorageService;
+        private readonly ILogger<DocumentService> _logger;
 
-        public DocumentService(AppDbContext context, IRagApiClient ragApiClient, IFileStorageService fileStorageService)
+        public DocumentService(AppDbContext context, IRagApiClient ragApiClient, IFileStorageService fileStorageService, ILogger<DocumentService> logger)
         {
             _context = context;
             _ragApiClient = ragApiClient;
             _fileStorageService = fileStorageService;
+            _logger = logger;
         }
 
         public async Task<IReadOnlyList<DocumentDto>> GetDocumentsByDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default)
@@ -119,9 +129,55 @@ namespace RagChatbotSystem.Business.Services
             return ToDto(document);
         }
 
+        public async Task<DocumentDto> ProcessUploadedDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+        {
+            var document = await _context.Documents.FirstOrDefaultAsync(d => d.DocumentId == documentId, cancellationToken);
+            if (document == null)
+            {
+                throw new KeyNotFoundException("Document was not found.");
+            }
+
+            document.Status = "Processing";
+            document.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                await using var stream = await _fileStorageService.OpenReadAsync(document.FilePath, cancellationToken);
+                var segments = await ExtractTextSegmentsAsync(stream, document.FileType, cancellationToken);
+                var chunks = SplitTextSegments(segments, DefaultChunkSize, DefaultChunkOverlap);
+
+                if (chunks.Count == 0)
+                {
+                    throw new InvalidOperationException("No extractable text found.");
+                }
+
+                await IndexExistingDocumentAsync(document, chunks, cancellationToken);
+
+                document.Status = "Completed";
+                document.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+
+                return ToDto(document);
+            }
+            catch
+            {
+                _context.ChangeTracker.Clear();
+
+                var failedDocument = await _context.Documents.FirstOrDefaultAsync(d => d.DocumentId == documentId, cancellationToken);
+                if (failedDocument != null)
+                {
+                    failedDocument.Status = "Failed";
+                    failedDocument.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+
+                throw;
+            }
+        }
+
         public async Task<Document?> ProcessAndIndexDocumentAsync(Guid datasetId, Guid userId, string fileName, string rawText)
         {
-            // 1. Kiểm tra Dataset có tồn tại không
             var dataset = await _context.Datasets.FindAsync(datasetId);
             if (dataset == null)
             {
@@ -131,7 +187,7 @@ namespace RagChatbotSystem.Business.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 2. Tạo thực thể Document
+                var now = DateTime.UtcNow;
                 var document = new Document
                 {
                     DocumentId = Guid.NewGuid(),
@@ -139,135 +195,38 @@ namespace RagChatbotSystem.Business.Services
                     FileName = fileName,
                     FilePath = fileName,
                     FileSize = Encoding.UTF8.GetByteCount(rawText),
-                    FileType = Path.GetExtension(fileName).TrimStart('.').ToLower(),
+                    FileType = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant(),
                     Status = "Processing",
                     UploadedBy = userId,
-                    UploadedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UploadedAt = now,
+                    UpdatedAt = now
                 };
 
                 _context.Documents.Add(document);
 
-                // 3. Tách nhỏ văn bản (Chunking)
-                var textChunks = SplitText(rawText, 600, 120);
-                if (textChunks.Count == 0)
+                var chunks = SplitTextSegments(
+                    new List<ExtractedTextSegment> { new(rawText, 1) },
+                    DefaultChunkSize,
+                    DefaultChunkOverlap);
+
+                if (chunks.Count > 0)
                 {
-                    document.Status = "Completed";
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return document;
+                    await AddIndexedChunksAsync(document, chunks, rebuildCache: false, cancellationToken: default);
                 }
 
-                // Khởi tạo danh sách với capacity xác định (tránh resize động)
-                var chunkEntities = new List<Chunk>(textChunks.Count);
-                var apiDocs = new List<DocumentModelDto>(textChunks.Count);
-                var documentIdStr = document.DocumentId.ToString();
-                var datasetIdStr = datasetId.ToString();
-                var now = DateTime.UtcNow;
-
-                for (int i = 0; i < textChunks.Count; i++)
-                {
-                    var chunkId = Guid.NewGuid();
-                    var content = textChunks[i];
-
-                    chunkEntities.Add(new Chunk
-                    {
-                        ChunkId = chunkId,
-                        DatasetId = datasetId,
-                        DocumentId = document.DocumentId,
-                        ChunkIndex = i + 1,
-                        Content = content,
-                        PageNumber = 1,
-                        CreatedAt = now,
-                        MetadataJson = $"{{\"index\": {i + 1}}}"
-                    });
-
-                    // Payload gửi sang Python API
-                    apiDocs.Add(new DocumentModelDto
-                    {
-                        PageContent = content,
-                        Metadata = new Dictionary<string, object>(3)
-                        {
-                            { "id", chunkId.ToString() },
-                            { "document_id", documentIdStr },
-                            { "dataset_id", datasetIdStr }
-                        }
-                    });
-                }
-
-                // Thêm tất cả chunks vào DbContext (chưa ghi DB)
-                _context.Chunks.AddRange(chunkEntities);
-
-                // 4. Gửi chunks sang Python RAG API để đánh index
-                var indexRequest = new IndexRequestDto
-                {
-                    Documents = apiDocs,
-                    RebuildCache = true
-                };
-
-                var indexResponse = await _ragApiClient.IndexDocumentsAsync(indexRequest);
-
-                if (indexResponse?.Embeddings == null || indexResponse.Embeddings.Count != chunkEntities.Count)
-                {
-                    throw new Exception($"Failed to index documents in RAG API or mismatched embedding count. Expected {chunkEntities.Count}, got {indexResponse?.Embeddings?.Count ?? 0}. Message: {indexResponse?.Message}");
-                }
-
-                // 5. Tạo bản ghi Vector từ embeddings trả về
-                var vectorRecords = new List<VectorRecord>(chunkEntities.Count);
-                for (int i = 0; i < chunkEntities.Count; i++)
-                {
-                    vectorRecords.Add(new VectorRecord
-                    {
-                        VectorId = Guid.NewGuid(),
-                        DatasetId = datasetId,
-                        DocumentId = document.DocumentId,
-                        ChunkId = chunkEntities[i].ChunkId,
-                        Embedding = new Vector(indexResponse.Embeddings[i]),
-                        EmbeddingModel = "sentence-transformers/all-MiniLM-L6-v2",
-                        CreatedAt = now
-                    });
-                }
-
-                _context.VectorRecords.AddRange(vectorRecords);
-
-                // Cập nhật trạng thái tài liệu
                 document.Status = "Completed";
-
-                // Ghi tất cả thay đổi vào DB trong 1 lần duy nhất (tối ưu I/O)
+                document.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
                 return document;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                Console.WriteLine($"Error processing document: {ex.Message}");
+                _logger.LogError(ex, "Error processing document '{FileName}' for dataset {DatasetId}.", fileName, datasetId);
                 throw;
             }
-        }
-
-        /// <summary>
-        /// Tách văn bản theo kỹ thuật cửa sổ trượt (Sliding Window).
-        /// Preallocate capacity cho List để tránh resize động.
-        /// </summary>
-        private static List<string> SplitText(string text, int chunkSize, int chunkOverlap)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return new List<string>();
-
-            int step = chunkSize - chunkOverlap;
-            if (step <= 0) step = chunkSize;
-
-            // Tính trước số lượng chunk để preallocate
-            int estimatedCount = (text.Length / step) + 1;
-            var chunks = new List<string>(estimatedCount);
-
-            for (int i = 0; i < text.Length; i += step)
-            {
-                int length = Math.Min(chunkSize, text.Length - i);
-                chunks.Add(text.Substring(i, length));
-                if (i + length >= text.Length) break;
-            }
-            return chunks;
         }
 
         public async Task<bool> DeleteDocumentAsync(Guid documentId)
@@ -275,19 +234,232 @@ namespace RagChatbotSystem.Business.Services
             var document = await _context.Documents.FindAsync(documentId);
             if (document == null) return false;
 
-            // 1. Gọi Python API để xóa các vector & chunk khỏi bộ nhớ cache FAISS/BM25
             var pythonDeleted = await _ragApiClient.DeleteDocumentAsync(documentId);
             if (!pythonDeleted)
             {
-                Console.WriteLine($"Warning: Failed to delete document {documentId} from Python RAG index.");
+                _logger.LogWarning("Failed to delete document {DocumentId} from Python RAG index.", documentId);
             }
 
-            // 2. Xóa khỏi cơ sở dữ liệu Postgres (EF Core tự động xóa cascade)
             _context.Documents.Remove(document);
             await _context.SaveChangesAsync();
             await _fileStorageService.DeleteFileIfExistsAsync(document.FilePath);
 
             return true;
+        }
+
+        internal static async Task<List<ExtractedTextSegment>> ExtractTextSegmentsAsync(Stream stream, string fileType, CancellationToken cancellationToken = default)
+        {
+            var normalizedType = fileType.TrimStart('.').ToLowerInvariant();
+
+            return normalizedType switch
+            {
+                "txt" => await ExtractTxtAsync(stream, cancellationToken),
+                "pdf" => ExtractPdf(stream),
+                "docx" => ExtractDocx(stream),
+                _ => throw new NotSupportedException($"File type '{fileType}' is not supported.")
+            };
+        }
+
+        internal static List<TextChunk> SplitTextSegments(IReadOnlyList<ExtractedTextSegment> segments, int chunkSize, int chunkOverlap)
+        {
+            var nonEmptySegments = segments.Where(s => !string.IsNullOrWhiteSpace(s.Text)).ToList();
+            if (nonEmptySegments.Count == 0) return new List<TextChunk>();
+
+            var builder = new StringBuilder();
+            var ranges = new List<PageTextRange>(nonEmptySegments.Count);
+
+            foreach (var segment in nonEmptySegments)
+            {
+                if (builder.Length > 0)
+                {
+                    builder.Append("\n\n");
+                }
+
+                var start = builder.Length;
+                builder.Append(segment.Text.Trim());
+                ranges.Add(new PageTextRange(start, builder.Length, segment.PageNumber));
+            }
+
+            var text = builder.ToString();
+            var step = chunkSize - chunkOverlap;
+            if (step <= 0) step = chunkSize;
+
+            var estimatedCount = (text.Length / step) + 1;
+            var chunks = new List<TextChunk>(estimatedCount);
+
+            for (var i = 0; i < text.Length; i += step)
+            {
+                var length = Math.Min(chunkSize, text.Length - i);
+                var content = text.Substring(i, length).Trim();
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    chunks.Add(new TextChunk(content, ResolveDominantPage(i, i + length, ranges)));
+                }
+
+                if (i + length >= text.Length) break;
+            }
+
+            return chunks;
+        }
+
+        private async Task IndexExistingDocumentAsync(Document document, IReadOnlyList<TextChunk> chunks, CancellationToken cancellationToken)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var existingChunks = await _context.Chunks
+                    .Where(c => c.DocumentId == document.DocumentId)
+                    .ToListAsync(cancellationToken);
+
+                if (existingChunks.Count > 0)
+                {
+                    await _ragApiClient.DeleteDocumentAsync(document.DocumentId);
+                    _context.Chunks.RemoveRange(existingChunks);
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+
+                await AddIndexedChunksAsync(document, chunks, rebuildCache: false, cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        private async Task AddIndexedChunksAsync(Document document, IReadOnlyList<TextChunk> textChunks, bool rebuildCache, CancellationToken cancellationToken)
+        {
+            var chunkEntities = new List<Chunk>(textChunks.Count);
+            var apiDocs = new List<DocumentModelDto>(textChunks.Count);
+            var now = DateTime.UtcNow;
+
+            for (var i = 0; i < textChunks.Count; i++)
+            {
+                var chunkId = Guid.NewGuid();
+                var chunkIndex = i + 1;
+                var textChunk = textChunks[i];
+
+                chunkEntities.Add(new Chunk
+                {
+                    ChunkId = chunkId,
+                    DatasetId = document.DatasetId,
+                    DocumentId = document.DocumentId,
+                    ChunkIndex = chunkIndex,
+                    Content = textChunk.Content,
+                    PageNumber = textChunk.PageNumber,
+                    CreatedAt = now,
+                    MetadataJson = $"{{\"chunk_index\": {chunkIndex}, \"page_number\": {textChunk.PageNumber}}}"
+                });
+
+                apiDocs.Add(new DocumentModelDto
+                {
+                    PageContent = textChunk.Content,
+                    Metadata = new Dictionary<string, object>(6)
+                    {
+                        { "id", chunkId.ToString() },
+                        { "document_id", document.DocumentId.ToString() },
+                        { "dataset_id", document.DatasetId.ToString() },
+                        { "file_name", document.FileName },
+                        { "page_number", textChunk.PageNumber },
+                        { "chunk_index", chunkIndex }
+                    }
+                });
+            }
+
+            _context.Chunks.AddRange(chunkEntities);
+
+            var indexResponse = await _ragApiClient.IndexDocumentsAsync(new IndexRequestDto
+            {
+                Documents = apiDocs,
+                RebuildCache = rebuildCache
+            });
+
+            if (indexResponse.Embeddings == null || indexResponse.Embeddings.Count != chunkEntities.Count)
+            {
+                throw new InvalidOperationException($"Failed to index documents in RAG API or mismatched embedding count. Expected {chunkEntities.Count}, got {indexResponse.Embeddings?.Count ?? 0}. Message: {indexResponse.Message}");
+            }
+
+            var vectorRecords = new List<VectorRecord>(chunkEntities.Count);
+            for (var i = 0; i < chunkEntities.Count; i++)
+            {
+                vectorRecords.Add(new VectorRecord
+                {
+                    VectorId = Guid.NewGuid(),
+                    DatasetId = document.DatasetId,
+                    DocumentId = document.DocumentId,
+                    ChunkId = chunkEntities[i].ChunkId,
+                    Embedding = new Vector(indexResponse.Embeddings[i]),
+                    EmbeddingModel = EmbeddingModel,
+                    CreatedAt = now
+                });
+            }
+
+            _context.VectorRecords.AddRange(vectorRecords);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        private static async Task<List<ExtractedTextSegment>> ExtractTxtAsync(Stream stream, CancellationToken cancellationToken)
+        {
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+            var text = await reader.ReadToEndAsync(cancellationToken);
+            return string.IsNullOrWhiteSpace(text)
+                ? new List<ExtractedTextSegment>()
+                : new List<ExtractedTextSegment> { new(text, 1) };
+        }
+
+        private static List<ExtractedTextSegment> ExtractPdf(Stream stream)
+        {
+            var segments = new List<ExtractedTextSegment>();
+            using var pdf = PdfDocument.Open(stream);
+
+            foreach (var page in pdf.GetPages())
+            {
+                if (!string.IsNullOrWhiteSpace(page.Text))
+                {
+                    segments.Add(new ExtractedTextSegment(page.Text, page.Number));
+                }
+            }
+
+            return segments;
+        }
+
+        private static List<ExtractedTextSegment> ExtractDocx(Stream stream)
+        {
+            using var document = WordprocessingDocument.Open(stream, false);
+            var body = document.MainDocumentPart?.Document.Body;
+            if (body == null)
+            {
+                return new List<ExtractedTextSegment>();
+            }
+
+            var text = string.Join("\n", body.Descendants<WordText>().Select(t => t.Text));
+            return string.IsNullOrWhiteSpace(text)
+                ? new List<ExtractedTextSegment>()
+                : new List<ExtractedTextSegment> { new(text, 1) };
+        }
+
+        private static int ResolveDominantPage(int chunkStart, int chunkEnd, IReadOnlyList<PageTextRange> ranges)
+        {
+            var pageScores = new Dictionary<int, int>();
+
+            foreach (var range in ranges)
+            {
+                var overlapStart = Math.Max(chunkStart, range.Start);
+                var overlapEnd = Math.Min(chunkEnd, range.End);
+                var overlap = Math.Max(0, overlapEnd - overlapStart);
+
+                if (overlap == 0) continue;
+
+                pageScores[range.PageNumber] = pageScores.TryGetValue(range.PageNumber, out var current)
+                    ? current + overlap
+                    : overlap;
+            }
+
+            return pageScores.Count == 0
+                ? 1
+                : pageScores.OrderByDescending(p => p.Value).ThenBy(p => p.Key).First().Key;
         }
 
         private static DocumentDto ToDto(Document document)
@@ -305,4 +477,8 @@ namespace RagChatbotSystem.Business.Services
                 document.UpdatedAt);
         }
     }
+
+    internal sealed record ExtractedTextSegment(string Text, int PageNumber);
+    internal sealed record TextChunk(string Content, int PageNumber);
+    internal sealed record PageTextRange(int Start, int End, int PageNumber);
 }

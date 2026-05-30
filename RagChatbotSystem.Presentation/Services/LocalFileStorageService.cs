@@ -44,6 +44,23 @@ namespace RagChatbotSystem.Presentation.Services
                 fileSize);
         }
 
+        public Task<Stream> OpenReadAsync(string relativePath, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(relativePath))
+            {
+                throw new FileNotFoundException("Stored file path is empty.");
+            }
+
+            var absolutePath = ResolveInsideWebRoot(relativePath);
+            if (!File.Exists(absolutePath))
+            {
+                throw new FileNotFoundException("Stored file was not found.", relativePath);
+            }
+
+            Stream stream = File.OpenRead(absolutePath);
+            return Task.FromResult(stream);
+        }
+
         public Task DeleteFileIfExistsAsync(string relativePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(relativePath))
@@ -51,16 +68,27 @@ namespace RagChatbotSystem.Presentation.Services
                 return Task.CompletedTask;
             }
 
-            var normalizedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-            var absolutePath = Path.GetFullPath(Path.Combine(_environment.WebRootPath, normalizedPath));
-            var webRoot = Path.GetFullPath(_environment.WebRootPath);
-
-            if (absolutePath.StartsWith(webRoot, StringComparison.OrdinalIgnoreCase) && File.Exists(absolutePath))
+            var absolutePath = ResolveInsideWebRoot(relativePath);
+            if (File.Exists(absolutePath))
             {
                 File.Delete(absolutePath);
             }
 
             return Task.CompletedTask;
+        }
+
+        private string ResolveInsideWebRoot(string relativePath)
+        {
+            var normalizedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+            var absolutePath = Path.GetFullPath(Path.Combine(_environment.WebRootPath, normalizedPath));
+            var webRoot = Path.GetFullPath(_environment.WebRootPath);
+
+            if (!absolutePath.StartsWith(webRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Stored file path is outside the web root.");
+            }
+
+            return absolutePath;
         }
     }
 }

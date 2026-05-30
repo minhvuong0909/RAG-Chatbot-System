@@ -522,11 +522,13 @@
       renderChatMessage(userMessage);
       textarea.value = "";
 
-      const assistantMessage = await api(`/api/chat-sessions/${state.session.sessionId}/messages`, {
+      const response = await api(`/api/chat-sessions/${state.session.sessionId}/messages`, {
         method: "POST",
         body: JSON.stringify({ content })
       });
+      const assistantMessage = response.assistantMessage || response;
       renderChatMessage(assistantMessage, { typeText: true });
+      await loadSessions();
     } catch (error) {
       notify(error.message);
     } finally {

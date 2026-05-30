@@ -66,24 +66,20 @@ namespace RagChatbotSystem.Presentation.Controllers
         [HttpPost("{sessionId:guid}/messages")]
         public async Task<IActionResult> SendMessage(Guid sessionId, [FromBody] SendChatMessageRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Content))
+            var question = request.Question ?? request.Content;
+            if (string.IsNullOrWhiteSpace(question))
             {
                 return BadRequest(new { message = "Message content is required." });
             }
 
             try
             {
-                var message = await _chatService.SendChatMessageAsync(sessionId, request.Content.Trim());
-                return Ok(new ChatMessageDto(
-                    message.MessageId,
-                    message.SessionId,
-                    message.Role,
-                    message.Content,
-                    message.CreatedAt));
+                var response = await _chatService.SendChatMessageAsync(sessionId, question.Trim());
+                return Ok(response);
             }
             catch (ArgumentException ex)
             {
-                return NotFound(new { message = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
 

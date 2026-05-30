@@ -15,6 +15,18 @@ namespace RagChatbotSystem.Presentation
 
             builder.Services.AddControllersWithViews();
 
+            // Đăng ký Swagger Services
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
+                { 
+                    Title = "RAG Chatbot System API", 
+                    Version = "v1",
+                    Description = "API endpoints for RAG (Retrieval-Augmented Generation) Chatbot System."
+                });
+            });
+
             // Cấu hình kết nối PostgreSQL với pgvector
             builder.Services.AddDbContext<AppDbContext>(options =>
                      options.UseNpgsql(
@@ -54,7 +66,17 @@ namespace RagChatbotSystem.Presentation
 
             var app = builder.Build();
 
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "RAG Chatbot System API v1");
+                    // Cho phép hiển thị Swagger làm trang mặc định hoặc tại /swagger
+                    c.RoutePrefix = "swagger"; 
+                });
+            }
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();

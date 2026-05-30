@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Business.Services
@@ -11,12 +12,14 @@ namespace RagChatbotSystem.Business.Services
     public class GroqService : ILlmService
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger<GroqService> _logger;
         private readonly string _model;
         private readonly bool _hasApiKey;
 
-        public GroqService(HttpClient httpClient, IConfiguration configuration)
+        public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger)
         {
             _httpClient = httpClient;
+            _logger = logger;
             _model = configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
             // Kiểm tra API key đã được cấu hình ở DI level 
             _hasApiKey = !string.IsNullOrWhiteSpace(configuration["Groq:ApiKey"]);
@@ -51,7 +54,7 @@ namespace RagChatbotSystem.Business.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error calling Groq API: {ex.Message}");
+                _logger.LogError(ex, "Groq API call failed.");
                 
                 return ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
             }
