@@ -48,6 +48,8 @@ services:
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Groq__ApiKey=${GROQ_API_KEY:-}
       - OpenAi__ApiKey=${OPENAI_API_KEY:-}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - ASPNETCORE_ENVIRONMENT=Production
     volumes:
       - ./google-credentials.json:/app/google-credentials.json:ro

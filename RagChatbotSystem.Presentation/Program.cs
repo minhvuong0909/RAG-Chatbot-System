@@ -81,6 +81,48 @@ namespace RagChatbotSystem.Presentation
 
             var app = builder.Build();
 
+            // === Auto-migrate database & seed admin account từ biến môi trường ===
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+                try
+                {
+                    startupLogger.LogInformation("Applying database migrations...");
+                    db.Database.Migrate();
+                    startupLogger.LogInformation("Database migrations applied successfully.");
+
+                    // Seed admin account nếu chưa có Admin nào trong hệ thống
+                    // Đọc thông tin từ biến môi trường (cấu hình trong .env trên VPS)
+                    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+                    var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+                    if (!string.IsNullOrWhiteSpace(adminEmail)
+                        && !string.IsNullOrWhiteSpace(adminPassword)
+                        && !db.Users.Any(u => u.Role == "Admin"))
+                    {
+                        var admin = new RagChatbotSystem.DataAccess.Models.User
+                        {
+                            UserId = Guid.NewGuid(),
+                            FullName = "System Admin",
+                            Email = adminEmail,
+                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword(adminPassword),
+                            Role = "Admin",
+                            IsApproved = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.Users.Add(admin);
+                        db.SaveChanges();
+                        startupLogger.LogInformation("Admin account seeded successfully for {Email}.", adminEmail);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    startupLogger.LogError(ex, "Error during database migration or seeding.");
+                }
+            }
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
