@@ -71,19 +71,18 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 22
           script: |
-            NGINX_CONF="/etc/nginx/sites-available/vuongdev.top"
+            NGINX_CONF="/etc/nginx/sites-available/chatbot.vuongdev.top"
             
             # Only setup Nginx if config doesn't exist
             if [ ! -f "$NGINX_CONF" ]; then
               sudo cp /var/www/rag-chatbot-system/nginx.conf $NGINX_CONF
-              sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/vuongdev.top
-              sudo rm -f /etc/nginx/sites-enabled/default
+              sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/chatbot.vuongdev.top
               sudo nginx -t && sudo systemctl reload nginx
               
               # Request SSL certificate via Certbot
-              sudo certbot --nginx -d vuongdev.top -d www.vuongdev.top --non-interactive --agree-tos -m admin@vuongdev.top || true
+              sudo certbot --nginx -d chatbot.vuongdev.top --non-interactive --agree-tos -m admin@vuongdev.top || true
               
-              echo "✅ Nginx + SSL configured for vuongdev.top"
+              echo "Nginx + SSL configured for chatbot.vuongdev.top"
             else
-              echo "ℹ️ Nginx already configured, skipping."
+              echo "ℹNginx already configured, skipping."
             fi
