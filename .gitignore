@@ -36,6 +36,7 @@ Desktop.ini
 # Python RAG API local/runtime files
 RAG-Retrieval-Indexing-API/**/.env
 RAG-Retrieval-Indexing-API/**/.env.*
+!RAG-Retrieval-Indexing-API/**/.env.example
 RAG-Retrieval-Indexing-API/**/.venv/
 RAG-Retrieval-Indexing-API/**/venv/
 RAG-Retrieval-Indexing-API/**/__pycache__/
