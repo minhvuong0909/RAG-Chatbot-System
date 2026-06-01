@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -79,6 +80,79 @@ namespace RagChatbotSystem.Presentation.Controllers
             {
                 _logger.LogError(ex, "Failed to send chat message.");
                 return RedirectToAction("Index", "Home", new { datasetId, sessionId, error = $"Lỗi gửi tin nhắn: {ex.Message}" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SendMessageAjax(Guid datasetId, Guid sessionId, string question)
+        {
+            if (string.IsNullOrWhiteSpace(question))
+            {
+                return BadRequest(new { error = "Câu hỏi không được để trống." });
+            }
+
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var session = await _chatSessionService.GetSessionAsync(sessionId);
+                if (session == null || session.UserId != currentUserId)
+                {
+                    return Forbid();
+                }
+
+                var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
+                return Ok(new {
+                    userMessage = new {
+                        messageId = response.UserMessage.MessageId,
+                        content = response.UserMessage.Content,
+                        role = response.UserMessage.Role,
+                        createdAt = response.UserMessage.CreatedAt.ToString("HH:mm")
+                    },
+                    assistantMessage = new {
+                        messageId = response.AssistantMessage.MessageId,
+                        content = response.AssistantMessage.Content,
+                        role = response.AssistantMessage.Role,
+                        createdAt = response.AssistantMessage.CreatedAt.ToString("HH:mm")
+                    },
+                    citations = response.Citations.Select(c => new {
+                        citationId = c.CitationId,
+                        fileName = c.FileName,
+                        pageNumber = c.PageNumber,
+                        quoteText = c.QuoteText,
+                        sourceLabel = c.SourceLabel
+                    })
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send AJAX chat message.");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCitations(Guid messageId)
+        {
+            try
+            {
+                var citations = await _chatSessionService.GetCitationsAsync(messageId);
+                return Ok(citations.Select(c => new {
+                    citationId = c.CitationId,
+                    fileName = c.FileName,
+                    pageNumber = c.PageNumber,
+                    quoteText = c.QuoteText,
+                    sourceLabel = c.SourceLabel
+                }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get citations for message {MessageId}", messageId);
+                return StatusCode(500, new { error = ex.Message });
             }
         }
     }
