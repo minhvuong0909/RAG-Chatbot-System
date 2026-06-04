@@ -23,6 +23,7 @@ namespace RagChatbotSystem.DataAccess.Data
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<Citation> Citations { get; set; } = null!;
         public DbSet<DatasetPermission> DatasetPermissions { get; set; } = null!;
+        public DbSet<TeacherSubjectAssignment> TeacherSubjectAssignments { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -38,9 +39,13 @@ namespace RagChatbotSystem.DataAccess.Data
                 entity.HasKey(e => e.UserId);
                 entity.Property(e => e.FullName).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsApproved).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.MustChangePassword).IsRequired().HasDefaultValue(false);
+                entity.HasIndex(e => e.Email).IsUnique();
+                entity.HasIndex(e => e.Username).IsUnique();
             });
 
             // Dataset configuration
@@ -61,6 +66,7 @@ namespace RagChatbotSystem.DataAccess.Data
             modelBuilder.Entity<DatasetPermission>(entity =>
             {
                 entity.HasKey(e => e.PermissionId);
+                entity.HasIndex(e => new { e.DatasetId, e.UserId }).IsUnique();
 
                 entity.HasOne(dp => dp.Dataset)
                     .WithMany(d => d.DatasetPermissions)
@@ -71,6 +77,29 @@ namespace RagChatbotSystem.DataAccess.Data
                     .WithMany(u => u.DatasetPermissions)
                     .HasForeignKey(dp => dp.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // TeacherSubjectAssignment configuration
+            modelBuilder.Entity<TeacherSubjectAssignment>(entity =>
+            {
+                entity.HasKey(e => e.AssignmentId);
+                entity.HasIndex(e => e.DatasetId).IsUnique();
+                entity.HasIndex(e => new { e.TeacherId, e.DatasetId }).IsUnique();
+
+                entity.HasOne(a => a.Dataset)
+                    .WithOne(d => d.TeacherSubjectAssignment)
+                    .HasForeignKey<TeacherSubjectAssignment>(a => a.DatasetId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.Teacher)
+                    .WithMany(u => u.TeacherSubjectAssignments)
+                    .HasForeignKey(a => a.TeacherId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.AssignedByAdmin)
+                    .WithMany()
+                    .HasForeignKey(a => a.AssignedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
 

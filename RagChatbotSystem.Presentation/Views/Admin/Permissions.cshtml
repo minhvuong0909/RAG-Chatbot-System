@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Manage Dataset Permissions";
+    ViewData["Title"] = "Manage Subject Permissions";
     var dataset = ViewBag.Dataset as RagChatbotSystem.Business.DTOs.DatasetDto;
     var permittedUsers = ViewBag.PermittedUsers as IReadOnlyList<RagChatbotSystem.Business.DTOs.UserDto> ?? new List<RagChatbotSystem.Business.DTOs.UserDto>();
     var availableUsers = ViewBag.AvailableUsers as IReadOnlyList<RagChatbotSystem.Business.DTOs.UserDto> ?? new List<RagChatbotSystem.Business.DTOs.UserDto>();
@@ -8,8 +8,8 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold" style="color: var(--ink); margin: 0; background: linear-gradient(135deg, #fff 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Manage Dataset Permissions</h2>
-            <p class="text-muted m-0 mt-1">Grant or revoke access to the dataset: <strong style="color: var(--accent-strong);">@dataset?.Name</strong></p>
+            <h2 class="fw-bold" style="color: var(--ink); margin: 0; background: linear-gradient(135deg, #fff 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Manage Subject Permissions</h2>
+            <p class="text-muted m-0 mt-1">Grant or revoke access to the subject: <strong style="color: var(--accent-strong);">@dataset?.Name</strong></p>
         </div>
         <a asp-action="Index" class="btn btn-outline-secondary fw-bold" style="border-radius: 8px; border-color: rgba(255,255,255,0.15); color: var(--ink); font-size: 0.85rem; padding: 10px 18px; text-transform: uppercase;">
             Back to Dashboard
@@ -22,13 +22,13 @@
             <div class="card border-0 h-100" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; box-shadow: var(--shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
                     <h5 class="fw-bold m-0" style="color: var(--ink);">Grant New Permission</h5>
-                    <p class="text-muted small m-0 mt-1">Select a student or teacher to grant them query access to this dataset.</p>
+                    <p class="text-muted small m-0 mt-1">Select a student to grant query access to this subject.</p>
                 </div>
                 <div class="card-body px-4 pb-4">
                     @if (dataset?.IsPublic == true)
                     {
                         <div class="alert border-0 mb-3" style="background-color: rgba(0, 242, 254, 0.1); color: var(--accent-strong); border-radius: 8px; border: 1px solid rgba(0, 242, 254, 0.2) !important;">
-                            <strong>Note:</strong> This dataset is public. All users can query this dataset without explicit permissions.
+                            <strong>Note:</strong> This subject is public. All users can query this subject without explicit permissions.
                         </div>
                     }
 
@@ -67,7 +67,7 @@
             <div class="card border-0 h-100" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; box-shadow: var(--shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
                     <h5 class="fw-bold m-0" style="color: var(--ink);">Users with Access</h5>
-                    <p class="text-muted small m-0 mt-1">Below are the users currently permitted to query this private dataset.</p>
+                    <p class="text-muted small m-0 mt-1">Below are the users currently permitted to query this private subject.</p>
                 </div>
                 <div class="card-body px-4 pb-4">
                     <div class="table-responsive">

@@ -18,6 +18,10 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<bool> GrantPermissionAsync(Guid datasetId, Guid userId, CancellationToken cancellationToken = default);
         Task<bool> RevokePermissionAsync(Guid datasetId, Guid userId, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<UserDto>> GetPermittedUsersAsync(Guid datasetId, CancellationToken cancellationToken = default);
+        Task<bool> AssignTeacherToDatasetAsync(Guid datasetId, Guid teacherId, Guid adminUserId, CancellationToken cancellationToken = default);
+        Task<bool> UnassignTeacherFromDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<TeacherSubjectAssignmentDto>> GetTeacherAssignmentsAsync(CancellationToken cancellationToken = default);
+        Task<bool> CanManageDatasetAsync(Guid userId, string role, Guid datasetId, CancellationToken cancellationToken = default);
     }
 }
 

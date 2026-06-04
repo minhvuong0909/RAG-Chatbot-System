@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -15,15 +17,21 @@ namespace RagChatbotSystem.Presentation.Controllers
     {
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatService _chatService;
+        private readonly IDatasetService _datasetService;
+        private readonly IUserService _userService;
         private readonly ILogger<ChatSessionsController> _logger;
 
         public ChatSessionsController(
             IChatSessionService chatSessionService,
             IChatService chatService,
+            IDatasetService datasetService,
+            IUserService userService,
             ILogger<ChatSessionsController> logger)
         {
             _chatSessionService = chatSessionService;
             _chatService = chatService;
+            _datasetService = datasetService;
+            _userService = userService;
             _logger = logger;
         }
 
@@ -39,6 +47,18 @@ namespace RagChatbotSystem.Presentation.Controllers
 
             try
             {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    return await SignOutStaleUserAsync();
+                }
+
+                var role = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
+                var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role);
+                if (!allowedDatasets.Any(d => d.DatasetId == datasetId))
+                {
+                    return RedirectToAction("Index", "Home", new { error = "You do not have access to this subject." });
+                }
+
                 var session = await _chatSessionService.CreateSessionAsync(new CreateChatSessionRequest(currentUserId, datasetId, title));
                 return RedirectToAction("Index", "Home", new { datasetId, sessionId = session.SessionId, success = "Khởi tạo phòng chat mới thành công!" });
             }
@@ -66,6 +86,11 @@ namespace RagChatbotSystem.Presentation.Controllers
             try
             {
                 // Bảo mật: Đảm bảo Session này thuộc về người dùng đang đăng nhập
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    return await SignOutStaleUserAsync();
+                }
+
                 var session = await _chatSessionService.GetSessionAsync(sessionId);
                 if (session == null || session.UserId != currentUserId)
                 {
@@ -99,6 +124,12 @@ namespace RagChatbotSystem.Presentation.Controllers
 
             try
             {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return Unauthorized(new { error = "Your login session is no longer valid. Please sign in again." });
+                }
+
                 var session = await _chatSessionService.GetSessionAsync(sessionId);
                 if (session == null || session.UserId != currentUserId)
                 {
@@ -154,6 +185,18 @@ namespace RagChatbotSystem.Presentation.Controllers
                 _logger.LogError(ex, "Failed to get citations for message {MessageId}", messageId);
                 return StatusCode(500, new { error = ex.Message });
             }
+        }
+
+        private async Task<bool> IsCurrentUserStillValidAsync(Guid currentUserId)
+        {
+            return await _userService.GetUserAsync(currentUserId, HttpContext.RequestAborted) != null;
+        }
+
+        private async Task<IActionResult> SignOutStaleUserAsync()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            TempData["ErrorMessage"] = "Your login session is no longer valid. Please sign in again.";
+            return RedirectToAction("Login", "Account");
         }
     }
 }

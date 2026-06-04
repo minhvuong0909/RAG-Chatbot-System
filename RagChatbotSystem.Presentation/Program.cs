@@ -74,6 +74,7 @@ namespace RagChatbotSystem.Presentation
             // Đăng ký các dịch vụ Business Layer
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IDatasetService, DatasetService>();
+            builder.Services.AddScoped<IEmailService, SmtpEmailService>();
             builder.Services.AddScoped<IFileStorageService, GoogleDriveStorageService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
@@ -95,26 +96,45 @@ namespace RagChatbotSystem.Presentation
 
                     // Seed admin account nếu chưa có Admin nào trong hệ thống
                     // Đọc thông tin từ biến môi trường (cấu hình trong .env trên VPS)
-                    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
-                    var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                    var adminEmail = builder.Configuration["AdminSeed:Email"]
+                        ?? Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+                    var adminPassword = builder.Configuration["AdminSeed:Password"]
+                        ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                    var adminUsername = builder.Configuration["AdminSeed:Username"] ?? "admin";
+                    var adminFullName = builder.Configuration["AdminSeed:FullName"] ?? "System Admin";
 
                     if (!string.IsNullOrWhiteSpace(adminEmail)
-                        && !string.IsNullOrWhiteSpace(adminPassword)
-                        && !db.Users.Any(u => u.Role == "Admin"))
+                        && !string.IsNullOrWhiteSpace(adminPassword))
                     {
-                        var admin = new RagChatbotSystem.DataAccess.Models.User
+                        adminEmail = adminEmail.Trim().ToLowerInvariant();
+                        adminUsername = adminUsername.Trim().ToLowerInvariant();
+
+                        var admin = db.Users.FirstOrDefault(u =>
+                            u.Email.ToLower() == adminEmail ||
+                            u.Username.ToLower() == adminUsername ||
+                            u.Role == "Admin");
+
+                        if (admin == null)
                         {
-                            UserId = Guid.NewGuid(),
-                            FullName = "System Admin",
-                            Email = adminEmail,
-                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword(adminPassword),
-                            Role = "Admin",
-                            IsApproved = true,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.Users.Add(admin);
+                            admin = new RagChatbotSystem.DataAccess.Models.User
+                            {
+                                UserId = Guid.NewGuid(),
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.Users.Add(admin);
+                        }
+
+                        admin.FullName = adminFullName;
+                        admin.Email = adminEmail;
+                        admin.Username = adminUsername;
+                        admin.PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword(adminPassword);
+                        admin.Role = "Admin";
+                        admin.IsApproved = true;
+                        admin.MustChangePassword = false;
+                        admin.TemporaryPasswordExpiresAt = null;
+                        admin.LastPasswordChangedAt = DateTime.UtcNow;
                         db.SaveChanges();
-                        startupLogger.LogInformation("Admin account seeded successfully for {Email}.", adminEmail);
+                        startupLogger.LogInformation("Admin account ensured successfully for {Email}.", adminEmail);
                     }
 
                     var myAdminEmail = "admin@vuongdev.top";

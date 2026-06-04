@@ -84,7 +84,7 @@ namespace RagChatbotSystem.Business.Services
                 }
             }
 
-            var contextDocs = retrieveResult.Documents
+            var contextDocs = (retrieveResult.Documents ?? Enumerable.Empty<DocumentModelDto>())
                 .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
                     && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
                 .Take(3)

@@ -28,4 +28,22 @@ namespace RagChatbotSystem.Business.DTOs
         string Content,
         int PageNumber,
         float[]? Embedding);
+
+    public sealed record DocumentChunkPreviewDto(
+        Guid ChunkId,
+        int ChunkIndex,
+        int PageNumber,
+        string Content,
+        string? MetadataJson);
+
+    public sealed record DocumentPreviewDto(
+        Guid DocumentId,
+        Guid DatasetId,
+        string DatasetName,
+        string FileName,
+        string FileType,
+        long FileSize,
+        string Status,
+        DateTime UploadedAt,
+        IReadOnlyList<DocumentChunkPreviewDto> Chunks);
 }

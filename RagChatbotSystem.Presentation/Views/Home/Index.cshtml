@@ -1,4 +1,4 @@
-@model RagChatbotSystem.Presentation.Models.WorkspaceViewModel
+﻿@model RagChatbotSystem.Presentation.Models.WorkspaceViewModel
 @{
     var defaultMobileTab = Model.SelectedMessageId.HasValue ? "reference-panel" : "chat-panel";
 }
@@ -6,26 +6,26 @@
 <section class="workspace" data-rag-app data-active-tab="@defaultMobileTab">
     <!-- Mobile Navigation Tabs (Only visible on mobile screens) -->
     <div class="mobile-workspace-tabs" aria-label="Workspace navigation">
-        <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">💬 Chat</button>
-        <button class="mobile-tab-btn @(defaultMobileTab == "management-panel" ? "active" : "")" data-target="management-panel">📚 Knowledge</button>
+        <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">ðŸ’¬ Chat</button>
+        <button class="mobile-tab-btn @(defaultMobileTab == "management-panel" ? "active" : "")" data-target="management-panel">ðŸ“š Knowledge</button>
         <button class="mobile-tab-btn @(defaultMobileTab == "reference-panel" ? "active" : "")" data-target="reference-panel">
-            🔍 Sources @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
+            ðŸ” Sources @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
         </button>
     </div>
 
-    <!-- Cột 1: Bảng điều khiển quản lý (Management) -->
-    <aside class="workspace-panel management-panel" aria-label="Dataset management">
+    <!-- Cá»™t 1: Báº£ng Ä‘iá»u khiá»ƒn quáº£n lÃ½ (Management) -->
+    <aside class="workspace-panel management-panel" aria-label="Subject management">
         <div class="panel-header">
             <div>
                 <p class="eyebrow">Management</p>
                 <h1>Knowledge workspace</h1>
             </div>
             <a class="icon-button" href="?datasetId=@Model.SelectedDatasetId&sessionId=@Model.SelectedSessionId" title="Refresh workspace" aria-label="Refresh workspace" style="text-decoration: none;">
-                <span aria-hidden="true">↻</span>
+                <span aria-hidden="true">â†»</span>
             </a>
         </div>
 
-        <!-- Thông báo lỗi hoặc thành công -->
+        <!-- ThÃ´ng bÃ¡o lá»—i hoáº·c thÃ nh cÃ´ng -->
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
             <div class="alert alert-danger" style="background: rgba(180, 35, 24, 0.1); border: 1px solid rgba(180, 35, 24, 0.2); padding: 0.75rem; border-radius: 8px; color: var(--danger); margin-bottom: 1rem; font-size: 0.84rem; font-weight: 500;">
@@ -39,10 +39,10 @@
             </div>
         }
 
-        <!-- Thông tin người dùng đăng nhập -->
+        <!-- ThÃ´ng tin ngÆ°á»i dÃ¹ng Ä‘Äƒng nháº­p -->
         <div style="border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.2rem;">👤</span>
+                <span style="font-size: 1.2rem;">ðŸ‘¤</span>
                 <div>
                     <div class="fw-bold" style="color: var(--ink); font-size: 0.95rem;">@Model.SelectedUser?.FullName</div>
                     <div class="text-muted small text-uppercase" style="font-size: 0.75rem; font-weight: bold; color: var(--accent-strong);">Role: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
@@ -50,33 +50,33 @@
             </div>
         </div>
 
-        <!-- Quản lý Datasets -->
+        <!-- Quáº£n lÃ½ Datasets -->
         <div class="section-block">
             <div class="section-title">
-                <h2>Datasets</h2>
+                <h2>Subjects</h2>
                 <span>@Model.Datasets.Count</span>
             </div>
 
-            @if (!User.IsInRole("Student"))
+            @if (User.IsInRole("Admin"))
             {
                 <form asp-controller="Datasets" asp-action="Create" method="post" class="create-form">
                     @Html.AntiForgeryToken()
-                    <input name="name" type="text" placeholder="Dataset name" required />
+                    <input name="name" type="text" placeholder="Subject name" required />
                     <textarea name="description" rows="2" placeholder="Short description"></textarea>
                     
                     <div style="display: flex; align-items: center; gap: 6px; margin: 8px 0;">
                         <input type="checkbox" name="isPublic" id="isPublic" value="true" checked style="width: auto; height: auto;" />
-                        <label for="isPublic" style="font-size: 0.85rem; color: var(--muted); cursor: pointer; margin: 0;">Public Dataset (Công khai)</label>
+                        <label for="isPublic" style="font-size: 0.85rem; color: var(--muted); cursor: pointer; margin: 0;">Public Subject</label>
                     </div>
 
-                    <button type="submit">Create dataset</button>
+                    <button type="submit">Create subject</button>
                 </form>
             }
 
             <div class="dataset-list" aria-live="polite">
                 @if (Model.Datasets.Count == 0)
                 {
-                    <p class="helper-text">No datasets yet.</p>
+                    <p class="helper-text">No subjects yet.</p>
                 }
                 @foreach (var ds in Model.Datasets)
                 {
@@ -87,12 +87,12 @@
                             <span class="dataset-name" style="display: flex; align-items: center; gap: 4px;">
                                 @if (!ds.IsApproved)
                                 {
-                                    <span title="Pending approval" style="color: var(--warning);">⏳</span>
+                                    <span title="Pending approval" style="color: var(--warning);">â³</span>
                                 }
                                 @ds.Name
                                 @if (!ds.IsPublic)
                                 {
-                                    <span title="Private dataset" style="font-size: 0.8rem; color: var(--muted);">🔒</span>
+                                    <span title="Private subject" style="font-size: 0.8rem; color: var(--muted);">ðŸ”’</span>
                                 }
                             </span>
                             <span class="dataset-meta">@ds.DocumentCount document(s)</span>
@@ -100,11 +100,11 @@
 
                         @if (User.IsInRole("Admin") || ds.CreatedBy == Model.SelectedUserId)
                         {
-                            <!-- Nút xóa Dataset với z-index cao để không bị đè nút -->
-                            <form asp-controller="Datasets" asp-action="Delete" method="post" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin: 0; padding: 0; z-index: 100;" onsubmit="return confirm('Xóa Dataset này sẽ xóa toàn bộ tài liệu bên trong. Bạn chắc chắn chứ?');">
+                            <!-- Subject delete action -->
+                            <form asp-controller="Datasets" asp-action="Delete" method="post" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin: 0; padding: 0; z-index: 100;" onsubmit="return confirm('Delete this subject and all documents inside it?');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@ds.DatasetId" />
-                                <button type="submit" style="background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.25); border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: var(--danger); cursor: pointer; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='rgba(220, 38, 38, 0.15)';" onmouseout="this.style.background='rgba(220, 38, 38, 0.05)';" title="Delete dataset">🗑️ Xóa</button>
+                                <button type="submit" style="background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.25); border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: var(--danger); cursor: pointer; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='rgba(220, 38, 38, 0.15)';" onmouseout="this.style.background='rgba(220, 38, 38, 0.05)';" title="Delete subject">Delete</button>
                             </form>
                         }
                     </div>
@@ -112,7 +112,7 @@
             </div>
         </div>
 
-        <!-- Quản lý Tài liệu (Documents) -->
+        <!-- Quáº£n lÃ½ TÃ i liá»‡u (Documents) -->
         <div class="section-block">
             <div class="section-title">
                 <h2>Documents</h2>
@@ -120,19 +120,19 @@
             </div>
             @if (Model.SelectedDatasetId.HasValue)
             {
-                @if (!User.IsInRole("Student") && (User.IsInRole("Admin") || Model.SelectedDataset?.CreatedBy == Model.SelectedUserId))
+                @if (User.IsInRole("Teacher") || User.IsInRole("Admin"))
                 {
                     <form asp-controller="Documents" asp-action="Upload" method="post" enctype="multipart/form-data" class="upload-form" id="upload-doc-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
                         <div id="upload-dropzone" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; padding: 22px 16px; background: var(--surface-muted); text-align: center; cursor: pointer; transition: all 0.2s;" onclick="if(!this.dataset.uploading) document.getElementById('file-upload').click();" onmouseover="this.style.borderColor='var(--accent)';" onmouseout="this.style.borderColor='var(--line)';">
                             <div id="upload-idle-state" style="display: flex; flex-direction: column; align-items: center;">
-                                <span style="font-size: 1.8rem; margin-bottom: 6px;">📤</span>
+                                <span style="font-size: 1.8rem; margin-bottom: 6px;">ðŸ“¤</span>
                                 <span style="font-weight: 700; font-size: 0.9rem; color: var(--ink);">Upload documents for RAG</span>
                                 <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">PDF, TXT, MD, or DOCX files supported</span>
                             </div>
                             <div id="upload-loading-state" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0;">
-                                <span style="display: inline-block; font-size: 1.8rem; margin-bottom: 6px; animation: spin 1s linear infinite;">⏳</span>
+                                <span style="display: inline-block; font-size: 1.8rem; margin-bottom: 6px; animation: spin 1s linear infinite;">â³</span>
                                 <span style="font-weight: 700; font-size: 0.9rem; color: var(--accent);">Uploading &amp; Processing...</span>
                                 <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Please wait while we extract text, chunk and index embeddings.</span>
                             </div>
@@ -144,34 +144,35 @@
                 <div class="document-list" aria-live="polite">
                     @if (Model.Documents.Count == 0)
                     {
-                        <p class="helper-text">No documents in this dataset. Hỗ trợ file: TXT, PDF, DOCX.</p>
+                        <p class="helper-text">No documents in this subject. Supported files: TXT, PDF, DOCX.</p>
                     }
                     @foreach (var doc in Model.Documents)
                     {
                         <div class="document-item">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                                <div style="min-width: 0; flex-grow: 1;">
-                                    <strong class="document-name" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="@doc.FileName">@doc.FileName</strong>
+                            <div class="document-card-header">
+                                <div class="document-card-main">
+                                    <strong class="document-name" title="@doc.FileName">@doc.FileName</strong>
                                     <span class="document-meta">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</span>
                                 </div>
-                                @if (User.IsInRole("Admin") || doc.UploadedBy == Model.SelectedUserId)
-                                {
-                                    <form asp-controller="Documents" asp-action="Delete" method="post" style="margin: 0; padding: 0; z-index: 10;" onsubmit="return confirm('Are you sure you want to delete this document?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
-                                        <input type="hidden" name="documentId" value="@doc.DocumentId" />
-                                        <button type="submit" style="background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.25); border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: var(--danger); cursor: pointer; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='rgba(220, 38, 38, 0.15)';" onmouseout="this.style.background='rgba(220, 38, 38, 0.05)';" title="Delete document">🗑️ Xóa</button>
-                                    </form>
-                                }
                             </div>
                             <div class="progress-track" aria-hidden="true">
                                 <span class="progress-fill" style="width: @(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55%" : "100%")"></span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                            <div class="document-actions-row">
                                 <span class="status-pill @doc.Status.ToLower()">@doc.Status</span>
                                 @if (doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <button class="view-chunks-btn" data-document-id="@doc.DocumentId" data-document-name="@doc.FileName" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: var(--accent); cursor: pointer; padding: 2px 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';" onmouseout="this.style.background='rgba(59, 130, 246, 0.08)';">🔍 Xem Chunks</button>
+                                    <button class="view-chunks-btn" data-document-id="@doc.DocumentId" data-document-name="@doc.FileName" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: var(--accent); cursor: pointer; padding: 2px 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';" onmouseout="this.style.background='rgba(59, 130, 246, 0.08)';">View chunks</button>
+                                }
+                                @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
+                                {
+                                    <a class="document-preview-link" asp-controller="Documents" asp-action="Preview" asp-route-documentId="@doc.DocumentId" title="View indexed chunks and metadata">Preview chunks</a>
+                                    <form asp-controller="Documents" asp-action="Delete" method="post" style="margin: 0; padding: 0;" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                                        <input type="hidden" name="documentId" value="@doc.DocumentId" />
+                                        <button class="document-delete-button" type="submit" title="Delete document">Delete</button>
+                                    </form>
                                 }
                             </div>
                         </div>
@@ -180,17 +181,17 @@
             }
             else
             {
-                <p class="helper-text">Select a dataset to view documents.</p>
+                <p class="helper-text">Select a subject to view documents.</p>
             }
         </div>
 
-        <!-- Quản lý Chat Sessions -->
+        <!-- Quáº£n lÃ½ Chat Sessions -->
         <div class="section-block">
             <div class="section-title">
                 <h2>Chat sessions</h2>
                 <span>@Model.Sessions.Count</span>
             </div>
-            <p class="helper-text">A dataset can have many conversations. Select one or start a fresh session.</p>
+            <p class="helper-text">A subject can have many conversations. Select one or start a fresh session.</p>
             @if (Model.SelectedDatasetId.HasValue)
             {
                 <form asp-controller="ChatSessions" asp-action="Create" method="post" class="create-form" style="margin-bottom: 6px;">
@@ -219,7 +220,7 @@
             }
         </div>
 
-        <!-- Statistics Block (Mock Web3 style matching user screenshot) -->
+        <!-- Statistics -->
         <div class="section-block mt-4 pt-3" style="border-top: 1px solid var(--line);">
             <div class="section-title mb-2">
                 <h2 style="font-size: 1rem; font-weight: 700; color: var(--ink);">Statistics</h2>
@@ -230,34 +231,18 @@
                     <strong style="color: var(--accent); font-weight: 700;">@Model.Documents.Count</strong>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <span class="text-muted">Embeddings</span>
-                    <strong style="color: #8b5cf6; font-weight: 700;">@(Model.Documents.Count * 25)</strong>
+                    <span class="text-muted">Chat Sessions</span>
+                    <strong style="color: #8b5cf6; font-weight: 700;">@Model.Sessions.Count</strong>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <span class="text-muted">Queries Today</span>
-                    <strong style="color: #10b981; font-weight: 700;">156</strong>
+                    <span class="text-muted">Messages In Session</span>
+                    <strong style="color: #10b981; font-weight: 700;">@Model.MessageHistory.Count</strong>
                 </div>
             </div>
-        </div>
-
-        <!-- Web3 Features Block (Mock Web3 style matching user screenshot) -->
-        <div class="section-block mt-4 pt-3" style="border-top: 1px solid var(--line); background: rgba(59, 130, 246, 0.03); margin: 0 -18px -18px -18px; padding: 18px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-            <div class="section-title mb-2">
-                <h2 style="font-size: 0.9rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 6px;">
-                    <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%;"></span>
-                    Web3 Features
-                </h2>
-            </div>
-            <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px; color: var(--muted);">
-                <li><span style="color: #10b981; margin-right: 6px; font-weight: bold;">✓</span> Decentralized storage (IPFS)</li>
-                <li><span style="color: #10b981; margin-right: 6px; font-weight: bold;">✓</span> On-chain verification</li>
-                <li><span style="color: #10b981; margin-right: 6px; font-weight: bold;">✓</span> Token-gated access</li>
-                <li><span style="color: #10b981; margin-right: 6px; font-weight: bold;">✓</span> Smart contract integration</li>
-            </ul>
         </div>
     </aside>
 
-    <!-- Cột 2: Giao diện Hội thoại (Chat Panel) -->
+    <!-- Cá»™t 2: Giao diá»‡n Há»™i thoáº¡i (Chat Panel) -->
     <main class="chat-panel" aria-label="Chat interface">
         <div class="chat-header">
             <div>
@@ -272,7 +257,7 @@
                 }
                 else
                 {
-                    <h2 data-chat-title>Select a dataset to start</h2>
+                    <h2 data-chat-title>Select a subject to start</h2>
                 }
             </div>
             @if (Model.SelectedDatasetId.HasValue)
@@ -280,7 +265,7 @@
                 <form asp-controller="ChatSessions" asp-action="Create" method="post" style="margin: 0; padding: 0;">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
-                    <input type="hidden" name="title" value="Dataset chat" />
+                    <input type="hidden" name="title" value="Subject chat" />
                     <button class="secondary-button" type="submit">New session</button>
                 </form>
             }
@@ -305,7 +290,7 @@
                                 <p style="margin: 0; white-space: pre-wrap;">@msg.Content</p>
                             </div>
                             <div class="message-meta">
-                                @(msg.Role == "User" ? "You" : "Assistant") • @msg.CreatedAt.ToString("HH:mm")
+                                @(msg.Role == "User" ? "You" : "Assistant") â€¢ @msg.CreatedAt.ToString("HH:mm")
                             </div>
                             @if (msg.Role == "Assistant")
                             {
@@ -313,7 +298,7 @@
                                     <button class="citation-chip view-sources-btn" 
                                        data-message-id="@msg.MessageId"
                                        style="background: none; border: none; font: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
-                                        🔍 View Sources
+                                        ðŸ” View Sources
                                     </button>
                                 </div>
                             }
@@ -325,7 +310,7 @@
             {
                 <div class="empty-state">
                     <h3>Ask questions grounded in your uploaded documents.</h3>
-                    <p>Create or select a dataset, upload a document, then start a chat session.</p>
+                    <p>Create or select a subject, upload a document, then start a chat session.</p>
                 </div>
             }
         </div>
@@ -336,13 +321,13 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
                 <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
-                <textarea name="question" rows="1" placeholder="Ask about this dataset..." required id="chatQuestionTextarea"></textarea>
+                <textarea name="question" rows="1" placeholder="Ask about this subject..." required id="chatQuestionTextarea"></textarea>
                 <button type="submit">Send</button>
             </form>
         }
     </main>
 
-    <!-- Cột 3: Hiển thị trích dẫn tài liệu tham chiếu (Reference Panel) -->
+    <!-- Cá»™t 3: Hiá»ƒn thá»‹ trÃ­ch dáº«n tÃ i liá»‡u tham chiáº¿u (Reference Panel) -->
     <aside class="workspace-panel reference-panel" aria-label="Citation references">
         <div class="panel-header">
             <div>
@@ -377,18 +362,132 @@
     </aside>
 </section>
 
+<div id="documentProcessingOverlay" style="display:none; position: fixed; inset: 0; z-index: 9999; background: rgba(3, 7, 18, 0.76); backdrop-filter: blur(6px); align-items: center; justify-content: center;">
+    <div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px; width: min(420px, calc(100vw - 32px)); text-align: center; box-shadow: var(--shadow);">
+        <div style="width: 46px; height: 46px; margin: 0 auto 16px; border: 4px solid rgba(255,255,255,0.16); border-top-color: var(--accent-strong); border-radius: 50%; animation: spin 0.9s linear infinite;"></div>
+        <h3 style="margin: 0 0 8px; color: var(--ink);">Processing document...</h3>
+        <p style="margin: 0; color: var(--muted); font-size: 0.92rem;">AI is extracting text, splitting chunks, and indexing this file. Please keep this page open.</p>
+    </div>
+</div>
+
 @section Scripts {
     <style>
         @@keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .upload-dropzone {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 112px;
+            border: 2px dashed var(--line);
+            border-radius: 12px;
+            padding: 18px 12px;
+            background: var(--surface-muted);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            overflow: hidden;
+        }
+
+        .upload-dropzone:hover {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .upload-title,
+        .upload-subtitle {
+            display: block;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            line-height: 1.25;
+        }
+
+        .upload-title {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--ink);
+        }
+
+        .upload-subtitle {
+            font-size: 0.74rem;
+            color: var(--muted);
+        }
+
+        .document-card-header,
+        .document-card-main {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .document-name {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .document-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .document-preview-link,
+        .document-delete-button {
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 5px 8px;
+            line-height: 1;
+            text-decoration: none;
+        }
+
+        .document-preview-link {
+            border: 1px solid rgba(14, 165, 233, 0.28);
+            background: rgba(14, 165, 233, 0.08);
+            color: var(--accent-strong);
+        }
+
+        .document-delete-button {
+            border: 1px solid rgba(220, 38, 38, 0.25);
+            background: rgba(220, 38, 38, 0.05);
+            color: var(--danger);
+            cursor: pointer;
+        }
     </style>
     <script>
-        // Tự động cuộn khung chat xuống dưới cùng khi có tin nhắn mới hoặc tải trang
+        // Tá»± Ä‘á»™ng cuá»™n khung chat xuá»‘ng dÆ°á»›i cÃ¹ng khi cÃ³ tin nháº¯n má»›i hoáº·c táº£i trang
         const chatStream = document.getElementById("chatStream");
         if (chatStream) {
             chatStream.scrollTop = chatStream.scrollHeight;
+        }
+
+        const uploadDocForm = document.getElementById("upload-doc-form");
+        const fileUploadInput = document.getElementById("file-upload");
+        const processingOverlay = document.getElementById("documentProcessingOverlay");
+        if (uploadDocForm && processingOverlay) {
+            uploadDocForm.addEventListener("submit", function () {
+                processingOverlay.style.display = "flex";
+            });
+        }
+        if (fileUploadInput && uploadDocForm && processingOverlay) {
+            fileUploadInput.addEventListener("change", function () {
+                if (fileUploadInput.files && fileUploadInput.files.length > 0) {
+                    processingOverlay.style.display = "flex";
+                    window.setTimeout(function () {
+                        uploadDocForm.requestSubmit();
+                    }, 50);
+                }
+            });
         }
 
         function escapeHtml(str) {
@@ -401,19 +500,19 @@
                 .replace(/'/g, "&#039;");
         }
 
-        // Hỗ trợ gửi tin nhắn bằng tổ hợp phím Enter (nhưng cho phép Shift+Enter để xuống dòng)
+        // Há»— trá»£ gá»­i tin nháº¯n báº±ng tá»• há»£p phÃ­m Enter (nhÆ°ng cho phÃ©p Shift+Enter Ä‘á»ƒ xuá»‘ng dÃ²ng)
         const textarea = document.getElementById("chatQuestionTextarea");
         if (textarea) {
             textarea.addEventListener("keydown", function(e) {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    // Kích hoạt submit form được xử lý bằng AJAX ở dưới
+                    // KÃ­ch hoáº¡t submit form Ä‘Æ°á»£c xá»­ lÃ½ báº±ng AJAX á»Ÿ dÆ°á»›i
                     this.form.dispatchEvent(new Event("submit", { cancelable: true }));
                 }
             });
         }
 
-        // Xử lý gửi tin nhắn bằng AJAX (Không tải lại trang)
+        // Xá»­ lÃ½ gá»­i tin nháº¯n báº±ng AJAX (KhÃ´ng táº£i láº¡i trang)
         const composerForm = document.querySelector(".composer");
         if (composerForm) {
             composerForm.addEventListener("submit", function(e) {
@@ -424,22 +523,22 @@
                 const question = questionInput.value.trim();
                 if (!question) return;
                 
-                // Clear và reset textarea ngay lập tức
+                // Clear vÃ  reset textarea ngay láº­p tá»©c
                 questionInput.value = "";
                 questionInput.style.height = "auto";
                 
-                // 1. Hiển thị tin nhắn của User ngay lập tức lên màn hình
+                // 1. Hiá»ƒn thá»‹ tin nháº¯n cá»§a User ngay láº­p tá»©c lÃªn mÃ n hÃ¬nh
                 appendMessage("user", question, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                 
-                // 2. Thêm bong bóng chờ trả lời (Loading) từ Assistant
+                // 2. ThÃªm bong bÃ³ng chá» tráº£ lá»i (Loading) tá»« Assistant
                 const loadingBubble = appendLoadingBubble();
                 
-                // Cuộn xuống cuối
+                // Cuá»™n xuá»‘ng cuá»‘i
                 if (chatStream) {
                     chatStream.scrollTop = chatStream.scrollHeight;
                 }
                 
-                // 3. Gửi yêu cầu qua Fetch API tới Backend
+                // 3. Gá»­i yÃªu cáº§u qua Fetch API tá»›i Backend
                 const formData = new FormData(composerForm);
                 formData.set("question", question);
                 
@@ -449,23 +548,23 @@
                 })
                 .then(response => {
                     if (!response.ok) {
-                        return response.json().then(data => { throw new Error(data.error || "Gửi tin nhắn thất bại.") });
+                        return response.json().then(data => { throw new Error(data.error || "Gá»­i tin nháº¯n tháº¥t báº¡i.") });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    // Xóa bong bóng loading
+                    // XÃ³a bong bÃ³ng loading
                     if (loadingBubble) loadingBubble.remove();
                     
-                    // Thêm câu trả lời của AI vào giao diện
+                    // ThÃªm cÃ¢u tráº£ lá»i cá»§a AI vÃ o giao diá»‡n
                     appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId);
                     
-                    // Hiển thị ngay các nguồn trích dẫn tương ứng bên cột phải
+                    // Hiá»ƒn thá»‹ ngay cÃ¡c nguá»“n trÃ­ch dáº«n tÆ°Æ¡ng á»©ng bÃªn cá»™t pháº£i
                     if (data.citations && data.citations.length > 0) {
                         renderCitationsDirectly(data.citations);
                     }
                     
-                    // Cuộn xuống cuối
+                    // Cuá»™n xuá»‘ng cuá»‘i
                     if (chatStream) {
                         chatStream.scrollTop = chatStream.scrollHeight;
                     }
@@ -474,8 +573,8 @@
                     console.error(err);
                     if (loadingBubble) loadingBubble.remove();
                     
-                    // Hiển thị bong bóng lỗi
-                    appendMessage("assistant", `❌ Lỗi: ${err.message}`, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                    // Hiá»ƒn thá»‹ bong bÃ³ng lá»—i
+                    appendMessage("assistant", `âŒ Lá»—i: ${err.message}`, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     
                     if (chatStream) {
                         chatStream.scrollTop = chatStream.scrollHeight;
@@ -498,7 +597,7 @@
                         <button class="citation-chip view-sources-btn" 
                                 data-message-id="${messageId}"
                                 style="background: none; border: none; font: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
-                            🔍 View Sources
+                            ðŸ” View Sources
                         </button>
                     </div>
                 `;
@@ -509,7 +608,7 @@
                     <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(content)}</p>
                 </div>
                 <div class="message-meta">
-                    ${role === "user" ? "You" : "Assistant"} • ${time}
+                    ${role === "user" ? "You" : "Assistant"} â€¢ ${time}
                 </div>
                 ${citationHtml}
             `;
@@ -524,18 +623,18 @@
             loadingDiv.className = "message assistant loading-bubble";
             loadingDiv.innerHTML = `
                 <div class="message-bubble" style="display: flex; align-items: center; gap: 8px;">
-                    <span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span>
+                    <span style="display: inline-block; animation: spin 1s linear infinite;">â³</span>
                     <span style="font-style: italic; color: var(--muted);">Searching knowledge base and thinking...</span>
                 </div>
                 <div class="message-meta">
-                    Assistant • Loading
+                    Assistant â€¢ Loading
                 </div>
             `;
             chatStream.appendChild(loadingDiv);
             return loadingDiv;
         }
 
-        // Lắng nghe sự kiện click vào nút xem trích dẫn (Event Delegation để hỗ trợ cả tin nhắn mới)
+        // Láº¯ng nghe sá»± kiá»‡n click vÃ o nÃºt xem trÃ­ch dáº«n (Event Delegation Ä‘á»ƒ há»— trá»£ cáº£ tin nháº¯n má»›i)
         document.addEventListener("click", function(e) {
             const btn = e.target.closest(".view-sources-btn");
             if (btn) {
@@ -549,7 +648,7 @@
             const referencePanel = document.querySelector(".reference-panel");
             if (!referencePanel) return;
 
-            // Render giao diện chờ tải trích dẫn bên cột phải
+            // Render giao diá»‡n chá» táº£i trÃ­ch dáº«n bÃªn cá»™t pháº£i
             referencePanel.innerHTML = `
                 <div class="panel-header">
                     <div>
@@ -558,12 +657,12 @@
                     </div>
                 </div>
                 <div style="padding: 24px; text-align: center; color: var(--muted);">
-                    <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">⏳</span>
+                    <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">â³</span>
                     <p style="font-size: 0.85rem; margin: 0;">Retrieving source documents...</p>
                 </div>
             `;
 
-            // Tự động chuyển tab trên Mobile sang tab "Sources"
+            // Tá»± Ä‘á»™ng chuyá»ƒn tab trÃªn Mobile sang tab "Sources"
             const workspace = document.querySelector(".workspace");
             if (workspace && window.innerWidth <= 820) {
                 workspace.setAttribute("data-active-tab", "reference-panel");
@@ -574,7 +673,7 @@
                 }
             }
 
-            // Gọi API lấy thông tin trích dẫn
+            // Gá»i API láº¥y thÃ´ng tin trÃ­ch dáº«n
             fetch(`/ChatSessions/GetCitations?messageId=${messageId}`)
                 .then(response => {
                     if (!response.ok) throw new Error("Failed to load citations");
@@ -638,7 +737,7 @@
             referencePanel.innerHTML = html;
         }
 
-        // Logic chuyển đổi Tab trên thiết bị di động
+        // Logic chuyá»ƒn Ä‘á»•i Tab trÃªn thiáº¿t bá»‹ di Ä‘á»™ng
         const tabBtns = document.querySelectorAll(".mobile-tab-btn");
         const workspace = document.querySelector(".workspace");
         if (tabBtns && workspace) {
@@ -658,7 +757,7 @@
                 const file = fileInput.files[0];
                 const maxSize = 50 * 1024 * 1024; // 50MB
                 if (file.size > maxSize) {
-                    alert('Kích thước tệp vượt quá giới hạn cho phép (tối đa 50MB). Vui lòng chọn tệp nhỏ hơn.');
+                    alert('KÃ­ch thÆ°á»›c tá»‡p vÆ°á»£t quÃ¡ giá»›i háº¡n cho phÃ©p (tá»‘i Ä‘a 50MB). Vui lÃ²ng chá»n tá»‡p nhá» hÆ¡n.');
                     fileInput.value = ""; // Reset
                     return;
                 }
@@ -712,7 +811,7 @@
             const body = document.getElementById("modalChunksBody");
             body.innerHTML = `
                 <div style="padding: 40px; text-align: center; color: var(--muted);">
-                    <span style="display: inline-block; font-size: 2rem; margin-bottom: 8px; animation: spin 1s linear infinite;">⏳</span>
+                    <span style="display: inline-block; font-size: 2rem; margin-bottom: 8px; animation: spin 1s linear infinite;">â³</span>
                     <p style="font-size: 0.9rem; margin: 0;">Retrieving embeddings and index partitions from PostgreSQL database...</p>
                 </div>
             `;
@@ -753,7 +852,7 @@
                                 </div>
                                 <p class="chunk-text-content">${escapeHtml(c.content)}</p>
                                 <div class="vector-preview-box" title="Full size is 384 dimensions representation vector">
-                                    ✨ ${vecPreview}
+                                    âœ¨ ${vecPreview}
                                 </div>
                             </div>
                         `;

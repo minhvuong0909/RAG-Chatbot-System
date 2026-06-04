@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -30,53 +29,47 @@ namespace RagChatbotSystem.Presentation.Controllers
         [HttpPost]
         [Authorize(Roles = "Teacher,Admin")]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(52428800)] // Giới hạn tải lên tối đa 50MB (50 * 1024 * 1024 bytes)
+        [RequestSizeLimit(52428800)]
         public async Task<IActionResult> Upload(Guid datasetId, IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
-                return RedirectToAction("Index", "Home", new { datasetId, error = "Vui lòng chọn tệp để tải lên." });
+                return RedirectToAction("Index", "Home", new { datasetId, error = "Vui long chon tep de tai len." });
             }
 
             if (file.Length > 52428800)
             {
-                return RedirectToAction("Index", "Home", new { datasetId, error = "Kích thước tệp vượt quá giới hạn cho phép (tối đa 50MB)." });
+                return RedirectToAction("Index", "Home", new { datasetId, error = "Kich thuoc tep vuot qua gioi han cho phep (toi da 50MB)." });
             }
 
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var currentUserId))
+            if (!TryGetCurrentUser(out var currentUserId, out var userRole))
             {
                 return Challenge();
             }
 
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
-
-            // Kiểm tra xem Dataset có tồn tại và thuộc quyền quản lý của User không
             var dataset = await _datasetService.GetDatasetAsync(datasetId);
             if (dataset == null)
             {
                 return NotFound();
             }
 
-            if (userRole != "Admin" && dataset.CreatedBy != currentUserId)
+            if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, datasetId))
             {
-                return RedirectToAction("Index", "Home", new { datasetId, error = "Bạn chỉ có quyền tải lên tài liệu vào Dataset của chính mình." });
+                return RedirectToAction("Index", "Home", new { datasetId, error = "Ban chi co quyen tai len tai lieu vao mon hoc duoc Admin phan cong." });
             }
 
             try
             {
                 using var stream = file.OpenReadStream();
-                // 1. Lưu file vật lý
                 var doc = await _documentService.UploadDocumentAsync(datasetId, currentUserId, stream, file.FileName, file.Length);
-                // 2. Tiến hành trích xuất text + chunking + embedding + đánh chỉ mục
                 await _documentService.ProcessUploadedDocumentAsync(doc.DocumentId);
 
-                return RedirectToAction("Index", "Home", new { datasetId, success = $"Tài liệu '{file.FileName}' đã được tải lên và xử lý phân đoạn thành công!" });
+                return RedirectToAction("Index", "Home", new { datasetId, success = $"Tai lieu '{file.FileName}' da duoc tai len va xu ly thanh cong." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to upload and process document.");
-                return RedirectToAction("Index", "Home", new { datasetId, error = $"Tải tài liệu thất bại: {ex.Message}" });
+                return RedirectToAction("Index", "Home", new { datasetId, error = $"Tai tai lieu that bai: {ex.Message}" });
             }
         }
 
@@ -85,40 +78,33 @@ namespace RagChatbotSystem.Presentation.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(Guid datasetId, Guid documentId)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var currentUserId))
+            if (!TryGetCurrentUser(out var currentUserId, out var userRole))
             {
                 return Challenge();
             }
 
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
-
-            // Kiểm tra sự tồn tại của Document
             var document = await _documentService.GetDocumentAsync(documentId);
             if (document == null)
             {
-                return RedirectToAction("Index", "Home", new { datasetId, error = "Không tìm thấy tài liệu cần xóa." });
+                return RedirectToAction("Index", "Home", new { datasetId, error = "Khong tim thay tai lieu can xoa." });
             }
 
-            // Giáo viên chỉ được xóa tài liệu do chính mình tải lên
-            if (userRole != "Admin" && document.UploadedBy != currentUserId)
+            if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, document.DatasetId))
             {
-                return RedirectToAction("Index", "Home", new { datasetId, error = "Bạn chỉ có quyền xóa tài liệu do chính mình tải lên." });
+                return RedirectToAction("Index", "Home", new { datasetId, error = "Ban chi co quyen xoa tai lieu trong mon hoc duoc Admin phan cong." });
             }
 
             try
             {
                 var deleted = await _documentService.DeleteDocumentAsync(documentId);
-                if (deleted)
-                {
-                    return RedirectToAction("Index", "Home", new { datasetId, success = "Xóa tài liệu thành công!" });
-                }
-                return RedirectToAction("Index", "Home", new { datasetId, error = "Xóa tài liệu thất bại." });
+                return deleted
+                    ? RedirectToAction("Index", "Home", new { datasetId, success = "Xoa tai lieu thanh cong." })
+                    : RedirectToAction("Index", "Home", new { datasetId, error = "Xoa tai lieu that bai." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to delete document.");
-                return RedirectToAction("Index", "Home", new { datasetId, error = $"Xóa tài liệu thất bại: {ex.Message}" });
+                return RedirectToAction("Index", "Home", new { datasetId, error = $"Xoa tai lieu that bai: {ex.Message}" });
             }
         }
 
@@ -133,8 +119,40 @@ namespace RagChatbotSystem.Presentation.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve document chunks.");
-                return BadRequest(new { error = $"Không thể lấy danh sách phân đoạn: {ex.Message}" });
+                return BadRequest(new { error = $"Khong the lay danh sach phan doan: {ex.Message}" });
             }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Teacher,Admin")]
+        public async Task<IActionResult> Preview(Guid documentId)
+        {
+            if (!TryGetCurrentUser(out var currentUserId, out var userRole))
+            {
+                return Challenge();
+            }
+
+            try
+            {
+                var preview = await _documentService.GetDocumentPreviewAsync(documentId, currentUserId, userRole);
+                if (preview == null)
+                {
+                    return NotFound();
+                }
+
+                return View(preview);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
+        private bool TryGetCurrentUser(out Guid userId, out string role)
+        {
+            role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(userIdString, out userId);
         }
     }
 }

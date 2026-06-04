@@ -261,6 +261,60 @@ namespace RagChatbotSystem.Business.Services
             return true;
         }
 
+        public async Task<DocumentPreviewDto?> GetDocumentPreviewAsync(Guid documentId, Guid currentUserId, string role, CancellationToken cancellationToken = default)
+        {
+            var document = await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .Include(d => d.Dataset)
+                .Where(d => d.DocumentId == documentId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (document == null)
+            {
+                return null;
+            }
+
+            if (role != "Admin")
+            {
+                if (role != "Teacher")
+                {
+                    throw new UnauthorizedAccessException("Only teachers and admins can preview documents.");
+                }
+
+                var assignmentRepo = _unitOfWork.Repository<TeacherSubjectAssignment>();
+                var canManage = await assignmentRepo.GetQueryable()
+                    .AnyAsync(a => a.DatasetId == document.DatasetId && a.TeacherId == currentUserId, cancellationToken);
+
+                if (!canManage)
+                {
+                    throw new UnauthorizedAccessException("You do not manage this subject.");
+                }
+            }
+
+            var chunks = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(c => c.DocumentId == documentId)
+                .OrderBy(c => c.ChunkIndex)
+                .Select(c => new DocumentChunkPreviewDto(
+                    c.ChunkId,
+                    c.ChunkIndex,
+                    c.PageNumber,
+                    c.Content,
+                    c.MetadataJson))
+                .ToListAsync(cancellationToken);
+
+            return new DocumentPreviewDto(
+                document.DocumentId,
+                document.DatasetId,
+                document.Dataset.Name,
+                document.FileName,
+                document.FileType,
+                document.FileSize,
+                document.Status,
+                document.UploadedAt,
+                chunks);
+        }
+
         internal static async Task<List<ExtractedTextSegment>> ExtractTextSegmentsAsync(Stream stream, string fileType, CancellationToken cancellationToken = default)
         {
             var normalizedType = fileType.TrimStart('.').ToLowerInvariant();

@@ -17,6 +17,7 @@ namespace RagChatbotSystem.DataAccess.Models
         // Navigation properties
         public virtual User Creator { get; set; } = null!;
         public virtual ICollection<DatasetPermission> DatasetPermissions { get; set; } = new List<DatasetPermission>();
+        public virtual TeacherSubjectAssignment? TeacherSubjectAssignment { get; set; }
         public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
         public virtual ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
         public virtual ICollection<Chunk> Chunks { get; set; } = new List<Chunk>();
