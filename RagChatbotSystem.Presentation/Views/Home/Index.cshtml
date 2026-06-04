@@ -653,6 +653,17 @@
         }
 
         function triggerUpload() {
+            const fileInput = document.getElementById('file-upload');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                if (file.size > maxSize) {
+                    alert('Kích thước tệp vượt quá giới hạn cho phép (tối đa 50MB). Vui lòng chọn tệp nhỏ hơn.');
+                    fileInput.value = ""; // Reset
+                    return;
+                }
+            }
+
             const dropzone = document.getElementById('upload-dropzone');
             const idleState = document.getElementById('upload-idle-state');
             const loadingState = document.getElementById('upload-loading-state');

@@ -41,7 +41,7 @@ services:
     ports:
       - "5259:5259"
     environment:
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=RagChatbotSystemDb;Username=postgres;Password=${DB_PASSWORD:-rag_db_password}
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=RagChatbotSystemDb;Username=postgres;Password=${DB_PASSWORD:-root}
       - RagApi__BaseUrl=http://rag-api:8000
       - GoogleDrive__CredentialJsonPath=/app/credentials/google-credentials.json
       - GoogleDrive__TargetFolderId=${GOOGLE_DRIVE_FOLDER_ID:-}

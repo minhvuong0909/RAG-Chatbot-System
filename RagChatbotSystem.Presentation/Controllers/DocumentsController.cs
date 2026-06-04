@@ -30,11 +30,17 @@ namespace RagChatbotSystem.Presentation.Controllers
         [HttpPost]
         [Authorize(Roles = "Teacher,Admin")]
         [ValidateAntiForgeryToken]
+        [RequestSizeLimit(52428800)] // Giới hạn tải lên tối đa 50MB (50 * 1024 * 1024 bytes)
         public async Task<IActionResult> Upload(Guid datasetId, IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
                 return RedirectToAction("Index", "Home", new { datasetId, error = "Vui lòng chọn tệp để tải lên." });
+            }
+
+            if (file.Length > 52428800)
+            {
+                return RedirectToAction("Index", "Home", new { datasetId, error = "Kích thước tệp vượt quá giới hạn cho phép (tối đa 50MB)." });
             }
 
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
