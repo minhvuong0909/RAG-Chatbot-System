@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -43,6 +45,15 @@ namespace RagChatbotSystem.Presentation.Controllers
             }
 
             var currentUserRole = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
+            if (currentUserRole == "Admin")
+            {
+                return RedirectToAction("Index", "Admin");
+            }
+
+            if (string.Equals(User.FindFirstValue("MustChangePassword"), "True", StringComparison.OrdinalIgnoreCase))
+            {
+                return RedirectToAction("ChangePassword", "Account");
+            }
 
             var model = new WorkspaceViewModel
             {
@@ -58,6 +69,12 @@ namespace RagChatbotSystem.Presentation.Controllers
             {
                 // 1. Lấy thông tin User hiện tại
                 model.SelectedUser = await _userService.GetUserAsync(currentUserId);
+                if (model.SelectedUser == null)
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    TempData["ErrorMessage"] = "Your login session is no longer valid. Please sign in again.";
+                    return RedirectToAction("Login", "Account");
+                }
 
                 // 2. Lấy danh sách Datasets phù hợp với phân quyền của User
                 model.Datasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, currentUserRole);
@@ -69,9 +86,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                     if (model.SelectedDataset != null)
                     {
                         // Kiểm tra xem User hiện tại có quyền truy cập Dataset này không
-                        var hasAccess = currentUserRole == "Admin" || 
-                                        model.SelectedDataset.CreatedBy == currentUserId || 
-                                        model.SelectedDataset.IsPublic || 
+                        var hasAccess = currentUserRole == "Admin" ||
                                         model.Datasets.Any(d => d.DatasetId == datasetId.Value);
 
                         if (!hasAccess)

@@ -16,5 +16,7 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<DocumentDto> ProcessUploadedDocumentAsync(Guid documentId, CancellationToken cancellationToken = default);
         Task<Document?> ProcessAndIndexDocumentAsync(Guid datasetId, Guid userId, string fileName, string rawText);
         Task<bool> DeleteDocumentAsync(Guid documentId);
+        Task<IReadOnlyList<ChunkDto>> GetDocumentChunksAsync(Guid documentId, CancellationToken cancellationToken = default);
+        Task<DocumentPreviewDto?> GetDocumentPreviewAsync(Guid documentId, Guid currentUserId, string role, CancellationToken cancellationToken = default);
     }
 }

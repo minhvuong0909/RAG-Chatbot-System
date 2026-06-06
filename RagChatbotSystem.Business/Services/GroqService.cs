@@ -61,8 +61,7 @@ namespace RagChatbotSystem.Business.Services
         }
 
         /// <summary>
-        /// Trích xuất ngữ cảnh từ prompt khi API không khả dụng.
-        /// Dùng ReadOnlySpan để tối ưu thao tác cắt chuỗi.
+        /// Trích xuất ngữ cảnh từ prompt và định dạng gọn gàng khi API không khả dụng.
         /// </summary>
         private static string ExtractFallbackAnswer(string prompt, string prefix)
         {
@@ -76,8 +75,51 @@ namespace RagChatbotSystem.Business.Services
             var contextEnd = prompt.IndexOf(questionMarker, contextStart, StringComparison.Ordinal);
             if (contextEnd <= contextStart) return prefix;
 
-            var context = prompt.AsSpan(contextStart, contextEnd - contextStart).Trim();
-            return $"{prefix}:\n\n{context.ToString()}";
+            var context = prompt.Substring(contextStart, contextEnd - contextStart).Trim();
+            
+            // Tách các đoạn ngữ cảnh bằng các dấu phân tách phổ biến
+            var sections = context.Split(new[] { "---", "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var cleanSections = new List<string>();
+            
+            foreach (var section in sections)
+            {
+                var cleanSec = section.Trim();
+                if (string.IsNullOrWhiteSpace(cleanSec)) continue;
+                
+                // Giới hạn độ dài mỗi đoạn cho gọn gàng
+                if (cleanSec.Length > 200)
+                {
+                    cleanSec = cleanSec.Substring(0, 200) + "...";
+                }
+                cleanSections.Add(cleanSec);
+            }
+
+            var question = "";
+            var questionStart = prompt.IndexOf(questionMarker, StringComparison.Ordinal);
+            if (questionStart >= 0)
+            {
+                var qText = prompt.Substring(questionStart + questionMarker.Length).Trim();
+                var lines = qText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length > 0)
+                {
+                    question = lines[0].Trim();
+                }
+            }
+
+            var responseBuilder = new System.Text.StringBuilder();
+            responseBuilder.AppendLine(prefix);
+            if (!string.IsNullOrEmpty(question))
+            {
+                responseBuilder.AppendLine($"\n**Câu hỏi:** *{question}*");
+            }
+            responseBuilder.AppendLine("\n**Đoạn trích tìm thấy trong tài liệu:**");
+            
+            for (int i = 0; i < cleanSections.Count; i++)
+            {
+                responseBuilder.AppendLine($"\n{i + 1}. \"{cleanSections[i]}\"");
+            }
+
+            return responseBuilder.ToString();
         }
 
         // Các class để deserialize phản hồi từ Groq API

@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
@@ -24,8 +25,14 @@ namespace RagChatbotSystem.Presentation.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
+                if (User.IsInRole("Admin"))
+                {
+                    return RedirectToAction("Index", "Admin");
+                }
+
                 return RedirectToAction("Index", "Home");
             }
+
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
@@ -38,7 +45,7 @@ namespace RagChatbotSystem.Presentation.Controllers
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
             {
-                ModelState.AddModelError(string.Empty, "Email and Password are required.");
+                ModelState.AddModelError(string.Empty, "Username/email and password are required.");
                 return View();
             }
 
@@ -47,29 +54,21 @@ namespace RagChatbotSystem.Presentation.Controllers
                 var user = await _userService.AuthenticateUserAsync(email, password);
                 if (user == null)
                 {
-                    ModelState.AddModelError(string.Empty, "Invalid email or password.");
+                    ModelState.AddModelError(string.Empty, "Invalid username/email or password.");
                     return View();
                 }
 
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.FullName),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                };
+                await SignInAsync(user);
 
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties
+                if (user.MustChangePassword)
                 {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                };
+                    return RedirectToAction(nameof(ChangePassword));
+                }
 
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties);
+                if (user.Role == "Admin")
+                {
+                    return RedirectToAction("Index", "Admin");
+                }
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
@@ -88,54 +87,48 @@ namespace RagChatbotSystem.Presentation.Controllers
         [HttpGet]
         public IActionResult Register()
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-            return View();
+            TempData["ErrorMessage"] = "Tai khoan Student va Teacher se do Admin cap. Vui long lien he Admin neu ban can tai khoan.";
+            return RedirectToAction(nameof(Login));
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(string fullName, string email, string password, string role)
+        public IActionResult Register(string fullName, string email, string password, string role)
         {
-            if (string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(email) || 
-                string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(role))
-            {
-                ModelState.AddModelError(string.Empty, "All fields are required.");
-                return View();
-            }
+            TempData["ErrorMessage"] = "Public registration is disabled. Accounts are provisioned by Admin.";
+            return RedirectToAction(nameof(Login));
+        }
 
-            if (role != "Student" && role != "Teacher" && role != "Admin")
+        [Authorize]
+        [HttpGet]
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmNewPassword)
+        {
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdValue, out var userId))
             {
-                ModelState.AddModelError(string.Empty, "Invalid role selected.");
-                return View();
+                return Challenge();
             }
 
             try
             {
-                var request = new CreateUserRequest(fullName, email, role, password);
-                var user = await _userService.CreateUserAsync(request);
-
-                if (user.Role == "Teacher")
+                await _userService.ChangePasswordAsync(new ChangePasswordRequest(userId, currentPassword, newPassword, confirmNewPassword));
+                var refreshedUser = await _userService.GetUserAsync(userId);
+                if (refreshedUser != null)
                 {
-                    TempData["SuccessMessage"] = "Đăng ký thành công! Tài khoản giáo viên của bạn đang chờ Admin phê duyệt.";
-                    return RedirectToAction("Login", "Account");
+                    await SignInAsync(refreshedUser);
+                    if (refreshedUser.Role == "Admin")
+                    {
+                        return RedirectToAction("Index", "Admin");
+                    }
                 }
-
-                // Auto login after successful registration
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, user.FullName),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity));
 
                 return RedirectToAction("Index", "Home");
             }
@@ -151,13 +144,38 @@ namespace RagChatbotSystem.Presentation.Controllers
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction(nameof(Login));
         }
 
         [HttpGet]
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+        private async Task SignInAsync(UserDto user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("Username", user.Username),
+                new Claim("MustChangePassword", user.MustChangePassword.ToString())
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
         }
     }
 }

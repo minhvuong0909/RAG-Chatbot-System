@@ -1,0 +1,86 @@
+name: Deploy RAG Chatbot System
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          source: "."
+          target: "/var/www/rag-chatbot-system"
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          command_timeout: 30m
+          script: |
+            set -e
+            
+            APP_DIR="/var/www/rag-chatbot-system"
+            cd $APP_DIR
+            
+            # Create .env from template if not exists
+            if [ ! -f ".env" ]; then
+              cp .env.example .env
+              echo "⚠️ Created .env from template. Please configure API keys!"
+            fi
+            
+            # Pre-create empty google-credentials.json if not present
+            if [ ! -f "google-credentials.json" ]; then
+              echo '{}' > google-credentials.json
+            fi
+            
+            # Rebuild and start container services
+            docker compose down
+            docker compose up -d --build
+            
+            # Wait for services to start and auto-migrate
+            sleep 15
+            
+            # Remove old build cache and unused images to save disk space
+            docker image prune -f
+            
+            echo "✅ Deployment completed successfully!"
+            
+      - name: Setup Nginx (first time only)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          command_timeout: 10m
+          script: |
+            NGINX_CONF="/etc/nginx/sites-available/chatbot.vuongdev.top"
+            
+            # Only setup Nginx if config doesn't exist
+            if [ ! -f "$NGINX_CONF" ]; then
+              sudo cp /var/www/rag-chatbot-system/nginx.conf $NGINX_CONF
+              sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/chatbot.vuongdev.top
+              sudo nginx -t && sudo systemctl reload nginx
+              
+              # Request SSL certificate via Certbot
+              sudo certbot --nginx -d chatbot.vuongdev.top --non-interactive --agree-tos -m admin@vuongdev.top || true
+              
+              echo "✅ Nginx + SSL configured for chatbot.vuongdev.top"
+            else
+              echo "ℹ️ Nginx already configured, skipping."
+            fi

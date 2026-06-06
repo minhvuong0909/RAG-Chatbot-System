@@ -221,9 +221,10 @@ namespace RagChatbotSystem.DataAccess.Migrations
 
                     b.HasKey("PermissionId");
 
-                    b.HasIndex("DatasetId");
-
                     b.HasIndex("UserId");
+
+                    b.HasIndex("DatasetId", "UserId")
+                        .IsUnique();
 
                     b.ToTable("DatasetPermissions");
                 });
@@ -277,6 +278,37 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.ToTable("Documents");
                 });
 
+            modelBuilder.Entity("RagChatbotSystem.DataAccess.Models.TeacherSubjectAssignment", b =>
+                {
+                    b.Property<Guid>("AssignmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("AssignedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("AssignmentId");
+
+                    b.HasIndex("AssignedBy");
+
+                    b.HasIndex("DatasetId")
+                        .IsUnique();
+
+                    b.HasIndex("TeacherId", "DatasetId")
+                        .IsUnique();
+
+                    b.ToTable("TeacherSubjectAssignments");
+                });
+
             modelBuilder.Entity("RagChatbotSystem.DataAccess.Models.User", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -285,6 +317,9 @@ namespace RagChatbotSystem.DataAccess.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByAdminId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -301,6 +336,17 @@ namespace RagChatbotSystem.DataAccess.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastPasswordChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -311,7 +357,21 @@ namespace RagChatbotSystem.DataAccess.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime?>("TemporaryPasswordExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.HasKey("UserId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -480,6 +540,33 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.Navigation("Uploader");
                 });
 
+            modelBuilder.Entity("RagChatbotSystem.DataAccess.Models.TeacherSubjectAssignment", b =>
+                {
+                    b.HasOne("RagChatbotSystem.DataAccess.Models.User", "AssignedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("AssignedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RagChatbotSystem.DataAccess.Models.Dataset", "Dataset")
+                        .WithOne("TeacherSubjectAssignment")
+                        .HasForeignKey("RagChatbotSystem.DataAccess.Models.TeacherSubjectAssignment", "DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RagChatbotSystem.DataAccess.Models.User", "Teacher")
+                        .WithMany("TeacherSubjectAssignments")
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedByAdmin");
+
+                    b.Navigation("Dataset");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("RagChatbotSystem.DataAccess.Models.VectorRecord", b =>
                 {
                     b.HasOne("RagChatbotSystem.DataAccess.Models.Chunk", "Chunk")
@@ -534,6 +621,8 @@ namespace RagChatbotSystem.DataAccess.Migrations
 
                     b.Navigation("Documents");
 
+                    b.Navigation("TeacherSubjectAssignment");
+
                     b.Navigation("VectorRecords");
                 });
 
@@ -555,6 +644,8 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.Navigation("Datasets");
 
                     b.Navigation("Documents");
+
+                    b.Navigation("TeacherSubjectAssignments");
                 });
 #pragma warning restore 612, 618
         }

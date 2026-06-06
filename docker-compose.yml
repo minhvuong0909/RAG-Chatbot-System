@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    container_name: rag-postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rag_db_password}
+      POSTGRES_DB: RagChatbotSystemDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rag-api:
+    build:
+      context: ./RAG-Retrieval-Indexing-API
+      dockerfile: Dockerfile
+    container_name: rag-retrieval-api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - rag-cache:/app/cache
+
+  web-app:
+    build:
+      context: .
+      dockerfile: RagChatbotSystem.Presentation/Dockerfile
+    container_name: rag-web-app
+    restart: always
+    ports:
+      - "5259:5259"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=RagChatbotSystemDb;Username=postgres;Password=${DB_PASSWORD:-rag_db_password}
+      - RagApi__BaseUrl=http://rag-api:8000
+      - GoogleDrive__CredentialJsonPath=/app/google-credentials.json
+      - GoogleDrive__TargetFolderId=${GOOGLE_DRIVE_FOLDER_ID:-}
+      - Gemini__ApiKey=${GEMINI_API_KEY:-}
+      - Groq__ApiKey=${GROQ_API_KEY:-}
+      - OpenAi__ApiKey=${OPENAI_API_KEY:-}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      - ./google-credentials.json:/app/google-credentials.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      rag-api:
+        condition: service_started
+
+volumes:
+  pgdata:
+  rag-cache:

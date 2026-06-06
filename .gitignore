@@ -26,17 +26,17 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
-
 .env
 .env.local
 .env.*.local
-
+.env.deployment
 # Runtime uploaded files
 **/wwwroot/uploads/
 
 # Python RAG API local/runtime files
 RAG-Retrieval-Indexing-API/**/.env
 RAG-Retrieval-Indexing-API/**/.env.*
+!RAG-Retrieval-Indexing-API/**/.env.example
 RAG-Retrieval-Indexing-API/**/.venv/
 RAG-Retrieval-Indexing-API/**/venv/
 RAG-Retrieval-Indexing-API/**/__pycache__/

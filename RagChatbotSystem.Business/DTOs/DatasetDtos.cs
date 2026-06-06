@@ -11,7 +11,9 @@ namespace RagChatbotSystem.Business.DTOs
         DateTime UpdatedAt,
         int DocumentCount,
         bool IsPublic,
-        bool IsApproved);
+        bool IsApproved,
+        Guid? AssignedTeacherId = null,
+        string? AssignedTeacherName = null);
 
     public sealed record CreateDatasetRequest(
         string Name,
@@ -19,4 +21,13 @@ namespace RagChatbotSystem.Business.DTOs
         Guid CreatedBy,
         bool IsPublic);
 
+    public sealed record TeacherSubjectAssignmentDto(
+        Guid AssignmentId,
+        Guid TeacherId,
+        string TeacherName,
+        string TeacherEmail,
+        Guid DatasetId,
+        string DatasetName,
+        Guid AssignedBy,
+        DateTime AssignedAt);
 }

@@ -261,6 +261,60 @@ namespace RagChatbotSystem.Business.Services
             return true;
         }
 
+        public async Task<DocumentPreviewDto?> GetDocumentPreviewAsync(Guid documentId, Guid currentUserId, string role, CancellationToken cancellationToken = default)
+        {
+            var document = await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .Include(d => d.Dataset)
+                .Where(d => d.DocumentId == documentId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (document == null)
+            {
+                return null;
+            }
+
+            if (role != "Admin")
+            {
+                if (role != "Teacher")
+                {
+                    throw new UnauthorizedAccessException("Only teachers and admins can preview documents.");
+                }
+
+                var assignmentRepo = _unitOfWork.Repository<TeacherSubjectAssignment>();
+                var canManage = await assignmentRepo.GetQueryable()
+                    .AnyAsync(a => a.DatasetId == document.DatasetId && a.TeacherId == currentUserId, cancellationToken);
+
+                if (!canManage)
+                {
+                    throw new UnauthorizedAccessException("You do not manage this subject.");
+                }
+            }
+
+            var chunks = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(c => c.DocumentId == documentId)
+                .OrderBy(c => c.ChunkIndex)
+                .Select(c => new DocumentChunkPreviewDto(
+                    c.ChunkId,
+                    c.ChunkIndex,
+                    c.PageNumber,
+                    c.Content,
+                    c.MetadataJson))
+                .ToListAsync(cancellationToken);
+
+            return new DocumentPreviewDto(
+                document.DocumentId,
+                document.DatasetId,
+                document.Dataset.Name,
+                document.FileName,
+                document.FileType,
+                document.FileSize,
+                document.Status,
+                document.UploadedAt,
+                chunks);
+        }
+
         internal static async Task<List<ExtractedTextSegment>> ExtractTextSegmentsAsync(Stream stream, string fileType, CancellationToken cancellationToken = default)
         {
             var normalizedType = fileType.TrimStart('.').ToLowerInvariant();
@@ -430,9 +484,11 @@ namespace RagChatbotSystem.Business.Services
 
             foreach (var page in pdf.GetPages())
             {
-                if (!string.IsNullOrWhiteSpace(page.Text))
+                var words = page.GetWords();
+                var text = string.Join(" ", words.Select(w => w.Text));
+                if (!string.IsNullOrWhiteSpace(text))
                 {
-                    segments.Add(new ExtractedTextSegment(page.Text, page.Number));
+                    segments.Add(new ExtractedTextSegment(text, page.Number));
                 }
             }
 
@@ -474,6 +530,25 @@ namespace RagChatbotSystem.Business.Services
             return pageScores.Count == 0
                 ? 1
                 : pageScores.OrderByDescending(p => p.Value).ThenBy(p => p.Key).First().Key;
+        }
+
+        public async Task<IReadOnlyList<ChunkDto>> GetDocumentChunksAsync(Guid documentId, CancellationToken cancellationToken = default)
+        {
+            var chunks = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Include(c => c.VectorRecord)
+                .Where(c => c.DocumentId == documentId)
+                .OrderBy(c => c.ChunkIndex)
+                .ToListAsync(cancellationToken);
+
+            return chunks.Select(c => new ChunkDto(
+                c.ChunkId,
+                c.DocumentId,
+                c.ChunkIndex,
+                c.Content,
+                c.PageNumber,
+                c.VectorRecord?.Embedding?.ToArray()
+            )).ToList();
         }
 
         private static DocumentDto ToDto(Document document)

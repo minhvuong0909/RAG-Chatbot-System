@@ -16,6 +16,12 @@
                 @TempData["SuccessMessage"]
             </div>
         }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-warning border-0 mb-4" style="border-radius: 8px; padding: 12px; font-size: 0.85rem; font-weight: 700;">
+                @TempData["ErrorMessage"]
+            </div>
+        }
 
         @if (!ViewData.ModelState.IsValid)
         {
@@ -29,8 +35,8 @@
             <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
             <div>
-                <label for="email" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">EMAIL</label>
-                <input type="email" id="email" name="email" placeholder="Enter your email" required style="min-height: 48px;" />
+                <label for="email" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">USERNAME OR EMAIL</label>
+                <input type="text" id="email" name="email" placeholder="Enter your username or email" required style="min-height: 48px;" />
             </div>
 
             <div>
@@ -45,8 +51,7 @@
             </div>
 
             <div class="text-center mt-3">
-                <span class="text-muted small">New researcher? </span>
-                <a asp-action="Register" class="small fw-bold" style="color: var(--accent-strong); text-shadow: 0 0 10px rgba(0, 242, 254, 0.4); text-decoration: none;">Create Credentials</a>
+                <span class="text-muted small">Accounts are provided by Admin via email.</span>
             </div>
         </form>
     </div>

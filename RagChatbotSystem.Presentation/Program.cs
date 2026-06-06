@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using RagChatbotSystem.DataAccess.Data;
 using Pgvector;
@@ -44,7 +45,7 @@ namespace RagChatbotSystem.Presentation
                          builder.Configuration.GetConnectionString("DefaultConnection"),
                          o => o.UseVector()));
 
-            // Cấu hình HttpClient cho Python RAG API (timeout 120s cho các thao tác nặng)
+            // Cấu hình HttpClient cho Python RAG API 
             builder.Services.AddHttpClient<IRagApiClient, RagApiClient>(client =>
             {
                 var baseUrl = builder.Configuration["RagApi:BaseUrl"]
@@ -73,12 +74,91 @@ namespace RagChatbotSystem.Presentation
             // Đăng ký các dịch vụ Business Layer
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IDatasetService, DatasetService>();
+            builder.Services.AddScoped<IEmailService, SmtpEmailService>();
             builder.Services.AddScoped<IFileStorageService, GoogleDriveStorageService>();
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
 
             var app = builder.Build();
+
+            // === Auto-migrate database & seed admin account từ biến môi trường ===
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+                try
+                {
+                    startupLogger.LogInformation("Applying database migrations...");
+                    db.Database.Migrate();
+                    startupLogger.LogInformation("Database migrations applied successfully.");
+
+                    // Seed admin account nếu chưa có Admin nào trong hệ thống
+                    // Đọc thông tin từ biến môi trường (cấu hình trong .env trên VPS)
+                    var adminEmail = builder.Configuration["AdminSeed:Email"]
+                        ?? Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+                    var adminPassword = builder.Configuration["AdminSeed:Password"]
+                        ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                    var adminUsername = builder.Configuration["AdminSeed:Username"] ?? "admin";
+                    var adminFullName = builder.Configuration["AdminSeed:FullName"] ?? "System Admin";
+
+                    if (!string.IsNullOrWhiteSpace(adminEmail)
+                        && !string.IsNullOrWhiteSpace(adminPassword))
+                    {
+                        adminEmail = adminEmail.Trim().ToLowerInvariant();
+                        adminUsername = adminUsername.Trim().ToLowerInvariant();
+
+                        var admin = db.Users.FirstOrDefault(u =>
+                            u.Email.ToLower() == adminEmail ||
+                            u.Username.ToLower() == adminUsername);
+
+                        if (admin == null)
+                        {
+                            admin = new RagChatbotSystem.DataAccess.Models.User
+                            {
+                                UserId = Guid.NewGuid(),
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.Users.Add(admin);
+                        }
+
+                        admin.FullName = adminFullName;
+                        admin.Email = adminEmail;
+                        admin.Username = adminUsername;
+                        admin.PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword(adminPassword);
+                        admin.Role = "Admin";
+                        admin.IsApproved = true;
+                        admin.MustChangePassword = false;
+                        admin.TemporaryPasswordExpiresAt = null;
+                        admin.LastPasswordChangedAt = DateTime.UtcNow;
+                        db.SaveChanges();
+                        startupLogger.LogInformation("Admin account ensured successfully for {Email}.", adminEmail);
+                    }
+
+                    var myAdminEmail = "admin@vuongdev.top";
+                    if (!db.Users.Any(u => u.Email == myAdminEmail))
+                    {
+                        var myAdmin = new RagChatbotSystem.DataAccess.Models.User
+                        {
+                            UserId = Guid.NewGuid(),
+                            FullName = "Vuong Dev Admin",
+                            Email = myAdminEmail,
+                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Vv123456!"),
+                            Role = "Admin",
+                            IsApproved = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.Users.Add(myAdmin);
+                        db.SaveChanges();
+                        startupLogger.LogInformation("Admin account seeded successfully for {Email}.", myAdminEmail);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    startupLogger.LogError(ex, "Error during database migration or seeding.");
+                }
+            }
 
             if (app.Environment.IsDevelopment())
             {
@@ -95,6 +175,12 @@ namespace RagChatbotSystem.Presentation
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
+
+            // Hỗ trợ reverse proxy (Nginx) để nhận đúng IP client và scheme
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
             app.UseHttpsRedirection();
 

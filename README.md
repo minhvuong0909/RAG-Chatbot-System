@@ -242,3 +242,5 @@ dotnet test RagChatbotSystem.sln
 > [!NOTE]
 > - Python RAG API sử dụng bộ nhớ cache lưu tại `cache/faiss_index` và `cache/bm25.pkl`. Nếu muốn xóa chỉ mục để nạp lại từ đầu, hãy xóa thư mục `cache` này trước khi khởi chạy lại Python API.
 > - Hãy chắc chắn rằng bạn đã kích hoạt extension `vector` trong PostgreSQL nếu cài đặt thủ công mà không dùng docker image được dựng sẵn.
+
+++
