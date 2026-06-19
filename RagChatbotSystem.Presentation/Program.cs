@@ -17,7 +17,6 @@ namespace RagChatbotSystem.Presentation
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllersWithViews();
             builder.Services.AddRazorPages();
             builder.Services.AddSignalR();
 
@@ -177,7 +176,7 @@ namespace RagChatbotSystem.Presentation
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
+                app.UseExceptionHandler("/Error");
                 app.UseHsts();
             }
 
@@ -202,12 +201,6 @@ namespace RagChatbotSystem.Presentation
             app.MapHub<DocumentHub>("/hubs/document");
             app.MapHub<NotificationHub>("/hubs/notification");
             app.MapHub<NotificationHub>("/hubs/notifications");
-
-            app.MapControllers();
-
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
 
             app.Run();
         }

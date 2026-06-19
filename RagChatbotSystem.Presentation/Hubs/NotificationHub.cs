@@ -12,19 +12,22 @@ namespace RagChatbotSystem.Presentation.Hubs
     public class NotificationHub : Hub
     {
         public const string AdminGroupName = "role:Admin";
-        private readonly IDatasetService _datasetService;
 
-        public NotificationHub(IDatasetService datasetService)
+        private readonly IDatasetService _datasetService;
+        private readonly IChatSessionService _chatSessionService;
+
+        public NotificationHub(IDatasetService datasetService, IChatSessionService chatSessionService)
         {
             _datasetService = datasetService;
+            _chatSessionService = chatSessionService;
         }
 
         public override async Task OnConnectedAsync()
         {
-            var userIdVal = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userIdVal) && Guid.TryParse(userIdVal, out var userGuid))
+            var userIdValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Guid.TryParse(userIdValue, out var userId))
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userGuid}");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
             }
 
             if (Context.User?.IsInRole("Admin") == true)
@@ -66,9 +69,41 @@ namespace RagChatbotSystem.Presentation.Hubs
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, DatasetGroupName(datasetId));
         }
 
+        public async Task JoinChatSessionGroup(Guid sessionId)
+        {
+            var userIdValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdValue, out var userId))
+            {
+                throw new HubException("The current session is invalid.");
+            }
+
+            var session = await _chatSessionService.GetSessionAsync(sessionId, Context.ConnectionAborted);
+            if (session == null)
+            {
+                throw new HubException("Chat session was not found.");
+            }
+
+            if (Context.User?.IsInRole("Admin") != true && session.UserId != userId)
+            {
+                throw new HubException("You do not have access to this chat session.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, ChatSessionGroupName(sessionId));
+        }
+
+        public Task LeaveChatSessionGroup(Guid sessionId)
+        {
+            return Groups.RemoveFromGroupAsync(Context.ConnectionId, ChatSessionGroupName(sessionId));
+        }
+
         public static string DatasetGroupName(Guid datasetId)
         {
             return $"dataset:{datasetId}";
+        }
+
+        public static string ChatSessionGroupName(Guid sessionId)
+        {
+            return $"chat-session:{sessionId}";
         }
     }
 }
