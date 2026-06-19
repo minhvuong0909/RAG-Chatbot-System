@@ -1,0 +1,216 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<section class="admin-page" data-admin-page>
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Admin Dashboard</h1>
+            <p class="helper-text">Manage accounts, teacher assignments, and subject access.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Admin sections">
+        <a class="active" asp-page="/Admin/Index" aria-current="page">Overview</a>
+        <a asp-page="/Admin/Datasets/Index">Subjects</a>
+    </nav>
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ImportErrors))
+    {
+        <div class="alert alert-warning">@Model.ImportErrors</div>
+    }
+
+    <div id="realtimeAdminStatus" class="dataset-realtime-status" hidden></div>
+
+    <div class="admin-summary" aria-label="System summary">
+        <div><strong>@Model.Users.Count</strong><span>Users</span></div>
+        <div><strong>@Model.ApprovedTeachers.Count</strong><span>Active teachers</span></div>
+        <div><strong>@Model.Assignments.Count</strong><span>Assignments</span></div>
+        <div><strong>@Model.UnassignedDatasets.Count</strong><span>Unassigned subjects</span></div>
+    </div>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Account provisioning</h2>
+        </div>
+        <div class="admin-form-grid">
+            <form method="post" asp-page-handler="ImportStudents" enctype="multipart/form-data" class="admin-form admin-processing-form">
+                <div>
+                    <h3>Import students</h3>
+                    <p class="helper-text">XLSX with an Email column; FullName is optional.</p>
+                </div>
+                <div class="admin-field">
+                    <label asp-for="StudentsFile">Student file</label>
+                    <input asp-for="StudentsFile" type="file" accept=".xlsx" required />
+                </div>
+                <button type="submit">Import and email accounts</button>
+            </form>
+
+            <form method="post" asp-page-handler="CreateTeacher" class="admin-form admin-form-teacher admin-processing-form">
+                <div>
+                    <h3>Create teacher</h3>
+                    <p class="helper-text">Create an account and assign its initial subjects.</p>
+                </div>
+                <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                <div class="admin-field-grid">
+                    <div class="admin-field">
+                        <label asp-for="TeacherInput.FullName">Full name</label>
+                        <input asp-for="TeacherInput.FullName" />
+                        <span asp-validation-for="TeacherInput.FullName" class="text-danger small"></span>
+                    </div>
+                    <div class="admin-field">
+                        <label asp-for="TeacherInput.Email">Email</label>
+                        <input asp-for="TeacherInput.Email" type="email" />
+                        <span asp-validation-for="TeacherInput.Email" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="admin-field">
+                    <label asp-for="TeacherInput.DatasetIds">Initial subjects</label>
+                    <select asp-for="TeacherInput.DatasetIds" multiple size="4">
+                        @foreach (var dataset in Model.UnassignedDatasets)
+                        {
+                            <option value="@dataset.DatasetId">@dataset.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="TeacherInput.DatasetIds" class="text-danger small"></span>
+                </div>
+                <button type="submit" disabled="@(Model.UnassignedDatasets.Count == 0)">Create teacher</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Teacher assignments</h2>
+            <span>@Model.Assignments.Count</span>
+        </div>
+
+        <form method="post" asp-page-handler="AssignTeacher" class="admin-inline-form">
+            <div>
+                <label asp-for="AssignmentInput.TeacherId">Teacher</label>
+                <select asp-for="AssignmentInput.TeacherId" required>
+                    <option value="">Select teacher</option>
+                    @foreach (var teacher in Model.ApprovedTeachers)
+                    {
+                        <option value="@teacher.UserId">@teacher.FullName (@teacher.Email)</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label asp-for="AssignmentInput.DatasetId">Unassigned subject</label>
+                <select asp-for="AssignmentInput.DatasetId" required>
+                    <option value="">Select subject</option>
+                    @foreach (var dataset in Model.UnassignedDatasets)
+                    {
+                        <option value="@dataset.DatasetId">@dataset.Name</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" disabled="@(Model.ApprovedTeachers.Count == 0 || Model.UnassignedDatasets.Count == 0)">Assign</button>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead><tr><th>Teacher</th><th>Subject</th><th>Assigned</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                    @if (Model.Assignments.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-4">No teacher assignments yet.</td></tr>
+                    }
+                    @foreach (var assignment in Model.Assignments)
+                    {
+                        <tr>
+                            <td><strong>@assignment.TeacherName</strong><small>@assignment.TeacherEmail</small></td>
+                            <td>@assignment.DatasetName</td>
+                            <td>@assignment.AssignedAt.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">
+                                <form method="post" asp-page-handler="UnassignTeacher">
+                                    <input type="hidden" name="datasetId" value="@assignment.DatasetId" />
+                                    <button type="submit" class="dataset-danger-button">Unassign</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>System users</h2>
+            <span>@Model.Users.Count</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead><tr><th>User</th><th>Role</th><th>Created</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                    @foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td><strong>@user.FullName</strong><small>@user.Email</small></td>
+                            <td><span class="status-pill">@user.Role</span></td>
+                            <td>@user.CreatedAt.ToLocalTime().ToString("g")</td>
+                            <td>
+                                <span class="status-pill @(user.IsApproved ? "dataset-approved-pill" : "processing")">
+                                    @(user.IsApproved ? "Active" : "Pending")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if (user.Role == "Teacher")
+                                {
+                                    <form method="post" asp-page-handler="ApproveUser">
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <input type="hidden" name="approve" value="@(!user.IsApproved)" />
+                                        <button type="submit" class="@(user.IsApproved ? "dataset-danger-button" : "secondary-button")">
+                                            @(user.IsApproved ? "Deactivate" : "Approve")
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+<div id="adminProcessingOverlay" class="admin-processing-overlay" hidden>
+    <div class="admin-processing-dialog" role="status" aria-live="polite">
+        <span class="admin-spinner" aria-hidden="true"></span>
+        <h2>Processing</h2>
+        <p>Please keep this page open.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll(".admin-processing-form").forEach(function (form) {
+            form.addEventListener("submit", function () {
+                const overlay = document.getElementById("adminProcessingOverlay");
+                if (overlay && form.checkValidity()) overlay.hidden = false;
+            });
+        });
+
+        window.addEventListener("rag:admin-changed", function (event) {
+            const status = document.getElementById("realtimeAdminStatus");
+            if (!status || !event.detail) return;
+            status.hidden = false;
+            status.textContent = `Realtime: ${event.detail.message}`;
+            window.setTimeout(function () { window.location.reload(); }, 700);
+        });
+    </script>
+}

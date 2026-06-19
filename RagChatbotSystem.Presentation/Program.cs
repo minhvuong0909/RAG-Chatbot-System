@@ -5,6 +5,7 @@ using Pgvector;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Business.Services;
 using RagChatbotSystem.Presentation.Services;
+using RagChatbotSystem.Presentation.Realtime;
 using RagChatbotSystem.DataAccess.Repositories;
 
 namespace RagChatbotSystem.Presentation
@@ -16,6 +17,8 @@ namespace RagChatbotSystem.Presentation
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllersWithViews();
+            builder.Services.AddRazorPages();
+            builder.Services.AddSignalR();
 
             // Đăng ký Cookie Authentication
             builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
@@ -79,6 +82,7 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
+            builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
             var app = builder.Build();
 
@@ -193,6 +197,8 @@ namespace RagChatbotSystem.Presentation
             app.UseAuthorization();
 
             app.MapControllers();
+            app.MapRazorPages();
+            app.MapHub<Hubs.NotificationHub>("/hubs/notifications");
 
             app.MapControllerRoute(
                 name: "default",

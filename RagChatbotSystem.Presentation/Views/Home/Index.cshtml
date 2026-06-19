@@ -3,7 +3,7 @@
     var defaultMobileTab = Model.SelectedMessageId.HasValue ? "reference-panel" : "chat-panel";
 }
 
-<section class="workspace" data-rag-app data-active-tab="@defaultMobileTab">
+<section class="workspace" data-rag-app data-active-tab="@defaultMobileTab" data-selected-dataset-id="@Model.SelectedDatasetId">
     <!-- Mobile Navigation Tabs (Only visible on mobile screens) -->
     <div class="mobile-workspace-tabs" aria-label="Workspace navigation">
         <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">💬 Chat</button>
@@ -54,7 +54,7 @@
         <div class="section-block">
             <div class="section-title">
                 <h2>Subjects</h2>
-                <span>@Model.Datasets.Count</span>
+                <span data-dataset-count>@Model.Datasets.Count</span>
             </div>
 
             @if (User.IsInRole("Admin"))
@@ -73,18 +73,17 @@
                 </form>
             }
 
-            <div class="dataset-list" aria-live="polite">
+            <div class="dataset-list" aria-live="polite" data-dataset-list>
                 @if (Model.Datasets.Count == 0)
                 {
                     <p class="helper-text">No subjects yet.</p>
                 }
                 @foreach (var ds in Model.Datasets)
                 {
-                    <div style="position: relative; display: block; margin-bottom: 6px;">
+                    <div class="dataset-entry" data-dataset-id="@ds.DatasetId">
                         <a class="dataset-item @(Model.SelectedDatasetId == ds.DatasetId ? "active" : "")" 
-                           href="?datasetId=@ds.DatasetId"
-                           style="text-decoration: none; display: block; padding-right: 75px;">
-                            <span class="dataset-name" style="display: flex; align-items: center; gap: 4px;">
+                           href="?datasetId=@ds.DatasetId">
+                            <span class="dataset-name">
                                 @if (!ds.IsApproved)
                                 {
                                     <span title="Pending approval" style="color: var(--warning);">⏳</span>
@@ -101,10 +100,10 @@
                         @if (User.IsInRole("Admin") || ds.CreatedBy == Model.SelectedUserId)
                         {
                             <!-- Subject delete action -->
-                            <form asp-controller="Datasets" asp-action="Delete" method="post" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin: 0; padding: 0; z-index: 100;" onsubmit="return confirm('Delete this subject and all documents inside it?');">
+                            <form asp-controller="Datasets" asp-action="Delete" method="post" class="dataset-entry-action" onsubmit="return confirm('Delete this subject and all documents inside it?');">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@ds.DatasetId" />
-                                <button type="submit" style="background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.25); border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: var(--danger); cursor: pointer; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.background='rgba(220, 38, 38, 0.15)';" onmouseout="this.style.background='rgba(220, 38, 38, 0.05)';" title="Delete subject">Delete</button>
+                                <button type="submit" class="dataset-entry-delete" title="Delete subject">Delete</button>
                             </form>
                         }
                     </div>

@@ -27,7 +27,7 @@ namespace RagChatbotSystem.Presentation.Controllers
             {
                 if (User.IsInRole("Admin"))
                 {
-                    return RedirectToAction("Index", "Admin");
+                    return RedirectToPage("/Admin/Index");
                 }
 
                 return RedirectToAction("Index", "Home");
@@ -67,7 +67,7 @@ namespace RagChatbotSystem.Presentation.Controllers
 
                 if (user.Role == "Admin")
                 {
-                    return RedirectToAction("Index", "Admin");
+                    return RedirectToPage("/Admin/Index");
                 }
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -126,7 +126,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                     await SignInAsync(refreshedUser);
                     if (refreshedUser.Role == "Admin")
                     {
-                        return RedirectToAction("Index", "Admin");
+                        return RedirectToPage("/Admin/Index");
                     }
                 }
 

@@ -25,7 +25,7 @@ namespace RagChatbotSystem.Presentation.Controllers
             if (string.IsNullOrWhiteSpace(name))
             {
                 TempData["AdminError"] = "Subject name is required.";
-                return RedirectToAction("Index", "Admin");
+                return RedirectToPage("/Admin/Datasets/Index");
             }
 
             if (!TryGetCurrentUserId(out var currentUserId))
@@ -44,7 +44,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                 TempData["AdminError"] = ex.Message;
             }
 
-            return RedirectToAction("Index", "Admin");
+            return RedirectToPage("/Admin/Datasets/Index");
         }
 
         [HttpPost]
@@ -54,7 +54,7 @@ namespace RagChatbotSystem.Presentation.Controllers
             if (string.IsNullOrWhiteSpace(name))
             {
                 TempData["AdminError"] = "Subject name is required.";
-                return RedirectToAction("Index", "Admin");
+                return RedirectToPage("/Admin/Datasets/Index");
             }
 
             try
@@ -69,7 +69,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                 TempData["AdminError"] = ex.Message;
             }
 
-            return RedirectToAction("Index", "Admin");
+            return RedirectToPage("/Admin/Datasets/Index");
         }
 
         [HttpPost]
@@ -88,7 +88,7 @@ namespace RagChatbotSystem.Presentation.Controllers
                 TempData["AdminError"] = ex.Message;
             }
 
-            return RedirectToAction("Index", "Admin");
+            return RedirectToPage("/Admin/Datasets/Index");
         }
 
         private bool TryGetCurrentUserId(out Guid userId)
