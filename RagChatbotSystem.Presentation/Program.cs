@@ -6,6 +6,7 @@ using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Business.Services;
 using RagChatbotSystem.Presentation.Services;
 using RagChatbotSystem.Presentation.Hubs;
+using RagChatbotSystem.Presentation.Realtime;
 using RagChatbotSystem.DataAccess.Repositories;
 
 namespace RagChatbotSystem.Presentation
@@ -44,8 +45,8 @@ namespace RagChatbotSystem.Presentation
             // Cấu hình kết nối PostgreSQL với pgvector
             builder.Services.AddDbContext<AppDbContext>(options =>
                      options.UseNpgsql(
-                         builder.Configuration.GetConnectionString("DefaultConnection"),
-                         o => o.UseVector()));
+                          builder.Configuration.GetConnectionString("DefaultConnection"),
+                          o => o.UseVector()));
 
             // Cấu hình HttpClient cho Python RAG API 
             builder.Services.AddHttpClient<IRagApiClient, RagApiClient>(client =>
@@ -82,6 +83,7 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
+            builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
             var app = builder.Build();
 
@@ -122,7 +124,7 @@ namespace RagChatbotSystem.Presentation
                             {
                                 UserId = Guid.NewGuid(),
                                 CreatedAt = DateTime.UtcNow
-                            };
+                             };
                             db.Users.Add(admin);
                         }
 
@@ -199,6 +201,7 @@ namespace RagChatbotSystem.Presentation
             app.MapHub<ChatHub>("/hubs/chat");
             app.MapHub<DocumentHub>("/hubs/document");
             app.MapHub<NotificationHub>("/hubs/notification");
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.MapControllers();
 

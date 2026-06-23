@@ -4,422 +4,213 @@
     ViewData["Title"] = "Admin Dashboard";
 }
 
-<div class="container py-4">
-    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+<section class="admin-page" data-admin-page>
+    <header class="admin-page-header">
         <div>
-            <h2 class="page-title fw-bold">Bảng Điều Khiển Quản Trị Viên</h2>
-            <p class="text-muted m-0 mt-1">Quản lý người dùng hệ thống, phê duyệt môn học và kiểm soát phân quyền.</p>
+            <p class="eyebrow">Administration</p>
+            <h1>Admin Dashboard</h1>
+            <p class="helper-text">Manage accounts, teacher assignments, and subject access.</p>
         </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Admin sections">
+        <a class="active" asp-page="/Admin/Index" aria-current="page">Overview</a>
+        <a asp-page="/Admin/Datasets/Index">Subjects</a>
+    </nav>
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ImportErrors))
+    {
+        <div class="alert alert-warning">@Model.ImportErrors</div>
+    }
+
+    <div id="realtimeAdminStatus" class="dataset-realtime-status" hidden></div>
+
+    <div class="admin-summary" aria-label="System summary">
+        <div><strong>@Model.Users.Count</strong><span>Users</span></div>
+        <div><strong>@Model.ApprovedTeachers.Count</strong><span>Active teachers</span></div>
+        <div><strong>@Model.Assignments.Count</strong><span>Assignments</span></div>
+        <div><strong>@Model.UnassignedDatasets.Count</strong><span>Unassigned subjects</span></div>
     </div>
 
-    @if (!string.IsNullOrEmpty(Model.AdminSuccess))
-    {
-        <div class="alert alert-success border-0 shadow-sm mb-4" style="border-radius: var(--radius);">
-            <i class="bi bi-check-circle-fill me-2"></i> @Model.AdminSuccess
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Account provisioning</h2>
         </div>
-    }
-    @if (!string.IsNullOrEmpty(Model.AdminError))
-    {
-        <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: var(--radius);">
-            <i class="bi bi-exclamation-octagon-fill me-2"></i> @Model.AdminError
-        </div>
-    }
-    @if (!string.IsNullOrEmpty(Model.ImportErrors))
-    {
-        <div class="alert alert-warning border-0 shadow-sm mb-4" style="border-radius: var(--radius);">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ImportErrors
-        </div>
-    }
-
-    <div class="row g-4 mb-5">
-        <!-- Tạo Môn Học -->
-        <div class="col-lg-4">
-            <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h4 class="fw-bold m-0" style="color: var(--ink);">Tạo Môn Học</h4>
-                    <p class="text-muted small m-0 mt-1">Tạo môn học mới cho giảng viên phụ trách.</p>
+        <div class="admin-form-grid">
+            <form method="post" asp-page-handler="ImportStudents" enctype="multipart/form-data" class="admin-form admin-processing-form">
+                <div>
+                    <h3>Import students</h3>
+                    <p class="helper-text">XLSX with an Email column; FullName is optional.</p>
                 </div>
-                <div class="card-body px-4 pb-4">
-                    <form method="post" asp-page-handler="CreateDataset">
-                        @Html.AntiForgeryToken()
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">TÊN MÔN HỌC</label>
-                            <input name="name" type="text" required class="form-control" placeholder="Ví dụ: PRN222" style="border-radius: var(--radius-sm);" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">MÔ TẢ</label>
-                            <textarea name="description" rows="3" class="form-control" placeholder="Mô tả ngắn về môn học" style="border-radius: var(--radius-sm);"></textarea>
-                        </div>
-
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" name="isPublic" id="isPublicSubject" value="true" />
-                            <label class="form-check-label text-secondary small" for="isPublicSubject">Công khai cho tất cả người dùng</label>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2" style="border-radius: var(--radius-sm);">Tạo Môn Học</button>
-                    </form>
+                <div class="admin-field">
+                    <label asp-for="StudentsFile">Student file</label>
+                    <input asp-for="StudentsFile" type="file" accept=".xlsx" required />
                 </div>
-            </div>
-        </div>
+                <button type="submit">Import and email accounts</button>
+            </form>
 
-        <!-- Nhập Sinh Viên -->
-        <div class="col-lg-4">
-            <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h4 class="fw-bold m-0" style="color: var(--ink);">Nhập Sinh Viên</h4>
-                    <p class="text-muted small m-0 mt-1">Tải lên tệp XLSX chứa cột Email (FullName tùy chọn).</p>
+            <form method="post" asp-page-handler="CreateTeacher" class="admin-form admin-form-teacher admin-processing-form">
+                <div>
+                    <h3>Create teacher</h3>
+                    <p class="helper-text">Create an account and assign its initial subjects.</p>
                 </div>
-                <div class="card-body px-4 pb-4">
-                    <form method="post" asp-page-handler="ImportStudents" enctype="multipart/form-data" class="admin-processing-form" 
-                          data-processing-title="Đang nhập danh sách sinh viên..." 
-                          data-processing-message="Hệ thống đang đọc tệp XLSX, tạo tài khoản và gửi email thông tin đăng nhập. Vui lòng giữ trang này mở.">
-                        @Html.AntiForgeryToken()
-                        <div class="mb-3">
-                            <input type="file" name="studentsFile" accept=".xlsx" required class="form-control" style="border-radius: var(--radius-sm);" />
-                        </div>
-                        <button type="submit" class="btn btn-success w-100 fw-bold py-2" style="border-radius: var(--radius-sm);">
-                            Nhập & Email Tài Khoản
-                        </button>
-                    </form>
+                <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                <div class="admin-field-grid">
+                    <div class="admin-field">
+                        <label asp-for="TeacherInput.FullName">Full name</label>
+                        <input asp-for="TeacherInput.FullName" />
+                        <span asp-validation-for="TeacherInput.FullName" class="text-danger small"></span>
+                    </div>
+                    <div class="admin-field">
+                        <label asp-for="TeacherInput.Email">Email</label>
+                        <input asp-for="TeacherInput.Email" type="email" />
+                        <span asp-validation-for="TeacherInput.Email" class="text-danger small"></span>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Tạo Giảng Viên -->
-        <div class="col-lg-4">
-            <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h4 class="fw-bold m-0" style="color: var(--ink);">Tạo Giảng Viên</h4>
-                    <p class="text-muted small m-0 mt-1">Tạo tài khoản cho giảng viên và gán phụ trách môn học.</p>
-                </div>
-                <div class="card-body px-4 pb-4">
-                    <form method="post" asp-page-handler="CreateTeacher" class="row g-3 admin-processing-form" 
-                          data-processing-title="Đang tạo giảng viên..." 
-                          data-processing-message="Hệ thống đang tạo tài khoản, gán môn học phụ trách và gửi email thông báo.">
-                        @Html.AntiForgeryToken()
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">HỌ TÊN</label>
-                            <input name="fullName" required class="form-control" style="border-radius: var(--radius-sm);" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">EMAIL</label>
-                            <input name="email" type="email" required class="form-control" style="border-radius: var(--radius-sm);" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-secondary">MÔN HỌC PHỤ TRÁCH</label>
-                            <select name="datasetIds" multiple required class="form-select" size="4" style="border-radius: var(--radius-sm);">
-                                @foreach (var ds in Model.UnassignedDatasets)
-                                {
-                                    <option value="@ds.DatasetId">@ds.Name</option>
-                                }
-                            </select>
-                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">Mỗi môn học chỉ có thể do 1 giảng viên phụ trách.</div>
-                        </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2" style="border-radius: var(--radius-sm);">
-                                Tạo & Gửi Email
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Phân công Giảng Viên -->
-    <div class="card border-0 mb-5 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-        <div class="card-header bg-transparent border-0 pt-4 px-4">
-            <h4 class="fw-bold m-0" style="color: var(--ink);">Gán Môn Học cho Giảng Viên</h4>
-            <p class="text-muted small m-0 mt-1">Giảng viên chỉ có quyền tải lên tài liệu cho các môn học được gán.</p>
-        </div>
-        <div class="card-body px-4 pb-4">
-            <div class="row g-3 mb-4">
-                <div class="col-12">
-                    <form method="post" asp-page-handler="AssignTeacher" class="row g-2 align-items-end">
-                        @Html.AntiForgeryToken()
-                        <div class="col-md-5">
-                            <label class="form-label small fw-bold text-secondary">GIẢNG VIÊN</label>
-                            <select name="teacherId" required class="form-select" style="border-radius: var(--radius-sm);">
-                                @foreach (var t in Model.Teachers)
-                                {
-                                    <option value="@t.UserId">@t.FullName (@t.Email)</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label small fw-bold text-secondary">MÔN HỌC CHƯA GÁN</label>
-                            <select name="datasetId" required class="form-select" style="border-radius: var(--radius-sm);">
-                                @foreach (var ds in Model.UnassignedDatasets)
-                                {
-                                    <option value="@ds.DatasetId">@ds.Name</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-outline-info w-100 fw-bold py-2" style="border-radius: var(--radius-sm);">Gán quyền</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" style="color: var(--ink);">
-                    <thead>
-                        <tr class="text-secondary small fw-bold" style="border-bottom: 2px solid var(--line);">
-                            <th>Giảng viên</th>
-                            <th>Môn học phụ trách</th>
-                            <th>Thời gian gán</th>
-                            <th class="text-end">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!Model.Assignments.Any())
+                <div class="admin-field">
+                    <label asp-for="TeacherInput.DatasetIds">Initial subjects</label>
+                    <select asp-for="TeacherInput.DatasetIds" multiple size="4">
+                        @foreach (var dataset in Model.UnassignedDatasets)
                         {
-                            <tr><td colspan="4" class="text-center text-muted py-4">Chưa có phân công giảng viên nào.</td></tr>
+                            <option value="@dataset.DatasetId">@dataset.Name</option>
                         }
-                        @foreach (var item in Model.Assignments)
-                        {
-                            <tr style="border-bottom: 1px solid var(--line);">
-                                <td>
-                                    <strong class="text-dark">@item.TeacherName</strong>
-                                    <div class="text-muted small" style="font-size: 0.8rem;">@item.TeacherEmail</div>
-                                </td>
-                                <td><span class="badge bg-light text-dark px-3 py-2 border">@item.DatasetName</span></td>
-                                <td>@item.AssignedAt.ToLocalTime().ToString("g")</td>
-                                <td class="text-end">
-                                    <form method="post" asp-page-handler="UnassignTeacher" class="m-0">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="datasetId" value="@item.DatasetId" />
-                                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold">Thu hồi</button>
+                    </select>
+                    <span asp-validation-for="TeacherInput.DatasetIds" class="text-danger small"></span>
+                </div>
+                <button type="submit" disabled="@(Model.UnassignedDatasets.Count == 0)">Create teacher</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Teacher assignments</h2>
+            <span>@Model.Assignments.Count</span>
+        </div>
+
+        <form method="post" asp-page-handler="AssignTeacher" class="admin-inline-form">
+            <div>
+                <label asp-for="AssignmentInput.TeacherId">Teacher</label>
+                <select asp-for="AssignmentInput.TeacherId" required>
+                    <option value="">Select teacher</option>
+                    @foreach (var teacher in Model.ApprovedTeachers)
+                    {
+                        <option value="@teacher.UserId">@teacher.FullName (@teacher.Email)</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label asp-for="AssignmentInput.DatasetId">Unassigned subject</label>
+                <select asp-for="AssignmentInput.DatasetId" required>
+                    <option value="">Select subject</option>
+                    @foreach (var dataset in Model.UnassignedDatasets)
+                    {
+                        <option value="@dataset.DatasetId">@dataset.Name</option>
+                    }
+                </select>
+            </div>
+            <button type="submit" disabled="@(Model.ApprovedTeachers.Count == 0 || Model.UnassignedDatasets.Count == 0)">Assign</button>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead><tr><th>Teacher</th><th>Subject</th><th>Assigned</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                    @if (Model.Assignments.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-4">No teacher assignments yet.</td></tr>
+                    }
+                    @foreach (var assignment in Model.Assignments)
+                    {
+                        <tr>
+                            <td><strong>@assignment.TeacherName</strong><small>@assignment.TeacherEmail</small></td>
+                            <td>@assignment.DatasetName</td>
+                            <td>@assignment.AssignedAt.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">
+                                <form method="post" asp-page-handler="UnassignTeacher">
+                                    <input type="hidden" name="datasetId" value="@assignment.DatasetId" />
+                                    <button type="submit" class="dataset-danger-button">Unassign</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>System users</h2>
+            <span>@Model.Users.Count</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead><tr><th>User</th><th>Role</th><th>Created</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+                <tbody>
+                    @foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td><strong>@user.FullName</strong><small>@user.Email</small></td>
+                            <td><span class="status-pill">@user.Role</span></td>
+                            <td>@user.CreatedAt.ToLocalTime().ToString("g")</td>
+                            <td>
+                                <span class="status-pill @(user.IsApproved ? "dataset-approved-pill" : "processing")">
+                                    @(user.IsApproved ? "Active" : "Pending")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if (user.Role == "Teacher")
+                                {
+                                    <form method="post" asp-page-handler="ApproveUser">
+                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                        <input type="hidden" name="approve" value="@(!user.IsApproved)" />
+                                        <button type="submit" class="@(user.IsApproved ? "dataset-danger-button" : "secondary-button")">
+                                            @(user.IsApproved ? "Deactivate" : "Approve")
+                                        </button>
                                     </form>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Phê duyệt và Phân quyền Môn học -->
-    <div class="card border-0 mb-5 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-        <div class="card-header bg-transparent border-0 pt-4 px-4">
-            <h4 class="fw-bold m-0" style="color: var(--ink);">Phê Duyệt & Phân Quyền Môn Học</h4>
-            <p class="text-muted small m-0 mt-1">Duyệt các môn học và quản lý quyền truy cập của sinh viên.</p>
-        </div>
-        <div class="card-body px-4 pb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" style="color: var(--ink);">
-                    <thead>
-                        <tr class="text-secondary small fw-bold" style="border-bottom: 2px solid var(--line);">
-                            <th>Tên Môn Học</th>
-                            <th>Mô tả</th>
-                            <th>Loại</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end">Hành động</th>
+                                }
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @if (!Model.Datasets.Any())
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">Chưa có môn học nào trong hệ thống.</td>
-                            </tr>
-                        }
-                        else
-                        {
-                            foreach (var ds in Model.Datasets)
-                            {
-                                <tr style="border-bottom: 1px solid var(--line);">
-                                    <td>
-                                        <div class="fw-bold text-dark">@ds.Name</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">ID: @ds.DatasetId</div>
-                                    </td>
-                                    <td>@(string.IsNullOrEmpty(ds.Description) ? "Không có mô tả" : ds.Description)</td>
-                                    <td>
-                                        @if (ds.IsPublic)
-                                        {
-                                            <span class="badge bg-success-soft text-success px-3 py-1 border border-success-subtle">Công khai</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-light text-secondary px-3 py-1 border">Riêng tư</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (ds.IsApproved)
-                                        {
-                                            <span class="badge bg-success text-white px-3 py-1">Đã Duyệt</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-warning text-dark px-3 py-1">Chờ Phê Duyệt</span>
-                                        }
-                                    </td>
-                                    <td class="text-end">
-                                        <div class="d-flex justify-content-end gap-2">
-                                            <a asp-page="/Admin/Permissions" asp-route-id="@ds.DatasetId" class="btn btn-outline-secondary btn-sm px-3">
-                                                Cấp quyền Sinh Viên
-                                            </a>
-                                            <form method="post" asp-page-handler="ApproveDataset" class="m-0">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@ds.DatasetId" />
-                                                @if (ds.IsApproved)
-                                                {
-                                                    <input type="hidden" name="approve" value="false" />
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold">
-                                                        Bỏ Duyệt
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <input type="hidden" name="approve" value="true" />
-                                                    <button type="submit" class="btn btn-success btn-sm px-3 text-white fw-bold">
-                                                        Phê Duyệt
-                                                    </button>
-                                                }
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                    </tbody>
-                </table>
-            </div>
+                    }
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
+</section>
 
-    <!-- Danh sách Người dùng hệ thống -->
-    <div class="card border-0 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-        <div class="card-header bg-transparent border-0 pt-4 px-4">
-            <h4 class="fw-bold m-0" style="color: var(--ink);">Người Dùng Hệ Thống</h4>
-            <p class="text-muted small m-0 mt-1">Danh sách tất cả sinh viên và giảng viên đã đăng ký tài khoản.</p>
-        </div>
-        <div class="card-body px-4 pb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle" style="color: var(--ink);">
-                    <thead>
-                        <tr class="text-secondary small fw-bold" style="border-bottom: 2px solid var(--line);">
-                            <th>Họ tên</th>
-                            <th>Email</th>
-                            <th>Vai trò</th>
-                            <th>Thời gian đăng ký</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var u in Model.Users)
-                        {
-                            <tr style="border-bottom: 1px solid var(--line);" data-user-row-id="@u.UserId">
-                                <td class="fw-bold text-dark">@u.FullName</td>
-                                <td class="text-muted">@u.Email</td>
-                                <td>
-                                    @if (u.Role == "Admin")
-                                    {
-                                        <span class="badge bg-danger-soft text-danger px-3 py-1 border border-danger-subtle">Quản trị viên</span>
-                                    }
-                                    else if (u.Role == "Teacher")
-                                    {
-                                        <span class="badge bg-info-soft text-info px-3 py-1 border border-info-subtle">Giảng viên</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-light text-dark px-3 py-1 border">Sinh viên</span>
-                                    }
-                                </td>
-                                <td>@u.CreatedAt.ToLocalTime().ToString("g")</td>
-                                <td>
-                                    <span class="user-status-badge badge @(u.IsApproved ? "bg-success text-white" : "bg-warning text-dark") px-3 py-1">
-                                        @(u.IsApproved ? "Hoạt động" : "Bị Khóa")
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    @if (u.Role == "Teacher")
-                                    {
-                                        <form method="post" asp-page-handler="ApproveUser" class="m-0 d-inline-block">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="userId" value="@u.UserId" />
-                                            @if (u.IsApproved)
-                                            {
-                                                <input type="hidden" name="approve" value="false" />
-                                                <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold user-approve-btn">
-                                                    Khóa tài khoản
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <input type="hidden" name="approve" value="true" />
-                                                <button type="submit" class="btn btn-success btn-sm px-3 text-white fw-bold user-approve-btn">
-                                                    Kích hoạt
-                                                </button>
-                                            }
-                                        </form>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Overlay hiển thị tiến trình -->
-<div id="adminProcessingOverlay" class="processing-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 9999;">
-    <div class="processing-dialog bg-white p-4 text-center shadow-lg" style="border-radius: var(--radius); max-width: 480px; width: min(90%, 480px);">
-        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-        <h4 id="adminProcessingTitle" class="fw-bold text-dark mb-2">Đang xử lý...</h4>
-        <p id="adminProcessingMessage" class="text-muted small mb-0">Vui lòng đợi giây lát.</p>
+<div id="adminProcessingOverlay" class="admin-processing-overlay" hidden>
+    <div class="admin-processing-dialog" role="status" aria-live="polite">
+        <span class="admin-spinner" aria-hidden="true"></span>
+        <h2>Processing</h2>
+        <p>Please keep this page open.</p>
     </div>
 </div>
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script>
-        const processingOverlay = document.getElementById("adminProcessingOverlay");
-        const processingTitle = document.getElementById("adminProcessingTitle");
-        const processingMessage = document.getElementById("adminProcessingMessage");
-
-        document.querySelectorAll(".admin-processing-form").forEach((form) => {
-            form.addEventListener("submit", () => {
-                if (!processingOverlay) return;
-
-                if (processingTitle) {
-                    processingTitle.textContent = form.dataset.processingTitle || "Đang xử lý...";
-                }
-                if (processingMessage) {
-                    processingMessage.textContent = form.dataset.processingMessage || "Vui lòng giữ trang này mở.";
-                }
-
-                const submitButton = form.querySelector("button[type='submit']");
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.textContent = "Đang xử lý...";
-                }
-
-                processingOverlay.style.display = "flex";
+        document.querySelectorAll(".admin-processing-form").forEach(function (form) {
+            form.addEventListener("submit", function () {
+                const overlay = document.getElementById("adminProcessingOverlay");
+                if (overlay && form.checkValidity()) overlay.hidden = false;
             });
         });
 
-        // Tích hợp SignalR Client để tự động cập nhật trạng thái người dùng (Realtime UI auto-update)
-        document.addEventListener("DOMContentLoaded", function () {
-            const adminConnection = new signalR.HubConnectionBuilder()
-                .withUrl("/hubs/notification")
-                .withAutomaticReconnect()
-                .build();
-
-            adminConnection.on("TriggerUiUpdate", function (entityType, entityId) {
-                if (entityType === "User") {
-                    // Tải lại nhẹ nhàng danh sách hoặc trang web
-                    // Để giữ trạng thái mượt mà, chúng ta reload trang web
-                    location.reload();
-                }
-            });
-
-            adminConnection.start().catch(err => console.error("Error connecting to admin notifier:", err.toString()));
+        window.addEventListener("rag:admin-changed", function (event) {
+            const status = document.getElementById("realtimeAdminStatus");
+            if (!status || !event.detail) return;
+            status.hidden = false;
+            status.textContent = `Realtime: ${event.detail.message}`;
+            window.setTimeout(function () { window.location.reload(); }, 700);
         });
     </script>
 }
