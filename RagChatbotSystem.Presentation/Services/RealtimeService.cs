@@ -51,10 +51,14 @@ namespace RagChatbotSystem.Presentation.Services
 
         public async Task TriggerUiUpdateAsync(string entityType, Guid entityId, CancellationToken cancellationToken = default)
         {
-            // Update all notification group and global observers
-            await _notificationHubContext.Clients.All.SendAsync("TriggerUiUpdate", entityType, entityId, cancellationToken);
-            await _chatHubContext.Clients.All.SendAsync("TriggerUiUpdate", entityType, entityId, cancellationToken);
-            await _documentHubContext.Clients.All.SendAsync("TriggerUiUpdate", entityType, entityId, cancellationToken);
+            // Send to Admin group (always needs to see all updates)
+            await _notificationHubContext.Clients.Group(NotificationHub.AdminGroupName)
+                .SendAsync("TriggerUiUpdate", entityType, entityId, cancellationToken);
+
+            // Send to the specific dataset/entity group so only authorized members receive it
+            var entityGroup = NotificationHub.DatasetGroupName(entityId);
+            await _notificationHubContext.Clients.Group(entityGroup)
+                .SendAsync("TriggerUiUpdate", entityType, entityId, cancellationToken);
         }
     }
 }

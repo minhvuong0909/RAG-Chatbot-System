@@ -224,12 +224,12 @@ namespace RagChatbotSystem.Presentation.Pages
 
             if (file == null || file.Length == 0)
             {
-                return RedirectToPage("/Index", new { datasetId, error = "Vui long chon tep de tai len." });
+                return RedirectToPage("/Index", new { datasetId, error = "Please select a file to upload." });
             }
 
             if (file.Length > 52428800)
             {
-                return RedirectToPage("/Index", new { datasetId, error = "Kich thuoc tep vuot qua gioi han cho phep (toi da 50MB)." });
+                return RedirectToPage("/Index", new { datasetId, error = "File size exceeds the allowed limit (max 50MB)." });
             }
 
             if (!TryGetCurrentUser(out var currentUserId, out var userRole))
@@ -245,7 +245,7 @@ namespace RagChatbotSystem.Presentation.Pages
 
             if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, datasetId, HttpContext.RequestAborted))
             {
-                return RedirectToPage("/Index", new { datasetId, error = "Ban chi co quyen tai len tai lieu vao mon hoc duoc Admin phan cong." });
+                return RedirectToPage("/Index", new { datasetId, error = "You only have permission to upload documents to assigned subjects." });
             }
 
             DocumentDto? uploadedDocument = null;
@@ -260,7 +260,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 var processedDoc = await _documentService.ProcessUploadedDocumentAsync(doc.DocumentId, HttpContext.RequestAborted);
                 await _realtimeNotifier.DocumentProgressAsync(datasetId, processedDoc, "completed", 100, HttpContext.RequestAborted);
 
-                return RedirectToPage("/Index", new { datasetId, success = $"Tai lieu '{file.FileName}' da duoc tai len va xu ly thanh cong." });
+                return RedirectToPage("/Index", new { datasetId, success = $"Document '{file.FileName}' uploaded and processed successfully." });
             }
             catch (Exception ex)
             {
@@ -270,7 +270,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 }
 
                 _logger.LogError(ex, "Failed to upload and process document.");
-                return RedirectToPage("/Index", new { datasetId, error = $"Tai tai lieu that bai: {ex.Message}" });
+                return RedirectToPage("/Index", new { datasetId, error = $"Document upload failed: {ex.Message}" });
             }
         }
 

@@ -20,13 +20,30 @@ namespace RagChatbotSystem.Presentation.Realtime
         {
             var payload = CreateDatasetPayload(action, dataset);
 
+            // Always notify Admin
             await _hubContext.Clients.Group(NotificationHub.AdminGroupName)
                 .SendAsync("DatasetChanged", payload, cancellationToken);
 
             if (dataset != null)
             {
+                // Notify users already subscribed to this dataset group (for update/delete)
                 await _hubContext.Clients.Group(NotificationHub.DatasetGroupName(dataset.DatasetId))
                     .SendAsync("DatasetChanged", payload, cancellationToken);
+
+                // For new/approved datasets: notify all teachers so their sidebar updates
+                // For unapproved/deleted: also notify teachers so they can remove from view
+                if (action is "created" or "approved" or "unapproved" or "updated" or "deleted")
+                {
+                    await _hubContext.Clients.Group(NotificationHub.TeacherGroupName)
+                        .SendAsync("DatasetChanged", payload, cancellationToken);
+
+                    // For public datasets also notify students
+                    if (dataset.IsPublic == true)
+                    {
+                        await _hubContext.Clients.Group(NotificationHub.StudentGroupName)
+                            .SendAsync("DatasetChanged", payload, cancellationToken);
+                    }
+                }
             }
         }
 
@@ -37,10 +54,11 @@ namespace RagChatbotSystem.Presentation.Realtime
             CancellationToken cancellationToken = default)
         {
             var payload = CreateDatasetPayload(action, dataset);
-            var userClient = _hubContext.Clients.User(userId.ToString());
+            // Use group "user_{id}" — reliable with cookie auth, no custom IUserIdProvider needed
+            var userGroup = _hubContext.Clients.Group($"user_{userId}");
 
-            await userClient.SendAsync("DatasetAccessChanged", payload, cancellationToken);
-            await userClient.SendAsync("NotificationReceived", new
+            await userGroup.SendAsync("DatasetAccessChanged", payload, cancellationToken);
+            await userGroup.SendAsync("ReceiveNotification", new
             {
                 type = "dataset-access",
                 title = "Subject access updated",
@@ -88,7 +106,7 @@ namespace RagChatbotSystem.Presentation.Realtime
             string action,
             CancellationToken cancellationToken = default)
         {
-            return _hubContext.Clients.User(userId.ToString()).SendAsync("ChatSessionChanged", new
+            return _hubContext.Clients.Group($"user_{userId}").SendAsync("ChatSessionChanged", new
             {
                 action,
                 datasetId,
@@ -134,7 +152,7 @@ namespace RagChatbotSystem.Presentation.Realtime
             bool approved,
             CancellationToken cancellationToken = default)
         {
-            await _hubContext.Clients.User(userId.ToString()).SendAsync("NotificationReceived", new
+            await _hubContext.Clients.Group($"user_{userId}").SendAsync("ReceiveNotification", new
             {
                 type = "account",
                 title = "Account status updated",

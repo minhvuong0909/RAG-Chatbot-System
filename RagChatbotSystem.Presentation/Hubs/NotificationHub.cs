@@ -12,6 +12,8 @@ namespace RagChatbotSystem.Presentation.Hubs
     public class NotificationHub : Hub
     {
         public const string AdminGroupName = "role:Admin";
+        public const string TeacherGroupName = "role:Teacher";
+        public const string StudentGroupName = "role:Student";
 
         private readonly IDatasetService _datasetService;
         private readonly IChatSessionService _chatSessionService;
@@ -33,6 +35,14 @@ namespace RagChatbotSystem.Presentation.Hubs
             if (Context.User?.IsInRole("Admin") == true)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroupName);
+            }
+            else if (Context.User?.IsInRole("Teacher") == true)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, TeacherGroupName);
+            }
+            else if (Context.User?.IsInRole("Student") == true)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, StudentGroupName);
             }
 
             await base.OnConnectedAsync();

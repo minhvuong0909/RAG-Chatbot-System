@@ -201,7 +201,6 @@ namespace RagChatbotSystem.Presentation
             app.MapRazorPages();
             app.MapHub<ChatHub>("/hubs/chat");
             app.MapHub<DocumentHub>("/hubs/document");
-            app.MapHub<NotificationHub>("/hubs/notification");
             app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();

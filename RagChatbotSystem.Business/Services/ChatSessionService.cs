@@ -133,6 +133,7 @@ namespace RagChatbotSystem.Business.Services
 
             return await _citationRepository.GetQueryable()
                 .AsNoTracking()
+                .Include(c => c.Document)
                 .Where(c => c.MessageId == messageId)
                 .OrderBy(c => c.CreatedAt)
                 .Select(c => new CitationDto(

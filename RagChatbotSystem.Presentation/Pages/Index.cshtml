@@ -644,6 +644,115 @@
             return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
         }
 
+        // =====================================================================
+        // Real-time: Dataset Changed (created / updated / deleted / approved)
+        // Admin thay đổi dataset → tự động cập nhật sidebar của Teacher/Student
+        // =====================================================================
+        window.addEventListener("rag:dataset-changed", function (event) {
+            const payload = event.detail;
+            if (!payload || !payload.datasetId) return;
+
+            const datasetId = String(payload.datasetId);
+            const action = payload.action;
+            const datasetList = document.querySelector("[data-dataset-list]");
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            const existingEntry = datasetList
+                ? Array.from(datasetList.querySelectorAll("[data-dataset-id]"))
+                    .find(function (el) { return el.dataset.datasetId === datasetId; })
+                : null;
+
+            if (action === "deleted") {
+                const deletedName = escapeHtml(payload.name || "A subject");
+                // Xóa dataset khỏi sidebar
+                if (existingEntry) existingEntry.remove();
+                // Nếu user đang xem dataset bị xóa → redirect về trang chủ
+                if (workspaceEl && workspaceEl.dataset.selectedDatasetId === datasetId) {
+                    if (window.showToastNotification) {
+                        window.showToastNotification(`Subject "${deletedName}" has been deleted by Admin.`);
+                    }
+                    setTimeout(function () { window.location.assign("/"); }, 1500);
+                } else if (existingEntry && window.showToastNotification) {
+                    // Dataset bị xóa nhưng user không đang xem → vẫn báo
+                    window.showToastNotification(`Subject "${deletedName}" has been removed.`);
+                }
+                // Cập nhật counter
+                if (datasetList) {
+                    const count = document.querySelector("[data-dataset-count]");
+                    if (count) {
+                        count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
+                    }
+                }
+                return;
+            }
+
+            if (action === "created") {
+                // Thêm dataset mới vào đầu sidebar
+                if (!existingEntry && datasetList) {
+                    const emptyState = datasetList.querySelector(".helper-text");
+                    if (emptyState) emptyState.remove();
+
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "dataset-entry";
+                    wrapper.dataset.datasetId = datasetId;
+
+                    const link = document.createElement("a");
+                    link.className = "dataset-item";
+                    link.href = "/?datasetId=" + encodeURIComponent(datasetId);
+
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted);">&#128274;</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? ' <span title="Pending approval" style="color: var(--warning);">&#9203;</span>' : "";
+
+                    link.innerHTML = `
+                        <span class="dataset-name">${isApprovedIcon}${escapeHtml(payload.name || "New Subject")}${isPublicIcon}</span>
+                        <span class="dataset-meta">0 document(s)</span>
+                    `;
+                    wrapper.appendChild(link);
+                    datasetList.prepend(wrapper);
+
+                    const count = document.querySelector("[data-dataset-count]");
+                    if (count) {
+                        count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
+                    }
+
+                    // Toast cho teacher/student biết có môn học mới
+                    if (window.showToastNotification) {
+                        window.showToastNotification(`New subject added: "${escapeHtml(payload.name || "New Subject")}"`);
+                    }
+                }
+                return;
+            }
+
+            if ((action === "updated" || action === "approved" || action === "unapproved") && existingEntry) {
+                const subjectName = escapeHtml(payload.name || "A subject");
+
+                // Cập nhật tên, badge public, badge approval in-place (không reload)
+                const nameEl = existingEntry.querySelector(".dataset-name");
+                if (nameEl && payload.name) {
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted);">&#128274;</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? ' <span title="Pending approval" style="color: var(--warning);">&#9203;</span>' : "";
+                    nameEl.innerHTML = `${isApprovedIcon}${escapeHtml(payload.name)}${isPublicIcon}`;
+                }
+
+                // Nếu đang xem chính dataset này → cũng highlight lại link
+                const link = existingEntry.querySelector(".dataset-item");
+                if (link && workspaceEl && workspaceEl.dataset.selectedDatasetId === datasetId) {
+                    link.classList.add("active");
+                }
+
+                // Toast thông báo theo action
+                if (window.showToastNotification) {
+                    if (action === "updated") {
+                        window.showToastNotification(`Subject "${subjectName}" has been updated by Admin.`);
+                    } else if (action === "approved") {
+                        window.showToastNotification(`Subject "${subjectName}" has been approved and is now active.`);
+                    } else if (action === "unapproved") {
+                        window.showToastNotification(`Subject "${subjectName}" has been temporarily suspended.`);
+                    }
+                }
+                return;
+            }
+        });
+
         window.addEventListener("rag:chat-session-changed", function (event) {
             const payload = event.detail;
             const workspaceEl = document.querySelector("[data-rag-app]");
