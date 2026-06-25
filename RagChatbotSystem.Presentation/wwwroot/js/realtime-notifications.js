@@ -32,6 +32,21 @@
         console.info("Admin data changed:", payload);
     });
 
+    connection.on("DocumentProgress", function (payload) {
+        window.dispatchEvent(new CustomEvent("rag:document-progress", { detail: payload }));
+        console.info("Document progress:", payload);
+    });
+
+    connection.on("ChatSessionChanged", function (payload) {
+        window.dispatchEvent(new CustomEvent("rag:chat-session-changed", { detail: payload }));
+        console.info("Chat session changed:", payload);
+    });
+
+    connection.on("ChatMessageSaved", function (payload) {
+        window.dispatchEvent(new CustomEvent("rag:chat-message-saved", { detail: payload }));
+        console.info("Chat message saved:", payload);
+    });
+
     async function start() {
         try {
             await connection.start();
@@ -42,6 +57,12 @@
                 },
                 leaveDataset: function (datasetId) {
                     return connection.invoke("LeaveDatasetGroup", datasetId);
+                },
+                joinChatSession: function (sessionId) {
+                    return connection.invoke("JoinChatSessionGroup", sessionId);
+                },
+                leaveChatSession: function (sessionId) {
+                    return connection.invoke("LeaveChatSessionGroup", sessionId);
                 }
             };
 
@@ -49,6 +70,11 @@
             const selectedDatasetId = workspace && workspace.dataset.selectedDatasetId;
             if (selectedDatasetId) {
                 await connection.invoke("JoinDatasetGroup", selectedDatasetId);
+            }
+
+            const selectedSessionId = workspace && workspace.dataset.selectedSessionId;
+            if (selectedSessionId) {
+                await connection.invoke("JoinChatSessionGroup", selectedSessionId);
             }
 
             window.dispatchEvent(new CustomEvent("rag:realtime-connected"));

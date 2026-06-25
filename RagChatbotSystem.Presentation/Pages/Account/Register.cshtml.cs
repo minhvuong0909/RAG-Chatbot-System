@@ -7,13 +7,13 @@ namespace RagChatbotSystem.Presentation.Pages.Account
     {
         public IActionResult OnGet()
         {
-            TempData["ErrorMessage"] = "Tài khoản Sinh viên và Giảng viên sẽ do Admin cấp. Vui lòng liên hệ Admin nếu bạn cần tài khoản.";
+            TempData["ErrorMessage"] = "Tai khoan Student va Teacher se do Admin cap. Vui long lien he Admin neu ban can tai khoan.";
             return RedirectToPage("/Account/Login");
         }
 
         public IActionResult OnPost()
         {
-            TempData["ErrorMessage"] = "Tài khoản Sinh viên và Giảng viên sẽ do Admin cấp. Vui lòng liên hệ Admin nếu bạn cần tài khoản.";
+            TempData["ErrorMessage"] = "Public registration is disabled. Accounts are provisioned by Admin.";
             return RedirectToPage("/Account/Login");
         }
     }

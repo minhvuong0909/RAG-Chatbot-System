@@ -29,41 +29,35 @@ namespace RagChatbotSystem.Presentation.Pages.Account
         [BindProperty(SupportsGet = true)]
         public string? ReturnUrl { get; set; }
 
-        public string? ErrorMessage { get; set; }
-
         public IActionResult OnGet()
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
-                if (User.IsInRole("Admin"))
-                {
-                    return RedirectToPage("/Admin/Index");
-                }
-                return RedirectToPage("/Index");
+                return User.IsInRole("Admin")
+                    ? RedirectToPage("/Admin/Index")
+                    : RedirectToPage("/Index");
             }
 
-            if (TempData["ErrorMessage"] != null)
-            {
-                ErrorMessage = TempData["ErrorMessage"] as string;
-            }
-
+            ViewData["ReturnUrl"] = ReturnUrl;
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            ViewData["ReturnUrl"] = ReturnUrl;
+
             if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
-                ErrorMessage = "Tên đăng nhập/Email và mật khẩu không được để trống.";
+                ModelState.AddModelError(string.Empty, "Username/email and password are required.");
                 return Page();
             }
 
             try
             {
-                var user = await _userService.AuthenticateUserAsync(Email, Password);
+                var user = await _userService.AuthenticateUserAsync(Email, Password, HttpContext.RequestAborted);
                 if (user == null)
                 {
-                    ErrorMessage = "Tên đăng nhập/Email hoặc mật khẩu không chính xác.";
+                    ModelState.AddModelError(string.Empty, "Invalid username/email or password.");
                     return Page();
                 }
 
@@ -88,7 +82,7 @@ namespace RagChatbotSystem.Presentation.Pages.Account
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                ModelState.AddModelError(string.Empty, ex.Message);
                 return Page();
             }
         }

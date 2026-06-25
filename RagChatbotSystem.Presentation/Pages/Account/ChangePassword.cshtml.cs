@@ -31,9 +31,6 @@ namespace RagChatbotSystem.Presentation.Pages.Account
         [BindProperty]
         public string ConfirmNewPassword { get; set; } = string.Empty;
 
-        public string? ErrorMessage { get; set; }
-        public string? SuccessMessage { get; set; }
-
         public void OnGet()
         {
         }
@@ -46,21 +43,16 @@ namespace RagChatbotSystem.Presentation.Pages.Account
                 return Challenge();
             }
 
-            if (NewPassword != ConfirmNewPassword)
-            {
-                ErrorMessage = "Mật khẩu mới và xác nhận mật khẩu không trùng khớp.";
-                return Page();
-            }
-
             try
             {
-                await _userService.ChangePasswordAsync(new ChangePasswordRequest(userId, CurrentPassword, NewPassword, ConfirmNewPassword));
-                
-                var refreshedUser = await _userService.GetUserAsync(userId);
+                await _userService.ChangePasswordAsync(
+                    new ChangePasswordRequest(userId, CurrentPassword, NewPassword, ConfirmNewPassword),
+                    HttpContext.RequestAborted);
+
+                var refreshedUser = await _userService.GetUserAsync(userId, HttpContext.RequestAborted);
                 if (refreshedUser != null)
                 {
                     await RefreshSignInAsync(refreshedUser);
-                    
                     if (refreshedUser.Role == "Admin")
                     {
                         return RedirectToPage("/Admin/Index");
@@ -71,7 +63,7 @@ namespace RagChatbotSystem.Presentation.Pages.Account
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                ModelState.AddModelError(string.Empty, ex.Message);
                 return Page();
             }
         }

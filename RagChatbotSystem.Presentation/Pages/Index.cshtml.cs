@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Presentation.Helpers;
+using RagChatbotSystem.Presentation.Realtime;
 
 namespace RagChatbotSystem.Presentation.Pages
 {
@@ -25,6 +26,7 @@ namespace RagChatbotSystem.Presentation.Pages
         private readonly IDocumentService _documentService;
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatService _chatService;
+        private readonly IRealtimeNotifier _realtimeNotifier;
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
@@ -33,6 +35,7 @@ namespace RagChatbotSystem.Presentation.Pages
             IDocumentService documentService,
             IChatSessionService chatSessionService,
             IChatService chatService,
+            IRealtimeNotifier realtimeNotifier,
             ILogger<IndexModel> logger)
         {
             _userService = userService;
@@ -40,40 +43,38 @@ namespace RagChatbotSystem.Presentation.Pages
             _documentService = documentService;
             _chatSessionService = chatSessionService;
             _chatService = chatService;
+            _realtimeNotifier = realtimeNotifier;
             _logger = logger;
         }
 
-        public Guid SelectedUserId { get; set; }
+        public Guid? SelectedUserId { get; set; }
         public Guid? SelectedDatasetId { get; set; }
         public Guid? SelectedSessionId { get; set; }
         public Guid? SelectedMessageId { get; set; }
-
+        public UserDto? SelectedUser { get; set; }
+        public DatasetDto? SelectedDataset { get; set; }
+        public ChatSessionDto? SelectedSession { get; set; }
+        public IReadOnlyList<UserDto> Users { get; set; } = Array.Empty<UserDto>();
+        public IReadOnlyList<DatasetDto> Datasets { get; set; } = Array.Empty<DatasetDto>();
+        public IReadOnlyList<DocumentDto> Documents { get; set; } = Array.Empty<DocumentDto>();
+        public IReadOnlyList<ChatSessionDto> Sessions { get; set; } = Array.Empty<ChatSessionDto>();
+        public IReadOnlyList<ChatMessageDto> MessageHistory { get; set; } = Array.Empty<ChatMessageDto>();
+        public IReadOnlyList<CitationDto> Citations { get; set; } = Array.Empty<CitationDto>();
         public string? ErrorMessage { get; set; }
         public string? SuccessMessage { get; set; }
 
-        public UserDto SelectedUser { get; set; } = null!;
-        public IReadOnlyList<DatasetDto> Datasets { get; set; } = new List<DatasetDto>();
-        public DatasetDto? SelectedDataset { get; set; }
-        public IReadOnlyList<DocumentDto> Documents { get; set; } = new List<DocumentDto>();
-        public IReadOnlyList<ChatSessionDto> Sessions { get; set; } = new List<ChatSessionDto>();
-        public ChatSessionDto? SelectedSession { get; set; }
-        public IReadOnlyList<ChatMessageDto> MessageHistory { get; set; } = new List<ChatMessageDto>();
-        public IReadOnlyList<CitationDto> Citations { get; set; } = new List<CitationDto>();
-
         public async Task<IActionResult> OnGetAsync(
-            Guid? datasetId = null, 
-            Guid? sessionId = null, 
-            Guid? citationId = null, 
-            string? error = null, 
+            Guid? datasetId = null,
+            Guid? sessionId = null,
+            Guid? citationId = null,
+            string? error = null,
             string? success = null)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var currentUserId))
+            if (!TryGetCurrentUser(out var currentUserId, out var currentUserRole))
             {
                 return RedirectToPage("/Account/Login");
             }
 
-            var currentUserRole = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
             if (currentUserRole == "Admin")
             {
                 return RedirectToPage("/Admin/Index");
@@ -93,244 +94,330 @@ namespace RagChatbotSystem.Presentation.Pages
 
             try
             {
-                var user = await _userService.GetUserAsync(currentUserId);
-                if (user == null)
+                SelectedUser = await _userService.GetUserAsync(currentUserId, HttpContext.RequestAborted);
+                if (SelectedUser == null)
                 {
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    TempData["ErrorMessage"] = "Phiên làm việc hết hạn. Vui lòng đăng nhập lại.";
+                    TempData["ErrorMessage"] = "Your login session is no longer valid. Please sign in again.";
                     return RedirectToPage("/Account/Login");
                 }
-                SelectedUser = user;
 
-                Datasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, currentUserRole);
+                Datasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, currentUserRole, HttpContext.RequestAborted);
 
                 if (datasetId.HasValue)
                 {
-                    SelectedDataset = await _datasetService.GetDatasetAsync(datasetId.Value);
+                    SelectedDataset = await _datasetService.GetDatasetAsync(datasetId.Value, HttpContext.RequestAborted);
                     if (SelectedDataset != null)
                     {
-                        var hasAccess = Datasets.Any(d => d.DatasetId == datasetId.Value);
+                        var hasAccess = currentUserRole == "Admin" || Datasets.Any(d => d.DatasetId == datasetId.Value);
                         if (!hasAccess)
                         {
-                            return RedirectToPage(new { error = "Bạn không có quyền truy cập môn học này." });
+                            return RedirectToPage("/Index", new { error = "You do not have permission to access this dataset." });
                         }
 
-                        Documents = await _documentService.GetDocumentsByDatasetAsync(datasetId.Value);
-                        Sessions = await _chatSessionService.GetSessionsAsync(currentUserId, datasetId.Value);
+                        Documents = await _documentService.GetDocumentsByDatasetAsync(datasetId.Value, HttpContext.RequestAborted);
+                        Sessions = await _chatSessionService.GetSessionsAsync(currentUserId, datasetId.Value, HttpContext.RequestAborted);
                     }
                 }
 
                 if (sessionId.HasValue)
                 {
-                    SelectedSession = await _chatSessionService.GetSessionAsync(sessionId.Value);
+                    SelectedSession = await _chatSessionService.GetSessionAsync(sessionId.Value, HttpContext.RequestAborted);
                     if (SelectedSession != null)
                     {
-                        if (SelectedSession.UserId != currentUserId)
+                        if (currentUserRole != "Admin" && SelectedSession.UserId != currentUserId)
                         {
-                            return RedirectToPage(new { datasetId, error = "Không có quyền xem phiên trò chuyện này." });
+                            return RedirectToPage("/Index", new { datasetId, error = "Access denied to this chat session." });
                         }
 
-                        MessageHistory = await _chatSessionService.GetMessageHistoryAsync(sessionId.Value);
+                        MessageHistory = await _chatSessionService.GetMessageHistoryAsync(sessionId.Value, HttpContext.RequestAborted);
                     }
                 }
 
                 if (citationId.HasValue)
                 {
-                    Citations = await _chatSessionService.GetCitationsAsync(citationId.Value);
+                    Citations = await _chatSessionService.GetCitationsAsync(citationId.Value, HttpContext.RequestAborted);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi tải dữ liệu workspace.");
-                ErrorMessage = $"Lỗi hệ thống: {ex.Message}";
+                _logger.LogError(ex, "Error loading workspace data.");
+                ErrorMessage = $"Loi he thong: {ex.Message}";
             }
 
             return Page();
         }
 
-        // Tạo phòng chat mới
-        public async Task<IActionResult> OnPostCreateSessionAsync(Guid datasetId, string? title)
-        {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var currentUserId))
-            {
-                return Challenge();
-            }
-
-            try
-            {
-                var role = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
-                var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role);
-                if (!allowedDatasets.Any(d => d.DatasetId == datasetId))
-                {
-                    return RedirectToPage(new { error = "Bạn không có quyền truy cập môn học này." });
-                }
-
-                var session = await _chatSessionService.CreateSessionAsync(new CreateChatSessionRequest(currentUserId, datasetId, title));
-                return RedirectToPage(new { datasetId, sessionId = session.SessionId, success = "Khởi tạo phòng chat mới thành công!" });
-            }
-            catch (Exception ex)
-            {
-                return RedirectToPage(new { datasetId, error = $"Không thể khởi tạo phòng chat: {ex.Message}" });
-            }
-        }
-
-        // Tạo Subject mới (Dành cho Giáo viên tự tạo hoặc quản lý nếu được phân công, hoặc do Admin)
         public async Task<IActionResult> OnPostCreateDatasetAsync(string name, string? description, bool isPublic)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var currentUserId))
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            if (!TryGetCurrentUser(out var currentUserId, out _))
             {
                 return Challenge();
             }
 
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return RedirectToPage("/Index", new { error = "Subject name is required." });
+            }
+
             try
             {
-                var request = new CreateDatasetRequest(name, description, currentUserId, isPublic);
-                var dataset = await _datasetService.CreateDatasetAsync(request);
-                return RedirectToPage(new { datasetId = dataset.DatasetId, success = $"Đã tạo môn học '{dataset.Name}' thành công." });
+                var dataset = await _datasetService.CreateDatasetAsync(
+                    new CreateDatasetRequest(name, description, currentUserId, isPublic),
+                    HttpContext.RequestAborted);
+
+                await _realtimeNotifier.DatasetChangedAsync("created", dataset, HttpContext.RequestAborted);
+
+                return RedirectToPage("/Index", new { datasetId = dataset.DatasetId, success = $"Subject '{dataset.Name}' created successfully." });
             }
             catch (Exception ex)
             {
-                return RedirectToPage(new { error = $"Tạo môn học thất bại: {ex.Message}" });
+                return RedirectToPage("/Index", new { error = ex.Message });
             }
         }
 
-        // Xóa Subject
         public async Task<IActionResult> OnPostDeleteDatasetAsync(Guid id)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var currentUserId))
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
             {
                 return Challenge();
             }
 
+            var dataset = await _datasetService.GetDatasetAsync(id, HttpContext.RequestAborted);
+            if (dataset == null)
+            {
+                return RedirectToPage("/Index", new { error = "Subject was not found." });
+            }
+
+            if (role != "Admin" && dataset.CreatedBy != currentUserId)
+            {
+                return Forbid();
+            }
+
             try
             {
-                var deleted = await _datasetService.DeleteDatasetAsync(id);
-                return RedirectToPage(new { success = deleted ? "Xóa môn học thành công." : "Không tìm thấy môn học." });
+                var deleted = await _datasetService.DeleteDatasetAsync(id, HttpContext.RequestAborted);
+                if (deleted)
+                {
+                    await _realtimeNotifier.DatasetChangedAsync("deleted", dataset, HttpContext.RequestAborted);
+                }
+
+                return RedirectToPage("/Index", new { success = deleted ? "Subject deleted successfully." : "Subject was not found." });
             }
             catch (Exception ex)
             {
-                return RedirectToPage(new { error = $"Xóa môn học thất bại: {ex.Message}" });
+                return RedirectToPage("/Index", new { error = $"Delete subject failed: {ex.Message}" });
             }
         }
 
-        // Tải lên tài liệu
         public async Task<IActionResult> OnPostUploadAsync(Guid datasetId, IFormFile file)
         {
+            if (!User.IsInRole("Teacher") && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
             if (file == null || file.Length == 0)
             {
-                return RedirectToPage(new { datasetId, error = "Vui lòng chọn tệp để tải lên." });
+                return RedirectToPage("/Index", new { datasetId, error = "Vui long chon tep de tai len." });
             }
 
             if (file.Length > 52428800)
             {
-                return RedirectToPage(new { datasetId, error = "Kích thước tệp vượt quá giới hạn (tối đa 50MB)." });
+                return RedirectToPage("/Index", new { datasetId, error = "Kich thuoc tep vuot qua gioi han cho phep (toi da 50MB)." });
             }
 
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
-            if (!Guid.TryParse(userIdString, out var currentUserId))
+            if (!TryGetCurrentUser(out var currentUserId, out var userRole))
             {
                 return Challenge();
             }
 
-            var dataset = await _datasetService.GetDatasetAsync(datasetId);
+            var dataset = await _datasetService.GetDatasetAsync(datasetId, HttpContext.RequestAborted);
             if (dataset == null)
             {
                 return NotFound();
             }
 
-            if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, datasetId))
+            if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, datasetId, HttpContext.RequestAborted))
             {
-                return RedirectToPage(new { datasetId, error = "Bạn chỉ có quyền tải tài liệu lên môn học được gán." });
+                return RedirectToPage("/Index", new { datasetId, error = "Ban chi co quyen tai len tai lieu vao mon hoc duoc Admin phan cong." });
             }
 
+            DocumentDto? uploadedDocument = null;
             try
             {
-                using var stream = file.OpenReadStream();
-                var doc = await _documentService.UploadDocumentAsync(datasetId, currentUserId, stream, file.FileName, file.Length);
-                
-                // Chạy bất đồng bộ tiến trình phân tách và vector hóa
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _documentService.ProcessUploadedDocumentAsync(doc.DocumentId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Lỗi xử lý tài liệu background cho DocumentId {DocId}", doc.DocumentId);
-                    }
-                });
+                await using var stream = file.OpenReadStream();
+                var doc = await _documentService.UploadDocumentAsync(datasetId, currentUserId, stream, file.FileName, file.Length, HttpContext.RequestAborted);
+                uploadedDocument = doc;
+                await _realtimeNotifier.DocumentProgressAsync(datasetId, doc, "uploaded", 15, HttpContext.RequestAborted);
 
-                return RedirectToPage(new { datasetId, success = $"Đang tải lên và xử lý tài liệu '{file.FileName}'." });
+                await _realtimeNotifier.DocumentProgressAsync(datasetId, doc with { Status = "Processing" }, "processing", 45, HttpContext.RequestAborted);
+                var processedDoc = await _documentService.ProcessUploadedDocumentAsync(doc.DocumentId, HttpContext.RequestAborted);
+                await _realtimeNotifier.DocumentProgressAsync(datasetId, processedDoc, "completed", 100, HttpContext.RequestAborted);
+
+                return RedirectToPage("/Index", new { datasetId, success = $"Tai lieu '{file.FileName}' da duoc tai len va xu ly thanh cong." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Tải lên tài liệu thất bại.");
-                return RedirectToPage(new { datasetId, error = $"Tải tài liệu thất bại: {ex.Message}" });
+                if (uploadedDocument != null)
+                {
+                    await _realtimeNotifier.DocumentProgressAsync(datasetId, uploadedDocument with { Status = "Failed" }, "failed", 100, HttpContext.RequestAborted);
+                }
+
+                _logger.LogError(ex, "Failed to upload and process document.");
+                return RedirectToPage("/Index", new { datasetId, error = $"Tai tai lieu that bai: {ex.Message}" });
             }
         }
 
-        // Xóa tài liệu
         public async Task<IActionResult> OnPostDeleteDocumentAsync(Guid datasetId, Guid documentId)
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "Student";
-            if (!Guid.TryParse(userIdString, out var currentUserId))
+            if (!User.IsInRole("Teacher") && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
+            if (!TryGetCurrentUser(out var currentUserId, out var userRole))
             {
                 return Challenge();
             }
 
-            var document = await _documentService.GetDocumentAsync(documentId);
+            var document = await _documentService.GetDocumentAsync(documentId, HttpContext.RequestAborted);
             if (document == null)
             {
-                return RedirectToPage(new { datasetId, error = "Không tìm thấy tài liệu cần xóa." });
+                return RedirectToPage("/Index", new { datasetId, error = "Khong tim thay tai lieu can xoa." });
             }
 
-            if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, document.DatasetId))
+            if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, document.DatasetId, HttpContext.RequestAborted))
             {
-                return RedirectToPage(new { datasetId, error = "Bạn chỉ có quyền xóa tài liệu môn học được gán." });
+                return RedirectToPage("/Index", new { datasetId, error = "Ban chi co quyen xoa tai lieu trong mon hoc duoc Admin phan cong." });
             }
 
             try
             {
                 var deleted = await _documentService.DeleteDocumentAsync(documentId);
-                return RedirectToPage(new { datasetId, success = deleted ? "Xóa tài liệu thành công." : "Xóa tài liệu thất bại." });
+                if (deleted)
+                {
+                    await _realtimeNotifier.DocumentProgressAsync(datasetId, document with { Status = "Deleted" }, "deleted", 100, HttpContext.RequestAborted);
+                }
+
+                return RedirectToPage("/Index", new
+                {
+                    datasetId,
+                    success = deleted ? "Xoa tai lieu thanh cong." : null,
+                    error = deleted ? null : "Xoa tai lieu that bai."
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Xóa tài liệu thất bại.");
-                return RedirectToPage(new { datasetId, error = $"Xóa tài liệu thất bại: {ex.Message}" });
+                _logger.LogError(ex, "Failed to delete document.");
+                return RedirectToPage("/Index", new { datasetId, error = $"Xoa tai lieu that bai: {ex.Message}" });
             }
         }
 
-        // AJAX: Gửi tin nhắn và bắt đầu stream
+        public async Task<IActionResult> OnPostCreateSessionAsync(Guid datasetId, string? title)
+        {
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
+            {
+                return Challenge();
+            }
+
+            try
+            {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    return await SignOutStaleUserAsync();
+                }
+
+                var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
+                if (!allowedDatasets.Any(d => d.DatasetId == datasetId))
+                {
+                    return RedirectToPage("/Index", new { error = "You do not have access to this subject." });
+                }
+
+                var session = await _chatSessionService.CreateSessionAsync(
+                    new CreateChatSessionRequest(currentUserId, datasetId, title),
+                    HttpContext.RequestAborted);
+
+                await _realtimeNotifier.ChatSessionChangedAsync(currentUserId, datasetId, session, "created", HttpContext.RequestAborted);
+
+                return RedirectToPage("/Index", new { datasetId, sessionId = session.SessionId, success = "Khoi tao phong chat moi thanh cong!" });
+            }
+            catch (Exception ex)
+            {
+                return RedirectToPage("/Index", new { datasetId, error = $"Khong the khoi tao phong chat: {ex.Message}" });
+            }
+        }
+
+        public async Task<IActionResult> OnPostSendMessageAsync(Guid datasetId, Guid sessionId, string question)
+        {
+            if (string.IsNullOrWhiteSpace(question))
+            {
+                return RedirectToPage("/Index", new { datasetId, sessionId, error = "Cau hoi khong duoc de trong." });
+            }
+
+            if (!TryGetCurrentUser(out var currentUserId, out _))
+            {
+                return Challenge();
+            }
+
+            try
+            {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    return await SignOutStaleUserAsync();
+                }
+
+                var session = await _chatSessionService.GetSessionAsync(sessionId, HttpContext.RequestAborted);
+                if (session == null || session.UserId != currentUserId)
+                {
+                    return RedirectToPage("/Index", new { datasetId, error = "Ban khong co quyen gui tin nhan trong phong chat nay." });
+                }
+
+                var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
+                await _realtimeNotifier.ChatMessageSavedAsync(currentUserId, datasetId, sessionId, response, HttpContext.RequestAborted);
+                return RedirectToPage("/Index", new { datasetId, sessionId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send chat message.");
+                return RedirectToPage("/Index", new { datasetId, sessionId, error = $"Loi gui tin nhan: {ex.Message}" });
+            }
+        }
+
         public async Task<IActionResult> OnPostSendMessageAjaxAsync(Guid datasetId, Guid sessionId, string question)
         {
             if (string.IsNullOrWhiteSpace(question))
             {
-                return new BadRequestObjectResult(new { error = "Câu hỏi không được để trống." });
+                return new BadRequestObjectResult(new { error = "Cau hoi khong duoc de trong." });
             }
 
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var currentUserId))
+            if (!TryGetCurrentUser(out var currentUserId, out _))
             {
                 return new UnauthorizedResult();
             }
 
             try
             {
-                var session = await _chatSessionService.GetSessionAsync(sessionId);
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                }
+
+                var session = await _chatSessionService.GetSessionAsync(sessionId, HttpContext.RequestAborted);
                 if (session == null || session.UserId != currentUserId)
                 {
                     return new ForbidResult();
                 }
 
-                // Thực hiện sinh câu trả lời (luồng stream SignalR tự động đẩy các chunk qua RealtimeService)
                 var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
+                await _realtimeNotifier.ChatMessageSavedAsync(currentUserId, datasetId, sessionId, response, HttpContext.RequestAborted);
+
                 return new JsonResult(new
                 {
                     userMessage = new
@@ -359,17 +446,16 @@ namespace RagChatbotSystem.Presentation.Pages
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi AJAX gửi tin nhắn.");
-                return new StatusCodeResult(500);
+                _logger.LogError(ex, "Failed to send AJAX chat message.");
+                return new ObjectResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
-        // AJAX: Lấy danh sách nguồn trích dẫn
         public async Task<IActionResult> OnGetGetCitationsAsync(Guid messageId)
         {
             try
             {
-                var citations = await _chatSessionService.GetCitationsAsync(messageId);
+                var citations = await _chatSessionService.GetCitationsAsync(messageId, HttpContext.RequestAborted);
                 return new JsonResult(citations.Select(c => new
                 {
                     citationId = c.CitationId,
@@ -381,24 +467,42 @@ namespace RagChatbotSystem.Presentation.Pages
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi lấy nguồn trích dẫn cho message {MessageId}", messageId);
-                return new StatusCodeResult(500);
+                _logger.LogError(ex, "Failed to get citations for message {MessageId}", messageId);
+                return new ObjectResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
-        // AJAX: Lấy phân đoạn tài liệu
         public async Task<IActionResult> OnGetGetChunksAsync(Guid documentId)
         {
             try
             {
-                var chunks = await _documentService.GetDocumentChunksAsync(documentId);
+                var chunks = await _documentService.GetDocumentChunksAsync(documentId, HttpContext.RequestAborted);
                 return new JsonResult(chunks);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi lấy danh sách phân đoạn của tài liệu {DocId}", documentId);
-                return new StatusCodeResult(500);
+                _logger.LogError(ex, "Failed to retrieve document chunks.");
+                return new BadRequestObjectResult(new { error = $"Khong the lay danh sach phan doan: {ex.Message}" });
             }
+        }
+
+        private bool TryGetCurrentUser(out Guid userId, out string role)
+        {
+            role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(userIdString, out userId);
+        }
+
+        private async Task<bool> IsCurrentUserStillValidAsync(Guid currentUserId)
+        {
+            return await _userService.GetUserAsync(currentUserId, HttpContext.RequestAborted) != null;
+        }
+
+        private async Task<IActionResult> SignOutStaleUserAsync()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            TempData["ErrorMessage"] = "Your login session is no longer valid. Please sign in again.";
+            return RedirectToPage("/Account/Login");
         }
     }
 }

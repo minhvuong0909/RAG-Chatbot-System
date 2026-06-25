@@ -1,51 +1,60 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Đăng nhập";
+    ViewData["Title"] = "Login";
 }
 
-<div class="auth-container d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 200px); padding-block: 40px;">
-    <div class="auth-card" style="animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
-        <div class="auth-title text-center mb-4">
-            <span class="brand-mark mb-3" style="width: 48px; height: 48px; font-size: 1.25rem;">R</span>
-            <h1 class="h3 fw-bold text-dark">Đăng nhập RAG Chatbot</h1>
-            <p class="text-muted" style="font-size: 0.9rem;">Truy cập không gian làm việc của bạn và bắt đầu trò chuyện với tài liệu.</p>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-title">
+            <span class="brand-mark mb-3" style="display: inline-grid; width: 54px; height: 54px; place-items: center; border-radius: 12px; font-size: 1.8rem; margin-bottom: 12px;">R</span>
+            <h1>Access Workspace</h1>
+            <p>Connect credentials to interact with RAG AI</p>
         </div>
 
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-danger mb-4 shadow-sm" role="alert" style="border-radius: var(--radius); font-size: 0.88rem;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.ErrorMessage
+            <div class="alert alert-success border-0 mb-4" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2) !important; padding: 12px; font-size: 0.85rem; font-weight: 700;">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-warning border-0 mb-4" style="border-radius: 8px; padding: 12px; font-size: 0.85rem; font-weight: 700;">
+                @TempData["ErrorMessage"]
             </div>
         }
 
-        <form method="post" class="auth-form d-flex flex-column gap-3">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger border-0 mb-4" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2) !important;">
+                <div asp-validation-summary="All" class="small list-unstyled m-0 fw-bold"></div>
+            </div>
+        }
+
+        <form method="post" style="display: grid; gap: 20px;">
             @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="ReturnUrl" />
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
             <div>
-                <label asp-for="Email" class="form-label mb-1 fw-semibold text-secondary" style="font-size: 0.85rem;">Tên đăng nhập hoặc Email</label>
-                <input type="text" asp-for="Email" placeholder="Nhập tên đăng nhập hoặc email" required 
-                       class="form-control px-3 py-2" style="border-radius: var(--radius); font-size: 0.9rem;" />
+                <label for="email" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">USERNAME OR EMAIL</label>
+                <input type="text" id="email" name="email" placeholder="Enter your username or email" required style="min-height: 48px;" />
             </div>
 
             <div>
-                <label asp-for="Password" class="form-label mb-1 fw-semibold text-secondary" style="font-size: 0.85rem;">Mật khẩu</label>
-                <input type="password" asp-for="Password" placeholder="Nhập mật khẩu của bạn" required 
-                       class="form-control px-3 py-2" style="border-radius: var(--radius); font-size: 0.9rem;" />
+                <label for="password" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">PASSWORD</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required style="min-height: 48px;" />
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 py-2 mt-2 fw-bold" style="border-radius: var(--radius); transition: all 0.2s;">
-                Đăng nhập
-            </button>
+            <div style="margin-top: 10px;">
+                <button type="submit" style="width: 100%; min-height: 48px; border-radius: 8px; font-size: 0.9rem;">
+                    Enter Workspace
+                </button>
+            </div>
 
-            <div class="text-center mt-3" style="border-top: 1px solid var(--line); padding-top: 15px;">
-                <span class="text-muted small">Tài khoản được cung cấp bởi Quản trị viên qua Email.</span>
+            <div class="text-center mt-3">
+                <span class="text-muted small">Accounts are provided by Admin via email.</span>
             </div>
         </form>
     </div>
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}

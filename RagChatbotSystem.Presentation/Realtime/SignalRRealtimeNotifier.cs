@@ -54,6 +54,81 @@ namespace RagChatbotSystem.Presentation.Realtime
                 cancellationToken);
         }
 
+        public async Task DocumentProgressAsync(
+            Guid datasetId,
+            DocumentDto document,
+            string action,
+            int percentComplete,
+            CancellationToken cancellationToken = default)
+        {
+            var payload = new
+            {
+                action,
+                datasetId,
+                documentId = document.DocumentId,
+                fileName = document.FileName,
+                fileType = document.FileType,
+                fileSize = document.FileSize,
+                status = document.Status,
+                percentComplete,
+                changedAt = DateTimeOffset.UtcNow
+            };
+
+            await _hubContext.Clients.Group(NotificationHub.DatasetGroupName(datasetId))
+                .SendAsync("DocumentProgress", payload, cancellationToken);
+
+            await _hubContext.Clients.Group(NotificationHub.AdminGroupName)
+                .SendAsync("DocumentProgress", payload, cancellationToken);
+        }
+
+        public Task ChatSessionChangedAsync(
+            Guid userId,
+            Guid datasetId,
+            ChatSessionDto session,
+            string action,
+            CancellationToken cancellationToken = default)
+        {
+            return _hubContext.Clients.User(userId.ToString()).SendAsync("ChatSessionChanged", new
+            {
+                action,
+                datasetId,
+                sessionId = session.SessionId,
+                title = session.Title,
+                updatedAt = session.UpdatedAt,
+                changedAt = DateTimeOffset.UtcNow
+            }, cancellationToken);
+        }
+
+        public Task ChatMessageSavedAsync(
+            Guid userId,
+            Guid datasetId,
+            Guid sessionId,
+            SendChatMessageResponse response,
+            CancellationToken cancellationToken = default)
+        {
+            return _hubContext.Clients.Group(NotificationHub.ChatSessionGroupName(sessionId))
+                .SendAsync("ChatMessageSaved", new
+                {
+                    userId,
+                    datasetId,
+                    sessionId,
+                    userMessage = CreateChatMessagePayload(response.UserMessage),
+                    assistantMessage = CreateChatMessagePayload(response.AssistantMessage),
+                    citations = response.Citations.Select(c => new
+                    {
+                        citationId = c.CitationId,
+                        messageId = c.MessageId,
+                        chunkId = c.ChunkId,
+                        documentId = c.DocumentId,
+                        fileName = c.FileName,
+                        pageNumber = c.PageNumber,
+                        quoteText = c.QuoteText,
+                        sourceLabel = c.SourceLabel
+                    }),
+                    changedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
+        }
+
         public async Task UserApprovalChangedAsync(
             Guid userId,
             bool approved,
@@ -100,6 +175,18 @@ namespace RagChatbotSystem.Presentation.Realtime
                 assignedTeacherId = dataset?.AssignedTeacherId,
                 assignedTeacherName = dataset?.AssignedTeacherName,
                 changedAt = DateTimeOffset.UtcNow
+            };
+        }
+
+        private static object CreateChatMessagePayload(ChatMessageDto message)
+        {
+            return new
+            {
+                messageId = message.MessageId,
+                sessionId = message.SessionId,
+                role = message.Role,
+                content = message.Content,
+                createdAt = message.CreatedAt
             };
         }
 

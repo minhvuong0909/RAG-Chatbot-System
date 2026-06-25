@@ -1,25 +1,29 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Account.AccessDeniedModel
 @{
-    ViewData["Title"] = "Từ chối truy cập";
+    ViewData["Title"] = "Access Denied";
 }
 
-<div class="auth-container d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 200px); padding-block: 40px;">
-    <div class="auth-card text-center" style="animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; max-width: 480px;">
-        <div style="font-size: 4rem; color: var(--danger); margin-bottom: 20px;">
-            <i class="bi bi-shield-lock-fill"></i>
-        </div>
-        <h1 class="h3 fw-bold text-dark mb-3">Từ chối truy cập</h1>
-        <p class="text-muted mb-4" style="font-size: 0.95rem; line-height: 1.6;">
-            Bạn không có quyền truy cập vào trang này. Vui lòng liên hệ với Quản trị viên hệ thống nếu bạn nghĩ đây là một sự nhầm lẫn.
-        </p>
-        <div class="d-flex flex-column gap-2">
-            <a asp-page="/Index" class="btn btn-primary fw-semibold py-2" style="border-radius: var(--radius);">
-                Quay lại Trang chủ
-            </a>
-            <a asp-page="/Account/Login" class="btn btn-outline-secondary fw-semibold py-2" style="border-radius: var(--radius);">
-                Đăng nhập với tài khoản khác
-            </a>
+<div class="row justify-content-center align-items-center" style="min-height: calc(70vh - 104px);">
+    <div class="col-md-6 text-center">
+        <div class="card border-0 shadow-lg p-5" style="border-radius: 16px; background: var(--surface); box-shadow: var(--shadow);">
+            <div class="card-body">
+                <div class="text-danger mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-shield-slash-fill" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1.093 3.093A4.99 4.99 0 0 1 8 1c1.83 0 3.418.982 4.292 2.458L1.093 3.093zm11.758 1.662A5 5 0 0 1 8 15c-1.83 0-3.418-.982-4.292-2.458l9.143-9.143zM8 0c-.69 0-1.353.078-2 .222A4.993 4.993 0 0 0 2.222 2c-.144.647-.222 1.31-.222 2 0 1.83.982 3.418 2.458 4.292L.222 14c-.078.69 0 1.353.222 2 .647-.144 1.31-.222 2-.222 1.83 0 3.418-.982 4.292-2.458L15.778 2c.078-.69 0-1.353-.222-2-.647.144-1.31.222-2 .222z"/>
+                    </svg>
+                </div>
+                <h3 class="fw-bold mb-3" style="color: var(--ink);">Access Denied</h3>
+                <p class="text-muted mb-4">You do not have permission to access this resource or perform this action.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a asp-page="/Index" class="btn text-white px-4 py-2" style="background: var(--accent); border-radius: 8px;">
+                        Back to Workspace
+                    </a>
+                    <a asp-page="/Account/Logout" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 8px;">
+                        Log out
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

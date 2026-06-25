@@ -29,6 +29,7 @@ namespace RagChatbotSystem.Presentation
                     options.ExpireTimeSpan = TimeSpan.FromDays(7);
                 });
 
+
             // Đăng ký Swagger Services
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -44,8 +45,8 @@ namespace RagChatbotSystem.Presentation
             // Cấu hình kết nối PostgreSQL với pgvector
             builder.Services.AddDbContext<AppDbContext>(options =>
                      options.UseNpgsql(
-                          builder.Configuration.GetConnectionString("DefaultConnection"),
-                          o => o.UseVector()));
+                         builder.Configuration.GetConnectionString("DefaultConnection"),
+                         o => o.UseVector()));
 
             // Cấu hình HttpClient cho Python RAG API 
             builder.Services.AddHttpClient<IRagApiClient, RagApiClient>(client =>
@@ -83,6 +84,7 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
+            builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();
 
             var app = builder.Build();
 
@@ -123,7 +125,7 @@ namespace RagChatbotSystem.Presentation
                             {
                                 UserId = Guid.NewGuid(),
                                 CreatedAt = DateTime.UtcNow
-                             };
+                            };
                             db.Users.Add(admin);
                         }
 
