@@ -268,6 +268,25 @@
             }
         </div>
 
+        @if (Model.SelectedDatasetId.HasValue && Model.SelectedSessionId.HasValue)
+        {
+            <section class="question-suggestions" data-question-suggestions data-dataset-id="@Model.SelectedDatasetId">
+                <div class="question-suggestions-header">
+                    <div>
+                        <p class="eyebrow">AI question ideas</p>
+                        <h3>Study prompts from this subject</h3>
+                    </div>
+                    <button type="button" class="secondary-button" data-generate-questions>Generate ideas</button>
+                </div>
+                <div class="suggestion-list" data-suggestion-list>
+                    <button type="button" class="suggestion-chip" data-question-template="Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?">Tom tat y chinh</button>
+                    <button type="button" class="suggestion-chip" data-question-template="Nhung khai niem quan trong nhat trong tai lieu nay la gi?">Khai niem quan trong</button>
+                    <button type="button" class="suggestion-chip" data-question-template="Tao 5 cau hoi on tap tu cac tai lieu trong mon hoc nay?">Cau hoi on tap</button>
+                </div>
+                <p class="suggestion-helper" data-suggestion-helper>Click a prompt to place it in the chat box.</p>
+            </section>
+        }
+
         <div class="chat-stream" aria-live="polite" id="chatStream">
             @if (Model.SelectedSession != null)
             {
@@ -460,6 +479,60 @@
             color: var(--danger);
             cursor: pointer;
         }
+
+        .question-suggestions {
+            border-bottom: 1px solid var(--line);
+            padding: 14px 18px;
+            background: var(--surface);
+        }
+
+        .question-suggestions-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .question-suggestions-header h3 {
+            margin: 0;
+            color: var(--ink);
+            font-size: 0.98rem;
+            line-height: 1.2;
+        }
+
+        .suggestion-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-chip {
+            border: 1px solid rgba(37, 99, 235, 0.22);
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.06);
+            color: var(--accent-strong);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.25;
+            max-width: 100%;
+            padding: 7px 10px;
+            overflow-wrap: anywhere;
+            text-align: left;
+        }
+
+        .suggestion-chip:hover,
+        .suggestion-chip:focus {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .suggestion-helper {
+            color: var(--muted);
+            font-size: 0.76rem;
+            margin: 8px 0 0;
+        }
     </style>
     <script>
         // Tá»± Ä‘á»™ng cuá»™n khung chat xuá»‘ng dÆ°á»›i cÃ¹ng khi cÃ³ tin nháº¯n má»›i hoáº·c táº£i trang
@@ -499,6 +572,66 @@
         }
 
         // Xá»­ lÃ½ gá»­i tin nháº¯n báº±ng AJAX (KhÃ´ng táº£i láº¡i trang)
+        const questionSuggestions = document.querySelector("[data-question-suggestions]");
+        const suggestionList = document.querySelector("[data-suggestion-list]");
+        const suggestionHelper = document.querySelector("[data-suggestion-helper]");
+        const generateQuestionsButton = document.querySelector("[data-generate-questions]");
+
+        document.addEventListener("click", function(e) {
+            const chip = e.target.closest("[data-question-template]");
+            if (!chip || !textarea) return;
+
+            textarea.value = chip.getAttribute("data-question-template") || chip.textContent.trim();
+            textarea.focus();
+            textarea.style.height = "auto";
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        });
+
+        if (generateQuestionsButton && questionSuggestions && suggestionList) {
+            generateQuestionsButton.addEventListener("click", function () {
+                const datasetId = questionSuggestions.getAttribute("data-dataset-id");
+                if (!datasetId) return;
+
+                generateQuestionsButton.disabled = true;
+                generateQuestionsButton.textContent = "Generating...";
+                if (suggestionHelper) {
+                    suggestionHelper.textContent = "Retrieving indexed chunks and building study prompts...";
+                }
+
+                fetch(`?handler=SuggestQuestions&datasetId=${encodeURIComponent(datasetId)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => { throw new Error(data.error || "Cannot generate suggestions.") });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const questions = data.questions || [];
+                        if (questions.length === 0) {
+                            throw new Error("No suggestions were generated for this subject.");
+                        }
+
+                        suggestionList.innerHTML = questions.map(q => `
+                            <button type="button" class="suggestion-chip" data-question-template="${escapeHtml(q)}">${escapeHtml(q)}</button>
+                        `).join("");
+
+                        if (suggestionHelper) {
+                            suggestionHelper.textContent = data.warning || "Click a generated prompt to place it in the chat box.";
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (suggestionHelper) {
+                            suggestionHelper.textContent = `Suggestion error: ${err.message}`;
+                        }
+                    })
+                    .finally(() => {
+                        generateQuestionsButton.disabled = false;
+                        generateQuestionsButton.textContent = "Generate ideas";
+                    });
+            });
+        }
+
         const composerForm = document.querySelector(".composer");
         if (composerForm) {
             composerForm.addEventListener("submit", function(e) {
