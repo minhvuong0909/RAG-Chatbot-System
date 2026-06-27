@@ -10,9 +10,17 @@
         .withAutomaticReconnect()
         .build();
 
-    connection.on("NotificationReceived", function (notification) {
+    connection.on("ReceiveNotification", function (notification) {
         window.dispatchEvent(new CustomEvent("rag:notification", { detail: notification }));
-        showRealtimeToast(notification && notification.message ? notification.message : "Realtime notification received.");
+        
+        let msg = typeof notification === 'string' ? notification : 
+                 (notification && notification.message ? notification.message : "Realtime notification received.");
+                 
+        if (window.showToastNotification) {
+            window.showToastNotification(msg);
+        } else {
+            showRealtimeToast(msg);
+        }
         console.info("Realtime notification:", notification);
     });
 

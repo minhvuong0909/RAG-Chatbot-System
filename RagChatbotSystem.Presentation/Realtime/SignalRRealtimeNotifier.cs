@@ -30,15 +30,17 @@ namespace RagChatbotSystem.Presentation.Realtime
                 await _hubContext.Clients.Group(NotificationHub.DatasetGroupName(dataset.DatasetId))
                     .SendAsync("DatasetChanged", payload, cancellationToken);
 
-                // For new/approved datasets: notify all teachers so their sidebar updates
-                // For unapproved/deleted: also notify teachers so they can remove from view
+                // For unapproved/deleted: also notify the assigned teacher so they can remove it from view
                 if (action is "created" or "approved" or "unapproved" or "updated" or "deleted")
                 {
-                    await _hubContext.Clients.Group(NotificationHub.TeacherGroupName)
-                        .SendAsync("DatasetChanged", payload, cancellationToken);
+                    if (dataset.AssignedTeacherId.HasValue)
+                    {
+                        await _hubContext.Clients.Group($"user_{dataset.AssignedTeacherId.Value}")
+                            .SendAsync("DatasetChanged", payload, cancellationToken);
+                    }
 
-                    // For public datasets also notify students
-                    if (dataset.IsPublic == true)
+                    // For public datasets also notify students, but only if they are approved
+                    if (dataset.IsPublic == true && dataset.IsApproved == true)
                     {
                         await _hubContext.Clients.Group(NotificationHub.StudentGroupName)
                             .SendAsync("DatasetChanged", payload, cancellationToken);

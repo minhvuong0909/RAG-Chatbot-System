@@ -7,26 +7,26 @@
 <section class="workspace" data-rag-app data-active-tab="@defaultMobileTab" data-selected-dataset-id="@Model.SelectedDatasetId" data-selected-session-id="@Model.SelectedSessionId">
     <!-- Mobile Navigation Tabs (Only visible on mobile screens) -->
     <div class="mobile-workspace-tabs" aria-label="Workspace navigation">
-        <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">&#128172; Chat</button>
-        <button class="mobile-tab-btn @(defaultMobileTab == "management-panel" ? "active" : "")" data-target="management-panel">&#128218; Knowledge</button>
+        <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">Chat</button>
+        <button class="mobile-tab-btn @(defaultMobileTab == "management-panel" ? "active" : "")" data-target="management-panel">Knowledge</button>
         <button class="mobile-tab-btn @(defaultMobileTab == "reference-panel" ? "active" : "")" data-target="reference-panel">
-            &#128269; Sources @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
+            Sources @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
         </button>
     </div>
 
-    <!-- Cá»™t 1: Báº£ng Ä‘iá»u khiá»ƒn quáº£n lÃ½ (Management) -->
+    <!-- Cot 1: Bang dieu khien quan ly (Management) -->
     <aside class="workspace-panel management-panel" aria-label="Subject management">
-        <div class="panel-header">
+        <div class="panel-header" style="padding: 20px; margin: -16px -16px 16px -16px; border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; background: var(--surface-muted);">
             <div>
-                <p class="eyebrow">Management</p>
-                <h1>Knowledge workspace</h1>
+                <p class="eyebrow" style="letter-spacing: 0.1em; color: var(--muted);">Management</p>
+                <h1 style="font-weight: 700; margin: 0; color: var(--ink);">Knowledge workspace</h1>
             </div>
             <a class="icon-button" href="?datasetId=@Model.SelectedDatasetId&sessionId=@Model.SelectedSessionId" title="Refresh workspace" aria-label="Refresh workspace" style="text-decoration: none;">
-                <span aria-hidden="true">&#8635;</span>
+                <span aria-hidden="true">Refresh</span>
             </a>
         </div>
 
-        <!-- ThÃ´ng bÃ¡o lá»—i hoáº·c thÃ nh cÃ´ng -->
+        <!-- Thong bao loi hoac thanh cong -->
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
             <div class="alert alert-danger" style="background: rgba(180, 35, 24, 0.1); border: 1px solid rgba(180, 35, 24, 0.2); padding: 0.75rem; border-radius: 8px; color: var(--danger); margin-bottom: 1rem; font-size: 0.84rem; font-weight: 500;">
@@ -40,18 +40,20 @@
             </div>
         }
 
-        <!-- ThÃ´ng tin ngÆ°á»i dÃ¹ng Ä‘Äƒng nháº­p -->
-        <div style="border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 1.2rem;">&#128100;</span>
+        <!-- Thong tin nguoi dung dang nhap -->
+        <div style="border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-muted); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--ink-soft);">
+                    @(Model.SelectedUser?.FullName?.Substring(0,1).ToUpper() ?? "U")
+                </div>
                 <div>
                     <div class="fw-bold" style="color: var(--ink); font-size: 0.95rem;">@Model.SelectedUser?.FullName</div>
-                    <div class="text-muted small text-uppercase" style="font-size: 0.75rem; font-weight: bold; color: var(--accent-strong);">Role: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
+                    <div class="text-muted small text-uppercase" style="font-size: 0.75rem; font-weight: bold;">Role: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
                 </div>
             </div>
         </div>
 
-        <!-- Quáº£n lÃ½ Datasets -->
+        <!-- Quan ly Datasets -->
         <div class="section-block">
             <div class="section-title">
                 <h2>Subjects</h2>
@@ -87,12 +89,12 @@
                             <span class="dataset-name">
                                 @if (!ds.IsApproved)
                                 {
-                                    <span title="Pending approval" style="color: var(--warning);">&#9203;</span>
+                                    <span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px;">Pending</span>
                                 }
                                 @ds.Name
                                 @if (!ds.IsPublic)
                                 {
-                                    <span title="Private subject" style="font-size: 0.8rem; color: var(--muted);">&#128274;</span>
+                                    <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px;">Private</span>
                                 }
                             </span>
                             <span class="dataset-meta">@ds.DocumentCount document(s)</span>
@@ -125,14 +127,16 @@
                     <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="upload-form" id="upload-doc-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
-                        <div id="upload-dropzone" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; padding: 22px 16px; background: var(--surface-muted); text-align: center; cursor: pointer; transition: all 0.2s;" onclick="if(!this.dataset.uploading) document.getElementById('file-upload').click();" onmouseover="this.style.borderColor='var(--accent)';" onmouseout="this.style.borderColor='var(--line)';">
+                        <div id="upload-dropzone" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; padding: 32px 20px; background: var(--surface-muted); text-align: center; cursor: pointer; transition: all 0.2s;" onclick="if(!this.dataset.uploading) document.getElementById('file-upload').click();" onmouseover="this.style.borderColor='var(--accent)';" onmouseout="this.style.borderColor='var(--line)';">
                             <div id="upload-idle-state" style="display: flex; flex-direction: column; align-items: center;">
-                                <span style="font-size: 1.8rem; margin-bottom: 6px;">&#128228;</span>
-                                <span style="font-weight: 700; font-size: 0.9rem; color: var(--ink);">Upload documents for RAG</span>
-                                <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">PDF, TXT, MD, or DOCX files supported</span>
+                                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: var(--shadow-soft);">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                </div>
+                                <span style="font-weight: 700; font-size: 1rem; color: var(--ink);">Upload documents for RAG</span>
+                                <span style="font-size: 0.8rem; color: var(--muted); margin-top: 6px;">PDF, TXT, MD, or DOCX files supported</span>
                             </div>
                             <div id="upload-loading-state" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0;">
-                                <span style="display: inline-block; font-size: 1.8rem; margin-bottom: 6px; animation: spin 1s linear infinite;">&#9203;</span>
+                                <div style="width: 24px; height: 24px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 8px;"></div>
                                 <span style="font-weight: 700; font-size: 0.9rem; color: var(--accent);">Uploading &amp; Processing...</span>
                                 <span style="font-size: 0.75rem; color: var(--muted); margin-top: 4px;">Please wait while we extract text, chunk and index embeddings.</span>
                             </div>
@@ -241,9 +245,9 @@
 
     <!-- Cá»™t 2: Giao diá»‡n Há»™i thoáº¡i (Chat Panel) -->
     <main class="chat-panel" aria-label="Chat interface">
-        <div class="chat-header">
+        <div class="chat-header" style="padding: 20px; border-bottom: 1px solid var(--line); margin-bottom: 16px; background: var(--surface-muted); border-radius: var(--radius) var(--radius) 0 0;">
             <div>
-                <p class="eyebrow">Chat</p>
+                <p class="eyebrow" style="letter-spacing: 0.1em; color: var(--muted);">Chat Workspace</p>
                 @if (Model.SelectedSession != null)
                 {
                     <h2 data-chat-title>@Model.SelectedSession.Title</h2>
@@ -273,9 +277,10 @@
             {
                 if (Model.MessageHistory.Count == 0)
                 {
-                    <div class="empty-state">
-                        <h3>Ask questions grounded in your uploaded documents.</h3>
-                        <p>Type your message below. The AI will retrieve the most relevant sections of your documents to provide answers.</p>
+                    <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.8; margin-top: 10vh; text-align: center; padding: 24px;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <h3 style="font-weight: 700; color: var(--ink); margin-bottom: 12px; font-size: 1.25rem;">Ask questions grounded in your documents</h3>
+                        <p style="color: var(--muted); max-width: 400px; line-height: 1.6; font-size: 0.95rem;">Type your message below. The AI will retrieve the most relevant sections of your documents to provide answers.</p>
                     </div>
                 }
                 else
@@ -294,8 +299,9 @@
                                 <div class="citation-row" style="margin-top: 8px;">
                                     <button class="citation-chip view-sources-btn" 
                                        data-message-id="@msg.MessageId"
-                                       style="background: none; border: none; font: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
-                                        &#128269; View Sources
+                                       style="background: none; border: 1px solid var(--line); font: inherit; font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); transition: all 0.2s;" onmouseover="this.style.background='var(--surface-muted)'; this.style.color='var(--ink)';" onmouseout="this.style.background='none'; this.style.color='var(--muted)';">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                        View Sources
                                     </button>
                                 </div>
                             }
@@ -305,9 +311,10 @@
             }
             else
             {
-                <div class="empty-state">
-                    <h3>Ask questions grounded in your uploaded documents.</h3>
-                    <p>Create or select a subject, upload a document, then start a chat session.</p>
+                <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.8; margin-top: 10vh; text-align: center; padding: 24px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); margin-bottom: 16px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <h3 style="font-weight: 700; color: var(--ink); margin-bottom: 12px; font-size: 1.25rem;">Welcome to RAG Chatbot</h3>
+                    <p style="color: var(--muted); max-width: 400px; line-height: 1.6; font-size: 0.95rem;">Create or select a subject, upload a document, then start a chat session to interact with your data.</p>
                 </div>
             }
         </div>
@@ -699,8 +706,8 @@
                     link.className = "dataset-item";
                     link.href = "/?datasetId=" + encodeURIComponent(datasetId);
 
-                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted);">&#128274;</span>' : "";
-                    const isApprovedIcon = !payload.isApproved ? ' <span title="Pending approval" style="color: var(--warning);">&#9203;</span>' : "";
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Private</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? '<span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Pending</span> ' : "";
 
                     link.innerHTML = `
                         <span class="dataset-name">${isApprovedIcon}${escapeHtml(payload.name || "New Subject")}${isPublicIcon}</span>
@@ -728,8 +735,8 @@
                 // Cập nhật tên, badge public, badge approval in-place (không reload)
                 const nameEl = existingEntry.querySelector(".dataset-name");
                 if (nameEl && payload.name) {
-                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted);">&#128274;</span>' : "";
-                    const isApprovedIcon = !payload.isApproved ? ' <span title="Pending approval" style="color: var(--warning);">&#9203;</span>' : "";
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Private</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? '<span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Pending</span> ' : "";
                     nameEl.innerHTML = `${isApprovedIcon}${escapeHtml(payload.name)}${isPublicIcon}`;
                 }
 

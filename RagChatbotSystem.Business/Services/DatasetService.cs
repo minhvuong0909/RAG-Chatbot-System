@@ -173,7 +173,6 @@ namespace RagChatbotSystem.Business.Services
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 await _realtimeService.TriggerUiUpdateAsync("DatasetPermission", datasetId, cancellationToken);
-                await _realtimeService.SendNotificationAsync(userId, $"Bạn đã được cấp quyền truy cập môn học mới.", cancellationToken);
             }
 
             return true;
@@ -194,7 +193,6 @@ namespace RagChatbotSystem.Business.Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await _realtimeService.TriggerUiUpdateAsync("DatasetPermission", datasetId, cancellationToken);
-            await _realtimeService.SendNotificationAsync(userId, $"Quyền truy cập môn học của bạn đã bị thu hồi.", cancellationToken);
 
             return true;
         }
@@ -258,7 +256,6 @@ namespace RagChatbotSystem.Business.Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await _realtimeService.TriggerUiUpdateAsync("DatasetAssignment", datasetId, cancellationToken);
-            await _realtimeService.SendNotificationAsync(teacherId, "Bạn đã được gán phụ trách một môn học mới.", cancellationToken);
 
             return true;
         }
@@ -279,7 +276,6 @@ namespace RagChatbotSystem.Business.Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await _realtimeService.TriggerUiUpdateAsync("DatasetAssignment", datasetId, cancellationToken);
-            await _realtimeService.SendNotificationAsync(teacherId, "Quyền phụ trách môn học của bạn đã bị thu hồi.", cancellationToken);
 
             return true;
         }
