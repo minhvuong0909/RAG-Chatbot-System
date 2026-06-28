@@ -34,19 +34,19 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             if (Input.ChunkOverlap > Input.ChunkSize / 2)
             {
                 ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.ChunkOverlap)}",
-                    $"Chunk Overlap không được vượt quá {Input.ChunkSize / 2} (ChunkSize / 2).");
+                    $"Chunk Overlap must not exceed {Input.ChunkSize / 2} (ChunkSize / 2).");
             }
 
             if (!ModelState.IsValid)
             {
-                ErrorMessage = "Vui lòng kiểm tra lại thông tin.";
+                ErrorMessage = "Please review the form and correct any errors.";
                 return Page();
             }
 
             try
             {
                 await _systemSettingService.UpdateSettingsAsync(Input.ChunkSize, Input.ChunkOverlap);
-                SuccessMessage = "Cài đặt đã được cập nhật thành công.";
+                SuccessMessage = "Settings updated successfully.";
             }
             catch (System.ArgumentOutOfRangeException ex)
             {
@@ -59,12 +59,12 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
         public class SettingsInput
         {
             [Required]
-            [Range(300, 700, ErrorMessage = "Chunk Size phải từ 300 đến 700.")]
+            [Range(300, 700, ErrorMessage = "Chunk Size must be between 300 and 700.")]
             [Display(Name = "Chunk Size")]
             public int ChunkSize { get; set; } = 500;
 
             [Required]
-            [Range(100, 350, ErrorMessage = "Chunk Overlap phải từ 100 đến 350.")]
+            [Range(100, 350, ErrorMessage = "Chunk Overlap must be between 100 and 350.")]
             [Display(Name = "Chunk Overlap")]
             public int ChunkOverlap { get; set; } = 100;
         }

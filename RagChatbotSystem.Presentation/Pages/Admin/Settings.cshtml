@@ -39,7 +39,7 @@
             <div class="form-group">
                 <label asp-for="Input.ChunkSize">
                     Chunk Size
-                    <span class="helper-text">Số ký tự tối đa mỗi đoạn (300 – 700)</span>
+                    <span class="helper-text">Maximum characters per chunk (300 – 700)</span>
                 </label>
                 <input asp-for="Input.ChunkSize" id="chunkSizeInput" type="number" min="300" max="700" step="50" />
                 <span asp-validation-for="Input.ChunkSize" class="text-danger small"></span>
@@ -48,14 +48,14 @@
             <div class="form-group">
                 <label asp-for="Input.ChunkOverlap">
                     Chunk Overlap
-                    <span class="helper-text">Số ký tự chồng lấp giữa các đoạn (100 – ChunkSize / 2)</span>
+                    <span class="helper-text">Overlapping characters between chunks (100 – ChunkSize / 2)</span>
                 </label>
                 <input asp-for="Input.ChunkOverlap" id="chunkOverlapInput" type="number" min="100" max="350" step="25" />
                 <span asp-validation-for="Input.ChunkOverlap" class="text-danger small"></span>
             </div>
 
             <div class="alert alert-warning" style="margin-top: 0.5rem;">
-                Thay đổi chỉ áp dụng cho tài liệu được upload <strong>sau</strong> khi lưu. Tài liệu cũ không bị ảnh hưởng.
+                Changes only apply to documents uploaded <strong>after</strong> saving. Existing documents are not affected.
             </div>
 
             <button type="submit" class="btn btn-primary">Save settings</button>
