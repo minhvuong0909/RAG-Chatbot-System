@@ -36,10 +36,10 @@ namespace RagChatbotSystem.Business.Services
         public async Task UpdateSettingsAsync(int chunkSize, int chunkOverlap, CancellationToken cancellationToken = default)
         {
             if (chunkSize < 300 || chunkSize > 700)
-                throw new ArgumentOutOfRangeException(nameof(chunkSize), "ChunkSize phải từ 300 đến 700.");
+                throw new ArgumentOutOfRangeException(nameof(chunkSize), "ChunkSize must be between 300 and 700.");
 
             if (chunkOverlap < 100 || chunkOverlap > chunkSize / 2)
-                throw new ArgumentOutOfRangeException(nameof(chunkOverlap), $"ChunkOverlap phải từ 100 đến {chunkSize / 2}.");
+                throw new ArgumentOutOfRangeException(nameof(chunkOverlap), $"ChunkOverlap must be between 100 and {chunkSize / 2}.");
 
             var setting = await _repository.GetQueryable()
                 .FirstOrDefaultAsync(cancellationToken);
