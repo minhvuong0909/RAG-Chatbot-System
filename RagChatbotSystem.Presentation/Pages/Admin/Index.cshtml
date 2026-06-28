@@ -16,6 +16,7 @@
     <nav class="admin-tabs" aria-label="Admin sections">
         <a class="active" asp-page="/Admin/Index" aria-current="page">Overview</a>
         <a asp-page="/Admin/Datasets/Index">Subjects</a>
+        <a asp-page="/Admin/Settings">Settings</a>
     </nav>
 
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
