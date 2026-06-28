@@ -20,8 +20,6 @@ namespace RagChatbotSystem.Business.Services
 {
     public class DocumentService : IDocumentService
     {
-        private const int DefaultChunkSize = 600;
-        private const int DefaultChunkOverlap = 120;
         private const string EmbeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
 
         private readonly IUnitOfWork _unitOfWork;
@@ -33,6 +31,7 @@ namespace RagChatbotSystem.Business.Services
         private readonly IRagApiClient _ragApiClient;
         private readonly IFileStorageService _fileStorageService;
         private readonly IRealtimeService _realtimeService;
+        private readonly ISystemSettingService _systemSettingService;
         private readonly ILogger<DocumentService> _logger;
 
         public DocumentService(
@@ -40,6 +39,7 @@ namespace RagChatbotSystem.Business.Services
             IRagApiClient ragApiClient,
             IFileStorageService fileStorageService,
             IRealtimeService realtimeService,
+            ISystemSettingService systemSettingService,
             ILogger<DocumentService> logger)
         {
             _unitOfWork = unitOfWork;
@@ -51,6 +51,7 @@ namespace RagChatbotSystem.Business.Services
             _ragApiClient = ragApiClient;
             _fileStorageService = fileStorageService;
             _realtimeService = realtimeService;
+            _systemSettingService = systemSettingService;
             _logger = logger;
         }
 
@@ -167,7 +168,9 @@ namespace RagChatbotSystem.Business.Services
                 var segments = await ExtractTextSegmentsAsync(stream, document.FileType, cancellationToken);
 
                 await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Đang phân tích đoạn", 50, cancellationToken);
-                var chunks = SplitTextSegments(segments, DefaultChunkSize, DefaultChunkOverlap);
+                var chunkSize = await _systemSettingService.GetChunkSizeAsync(cancellationToken);
+                var chunkOverlap = await _systemSettingService.GetChunkOverlapAsync(cancellationToken);
+                var chunks = SplitTextSegments(segments, chunkSize, chunkOverlap);
 
                 if (chunks.Count == 0)
                 {
