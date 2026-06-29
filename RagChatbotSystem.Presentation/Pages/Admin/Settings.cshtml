@@ -1,0 +1,79 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.SettingsModel
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<section class="admin-page" data-admin-page>
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>System Settings</h1>
+            <p class="helper-text">Configure document chunking parameters applied to all future uploads.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Admin sections">
+        <a asp-page="/Admin/Index">Overview</a>
+        <a asp-page="/Admin/Datasets/Index">Subjects</a>
+        <a class="active" asp-page="/Admin/Settings" aria-current="page">Settings</a>
+    </nav>
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Chunking configuration</h2>
+        </div>
+
+        <form method="post" class="admin-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+            <div class="form-group">
+                <label asp-for="Input.ChunkSize">
+                    Chunk Size
+                    <span class="helper-text">Maximum characters per chunk (300 – 700)</span>
+                </label>
+                <input asp-for="Input.ChunkSize" id="chunkSizeInput" type="number" min="300" max="700" step="50" />
+                <span asp-validation-for="Input.ChunkSize" class="text-danger small"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Input.ChunkOverlap">
+                    Chunk Overlap
+                    <span class="helper-text">Overlapping characters between chunks (100 – ChunkSize / 2)</span>
+                </label>
+                <input asp-for="Input.ChunkOverlap" id="chunkOverlapInput" type="number" min="100" max="350" step="25" />
+                <span asp-validation-for="Input.ChunkOverlap" class="text-danger small"></span>
+            </div>
+
+            <div class="alert alert-warning" style="margin-top: 0.5rem;">
+                Changes only apply to documents uploaded <strong>after</strong> saving. Existing documents are not affected.
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save settings</button>
+        </form>
+    </section>
+</section>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        const chunkSize = document.getElementById('chunkSizeInput');
+        const chunkOverlap = document.getElementById('chunkOverlapInput');
+        function updateOverlapMax() {
+            const max = Math.floor(parseInt(chunkSize.value) / 2);
+            chunkOverlap.max = max;
+            if (parseInt(chunkOverlap.value) > max) chunkOverlap.value = max;
+        }
+        chunkSize.addEventListener('input', updateOverlapMax);
+        updateOverlapMax();
+    </script>
+}

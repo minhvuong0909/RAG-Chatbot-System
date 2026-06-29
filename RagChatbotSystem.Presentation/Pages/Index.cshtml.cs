@@ -26,6 +26,7 @@ namespace RagChatbotSystem.Presentation.Pages
         private readonly IDocumentService _documentService;
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatService _chatService;
+        private readonly IQuestionSuggestionService _questionSuggestionService;
         private readonly IRealtimeNotifier _realtimeNotifier;
         private readonly ILogger<IndexModel> _logger;
 
@@ -35,6 +36,7 @@ namespace RagChatbotSystem.Presentation.Pages
             IDocumentService documentService,
             IChatSessionService chatSessionService,
             IChatService chatService,
+            IQuestionSuggestionService questionSuggestionService,
             IRealtimeNotifier realtimeNotifier,
             ILogger<IndexModel> logger)
         {
@@ -43,6 +45,7 @@ namespace RagChatbotSystem.Presentation.Pages
             _documentService = documentService;
             _chatSessionService = chatSessionService;
             _chatService = chatService;
+            _questionSuggestionService = questionSuggestionService;
             _realtimeNotifier = realtimeNotifier;
             _logger = logger;
         }
@@ -483,6 +486,41 @@ namespace RagChatbotSystem.Presentation.Pages
             {
                 _logger.LogError(ex, "Failed to retrieve document chunks.");
                 return new BadRequestObjectResult(new { error = $"Khong the lay danh sach phan doan: {ex.Message}" });
+            }
+        }
+
+        public async Task<IActionResult> OnGetSuggestQuestionsAsync(Guid datasetId)
+        {
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
+            {
+                return new UnauthorizedResult();
+            }
+
+            try
+            {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                }
+
+                var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
+                if (!allowedDatasets.Any(d => d.DatasetId == datasetId))
+                {
+                    return new ForbidResult();
+                }
+
+                var result = await _questionSuggestionService.SuggestQuestionsAsync(datasetId, HttpContext.RequestAborted);
+                return new JsonResult(new
+                {
+                    questions = result.Questions,
+                    warning = result.Warning
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate suggested questions for dataset {DatasetId}.", datasetId);
+                return new ObjectResult(new { error = $"Khong the tao cau hoi goi y: {ex.Message}" }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 

@@ -24,6 +24,7 @@ namespace RagChatbotSystem.DataAccess.Data
         public DbSet<Citation> Citations { get; set; } = null!;
         public DbSet<DatasetPermission> DatasetPermissions { get; set; } = null!;
         public DbSet<TeacherSubjectAssignment> TeacherSubjectAssignments { get; set; } = null!;
+        public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -194,6 +195,19 @@ namespace RagChatbotSystem.DataAccess.Data
                     .WithMany(cs => cs.ChatMessages)
                     .HasForeignKey(cm => cm.SessionId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // SystemSetting configuration
+            modelBuilder.Entity<SystemSetting>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasData(new SystemSetting
+                {
+                    Id = 1,
+                    ChunkSize = 500,
+                    ChunkOverlap = 100,
+                    UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                });
             });
 
             // Citation configuration
