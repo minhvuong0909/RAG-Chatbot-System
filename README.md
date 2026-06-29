@@ -1,246 +1,132 @@
-# 🤖 RAG Chatbot System
+# RAG Chatbot System
 
-[![.NET 9](https://img.shields.io/badge/.NET-9.0-blueviolet?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/9.0)
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.136%2B-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
-[![SignalR](https://img.shields.io/badge/SignalR-Realtime-darkblue?style=for-the-badge&logo=signalr)](https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction)
-[![Docker](https://img.shields.io/badge/Docker-Supported-blue?style=for-the-badge&logo=docker)](https://www.docker.com/)
+Hệ thống chatbot hỏi đáp thông minh dựa trên kiến thức tùy chỉnh, được xây dựng bằng cách kết hợp công nghệ Retrieval-Augmented Generation (RAG) với các thành phần backend hiện đại. Dự án này hướng tới việc cung cấp trải nghiệm tra cứu thông minh, chính xác và có thể mở rộng cho các ứng dụng doanh nghiệp.
 
-Hệ thống Chatbot hỏi đáp thông minh dựa trên tri thức tùy chỉnh sử dụng kỹ thuật **RAG (Retrieval-Augmented Generation)**. Dự án kết hợp hiệu năng xử lý nghiệp vụ của **ASP.NET Core (.NET 9) Razor Pages** với sức mạnh xử lý học máy (Embedding, Hybrid Search, Reranking) bằng **Python FastAPI** và truyền tải dữ liệu thời gian thực thông qua **SignalR WebSockets**.
+## 🎯 Mục tiêu dự án
 
----
+- Cung cấp một chatbot có thể trả lời dựa trên tài liệu riêng của doanh nghiệp hoặc tổ chức.
+- Hỗ trợ xử lý tài liệu đa định dạng như PDF, DOCX và TXT.
+- Tích hợp tìm kiếm ngữ nghĩa, tìm kiếm từ khóa và sắp xếp lại kết quả để nâng cao chất lượng phản hồi.
+- Cho phép triển khai linh hoạt trên môi trường phát triển cục bộ hoặc production.
 
-## 📋 Mục lục
+## ✨ Tính năng chính
 
-1. [Tổng quan kiến trúc](#1-tổng-quan-kiến-trúc)
-2. [Cấu trúc thư mục dự án](#2-cấu-trúc-thư-mục-dự-án)
-3. [Các tính năng nổi bật](#3-các-tính-năng-nổi-bật)
-4. [Yêu cầu hệ thống](#4-yêu-cầu-hệ-thống)
-5. [Hướng dẫn cấu hình môi trường](#5-hướng-dẫn-cấu-hình-môi-trường)
-6. [Hướng dẫn khởi chạy dự án](#6-hướng-dẫn-khởi-chạy-dự-án)
-7. [Chạy Kiểm thử (Automated Tests)](#7-chạy-kiểm-thử-automated-tests)
-8. [Lưu ý quan trọng & Khắc phục sự cố](#8-lưu-ý-quan-trọng--khắc-phục-sự-cố)
+- Tải lên và xử lý tài liệu từ nhiều định dạng khác nhau.
+- Tạo chỉ mục và chia nhỏ tài liệu thông minh để tối ưu hóa truy xuất.
+- Hỗ trợ tìm kiếm lai (hybrid search) kết hợp lexical và semantic retrieval.
+- Sử dụng reranking để cải thiện độ liên quan của kết quả.
+- Cung cấp câu trả lời có trích dẫn nguồn để người dùng dễ kiểm chứng.
+- Hỗ trợ tích hợp với nhiều mô hình LLM và cơ chế fallback khi dịch vụ chính gặp sự cố.
 
----
+## 🏗️ Kiến trúc hệ thống
 
-## 1. Tổng quan kiến trúc
+Dự án được tổ chức theo mô hình phân tầng với các thành phần chính:
 
-Dự án được xây dựng theo **Kiến trúc 3 lớp (3-Layer Architecture)** kết hợp với một dịch vụ phụ trợ **Python (FastAPI)** đóng vai trò là "Retrieval Backbone" để xử lý các mô hình học máy và lưu trữ chỉ mục vector tìm kiếm lai.
-
-### Sơ đồ kiến trúc (Conceptual Diagram)
-Dưới đây là sơ đồ chi tiết tích hợp luồng thời gian thực **SignalR** giữa các tầng hệ thống:
-
-![Kiến trúc hệ thống](docs/system_architecture_razorpages.jpg)
-
----
+- Presentation Layer: ứng dụng ASP.NET Core web interface.
+- Business Layer: xử lý nghiệp vụ, dịch vụ chatbot và logic ứng dụng.
+- Data Access Layer: quản lý dữ liệu, repository và mapping với cơ sở dữ liệu.
+- RAG API: service Python FastAPI chịu trách nhiệm indexing, retrieval và ranking.
 
 ## 2. Cấu trúc thư mục dự án
 
-```
-RAG-Chatbot-System/
-├── RAG-Retrieval-Indexing-API/    # Dịch vụ Python FastAPI (Embedding, FAISS/BM25, Reranking)
-├── RagChatbotSystem.DataAccess/   # Tầng dữ liệu .NET (EF Core, Repositories, AppDbContext, pgvector)
-├── RagChatbotSystem.Business/     # Tầng nghiệp vụ .NET (Dịch vụ RAG, Trích xuất tài liệu, Tương tác LLMs)
-├── RagChatbotSystem.Presentation/ # Tầng trình diễn .NET (Razor Pages, SignalR Hubs, API Controllers)
-├── RagChatbotSystem.Tests/        # Bộ kiểm thử tự động .NET (Document processing & Chunking algorithms)
-├── docs/                          # Sơ đồ & Tài liệu chi tiết thiết kế hệ thống
-├── docker-compose.yml             # File cấu hình Docker Compose triển khai toàn bộ hệ thống
-├── nginx.conf                     # File cấu hình Nginx Reverse Proxy hỗ trợ WebSockets cho SignalR
-└── setup_vps.sh                   # Script bash thiết lập môi trường nhanh trên máy chủ VPS
-```
+- Backend chính: C# / ASP.NET Core
+- RAG API: Python / FastAPI
+- Cơ sở dữ liệu: PostgreSQL với pgvector
+- Tìm kiếm và embedding: FAISS, BM25, sentence-transformers
+- Containerization: Docker, Docker Compose
+- Xác thực và quản lý dự án: .NET SDK, Git, EF Core
 
----
+## 💻 Yêu cầu hệ thống
 
-## 3. Các tính năng nổi bật
+Trước khi bắt đầu, hãy đảm bảo hệ thống đã cài đặt:
 
-*   ⚡ **Truyền tải thời gian thực (Realtime SignalR Hubs)**:
-    *   **AI Streaming**: Trả kết quả từng từ một từ LLM thông qua SignalR (`/hubs/chat`), giảm thiểu thời gian chờ của người dùng.
-    *   **Document Progress Tracker**: Hiển thị trạng thái xử lý tài liệu từng bước thời gian thực qua (`/hubs/document`) (Đang tải lên -> Đang trích xuất văn bản -> Đang tạo vector -> Đang lập chỉ mục -> Hoàn thành).
-    *   **Auto-sync UI**: Tự động cập nhật danh sách phòng chat, trạng thái duyệt tài khoản người dùng mà không cần tải lại trang thông qua (`/hubs/notifications`).
-*   🗂️ **Hỗ trợ đa định dạng tài liệu**: Tự động phân tách và trích xuất nội dung từ các file `.txt`, `.pdf` (sử dụng *PdfPig*), và `.docx` (sử dụng *OpenXml*).
-*   🔑 **Quản trị người dùng & Phân quyền chặt chẽ (Admin Provisioned)**:
-    *   *Tự đăng ký công khai (Public Registration)* đã được vô hiệu hóa. Tài khoản chỉ được cấp phát bởi quản trị viên.
-    *   **Import học sinh từ Excel**: Admin có thể import hàng loạt tài khoản Học sinh (Student) bằng tệp Excel `.xlsx`. Mật khẩu tạm thời sẽ được tạo ngẫu nhiên và gửi trực tiếp qua email của học sinh.
-    *   **Khởi tạo giáo viên**: Admin tạo trực tiếp tài khoản Giáo viên (Teacher) và phân công phụ trách các Dataset chuyên môn.
-    *   *Đổi mật khẩu bắt buộc*: Người dùng đăng nhập bằng mật khẩu tạm thời lần đầu sẽ bị buộc chuyển hướng sang trang đổi mật khẩu mới.
-*   🧩 **Thuật toán phân mảnh thông minh (Smart Chunking)**:
-    *   Chia nhỏ tài liệu thành các đoạn `600` ký tự, trùng lặp (overlap) `120` ký tự.
-    *   Thuật toán `ResolveDominantPage` xác định trang xuất xứ chính xác nhất của từng chunk khi văn bản bị nằm chồng lấn giữa các trang.
-*   🤖 **Hỗ trợ đa LLM & Cơ chế dự phòng (Fallback)**:
-    *   Tích hợp linh hoạt các nhà cung cấp **Gemini (Gemini 2.0 Flash)**, **Groq (Llama 3.3)** và **OpenAI (GPT-4o-mini)**.
-    *   *Cơ chế Fallback*: Nếu LLM chính gặp sự cố kết nối hoặc hết hạn hạn mức (Rate Limit), hệ thống tự động trích xuất các câu trích dẫn thô từ ngữ cảnh tìm thấy trong PostgreSQL để hiển thị trực tiếp cho người dùng, đảm bảo dịch vụ không bị gián đoạn.
-*   📌 **Trích dẫn nguồn dẫn chứng (Citations)**: Câu trả lời của AI đi kèm liên kết chi tiết nội dung đoạn trích dẫn, tên file gốc và số trang cụ thể giúp người dùng dễ dàng đối chiếu.
+- .NET 9 SDK
+- Python 3.10+
+- Docker Desktop (khuyến nghị)
+- PostgreSQL hoặc Docker để chạy database
 
----
+## 🚀 Cài đặt và khởi chạy nhanh
 
-## 4. Yêu cầu hệ thống
+### 1. Sử dụng Docker Compose
 
-Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đặt các công cụ sau:
-*   **.NET 9 SDK**
-*   **Python 3.12+** (Sử dụng [uv](https://docs.astral.sh/uv/) để quản lý dependencies nhanh nhất)
-*   **Docker Desktop** (Để chạy PostgreSQL hỗ trợ `pgvector` hoặc chạy toàn bộ dự án qua Docker Compose)
-*   **SMTP Server** (Để gửi email tạo tài khoản, ví dụ: tài khoản Gmail đã bật mật khẩu ứng dụng)
-
----
-
-## 5. Hướng dẫn cấu hình môi trường
-
-### 5.1. Cấu hình tệp tin môi trường (`.env`)
-Tạo file `.env` ở thư mục gốc của dự án dựa trên file `.env.example`:
+Tại thư mục gốc của dự án, chạy:
 
 ```bash
-# === Database ===
-DB_PASSWORD=your_secure_password
-
-# === LLM API Keys (Cấu hình ít nhất 1 nhà cung cấp) ===
-GROQ_API_KEY=your_groq_api_key
-GEMINI_API_KEY=your_gemini_api_key
-OPENAI_API_KEY=your_openai_api_key
-
-# === HuggingFace Token (Không bắt buộc) ===
-HF_TOKEN=
-
-# === Google Drive Storage (Không bắt buộc, dùng để đồng bộ file) ===
-GOOGLE_DRIVE_FOLDER_ID=your_gdrive_folder_id
-
-# === Seed Admin Account (Tự động khởi tạo khi chạy lần đầu) ===
-ADMIN_EMAIL=admin@system.com
-ADMIN_PASSWORD=YourAdminPassword123!
+docker-compose up --build -d
 ```
 
-### 5.2. Cấu hình ứng dụng Web (`appsettings.json`)
-Do `appsettings.json` chứa các thông tin nhạy cảm nên đã được đưa vào `.gitignore`. Bạn hãy tạo file `appsettings.json` trong thư mục [RagChatbotSystem.Presentation](RagChatbotSystem.Presentation) theo mẫu sau:
+Sau khi khởi động thành công, hệ thống sẽ sẵn sàng tại các địa chỉ:
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=RagChatbotSystemDb;Username=postgres;Password=your_secure_password"
-  },
-  "RagApi": {
-    "BaseUrl": "http://localhost:8000"
-  },
-  "Groq": {
-    "ApiKey": "YOUR_GROQ_KEY_HERE",
-    "Model": "llama-3.3-70b-versatile"
-  },
-  "OpenAi": {
-    "ApiKey": "YOUR_OPENAI_KEY_HERE",
-    "Model": "gpt-4o-mini"
-  },
-  "Gemini": {
-    "ApiKey": "YOUR_GEMINI_KEY_HERE"
-  },
-  "Smtp": {
-    "Host": "smtp.gmail.com",
-    "Port": "587",
-    "Username": "your_email@gmail.com",
-    "Password": "your_app_password",
-    "FromEmail": "your_email@gmail.com",
-    "FromName": "RAG Chatbot System Admin"
-  },
-  "GoogleDrive": {
-    "CredentialJsonPath": "google-credentials.json",
-    "TargetFolderId": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
-  }
-}
-```
+- Web application: http://localhost:5259
+- FastAPI service: http://localhost:8000
 
-> [!NOTE]
-> Nếu bạn không cấu hình Google Drive (`CredentialJsonPath` trống hoặc file không tồn tại), hệ thống sẽ tự động chuyển hướng lưu trữ tài liệu cục bộ tại thư mục `wwwroot/uploads` (Local Storage Fallback).
+### 2. Chạy thủ công cho môi trường phát triển
 
----
+#### Bước 1: Khởi động database
 
-## 6. Hướng dẫn khởi chạy dự án
-
-### Cách 1: Khởi chạy nhanh bằng Docker Compose (Khuyên dùng)
-Cách này tự động dựng các Docker images, thiết lập mạng nội bộ, khởi tạo cơ sở dữ liệu PostgreSQL + `pgvector`, chạy RAG API (Python) và C# Web App.
-
-1. Tạo file `.env` ở thư mục gốc như hướng dẫn ở mục 5.1.
-2. Đặt tệp thông tin Google Drive `google-credentials.json` (nếu có) vào thư mục gốc của dự án.
-3. Mở Terminal tại thư mục gốc và chạy:
-   ```bash
-   docker-compose up --build -d
-   ```
-4. Truy cập các dịch vụ tại địa chỉ:
-   *   **Web App (Razor Pages)**: `http://localhost:5259`
-   *   **Python RAG API (Interactive Docs)**: `http://localhost:8000/docs`
-   *   **PostgreSQL**: `localhost:5432`
-
----
-
-### Cách 2: Khởi chạy thủ công (Phát triển cục bộ)
-
-#### Bước 1: Khởi chạy PostgreSQL hỗ trợ pgvector
-Sử dụng Docker để khởi động container DB chứa extension vector:
 ```bash
 docker run --name rag-postgres-db -e POSTGRES_PASSWORD=your_secure_password -e POSTGRES_DB=RagChatbotSystemDb -p 5432:5432 -d ankane/pgvector:latest
 ```
 
-#### Bước 2: Áp dụng Migrations dữ liệu cho database
-Đảm bảo bạn đã cài đặt công cụ `dotnet-ef`. Chạy lệnh migrations từ thư mục gốc của dự án:
+#### Bước 2: Cập nhật cơ sở dữ liệu
+
 ```bash
 dotnet ef database update --project RagChatbotSystem.DataAccess --startup-project RagChatbotSystem.Presentation
 ```
 
-#### Bước 3: Khởi chạy Python RAG API
-1. Di chuyển vào thư mục Python API:
-   ```bash
-   cd RAG-Retrieval-Indexing-API
-   ```
-2. Cài đặt các dependencies:
-   *   *Sử dụng `uv` (Khuyên dùng - Cực kỳ nhanh)*:
-       ```bash
-       uv sync
-       ```
-   *   *Sử dụng `pip` truyền thống*:
-       ```bash
-       pip install .
-       ```
-3. Khởi chạy service RAG:
-   *   *Bằng `uv`*:
-       ```bash
-       uv run uvicorn main:app --host 127.0.0.1 --port 8000 --reload
-       ```
-   *   *Bằng `uvicorn` thông thường*:
-       ```bash
-       uvicorn main:app --host 127.0.0.1 --port 8000 --reload
-       ```
+#### Bước 3: Khởi động Python RAG API
 
-#### Bước 4: Khởi chạy ASP.NET Core Presentation Layer
-1. Quay lại thư mục gốc của dự án.
-2. Khởi chạy ứng dụng C# Razor Pages:
-   ```bash
-   dotnet run --project RagChatbotSystem.Presentation/RagChatbotSystem.Presentation.csproj --launch-profile http
-   ```
-3. Mở trình duyệt và truy cập: `http://localhost:5259`
+```bash
+cd RAG-Retrieval-Indexing-API
+pip install -r requirements.txt
+uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+```
 
----
+#### Bước 4: Khởi động ứng dụng C#
 
-## 7. Chạy Kiểm thử (Automated Tests)
+```bash
+dotnet run --project RagChatbotSystem.Presentation/RagChatbotSystem.Presentation.csproj --launch-profile http
+```
 
-Dự án đi kèm bộ test tự động sử dụng xUnit để xác thực các giải thuật trích xuất, phân mảnh tài liệu và thuật toán resolve số trang:
+## ⚙️ Cấu hình môi trường
 
-*   **Chạy toàn bộ kiểm thử .NET**:
-    ```bash
-    dotnet test RagChatbotSystem.sln
-    ```
-*   **Chạy kiểm thử luồng RAG API (Python)**:
-    ```bash
-    cd RAG-Retrieval-Indexing-API
-    uv run python test_api.py
-    ```
+Tạo file .env ở thư mục gốc với các biến môi trường cần thiết như:
 
----
+```bash
+DB_PASSWORD=your_db_password
+GROQ_API_KEY=
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+HF_TOKEN=
+GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
+```
 
-## 8. Lưu ý quan trọng & Khắc phục sự cố
+Ngoài ra, cấu hình kết nối và API trong file appsettings.json của ứng dụng Presentation.
+
+## 🧪 Chạy tests
+
+Để chạy bộ kiểm thử tự động của dự án:
+
+```bash
+dotnet test RagChatbotSystem.sln
+```
+
+## 📁 Cấu trúc thư mục chính
+
+- RagChatbotSystem.Presentation: ứng dụng web và controller
+- RagChatbotSystem.Business: business logic và service interface
+- RagChatbotSystem.DataAccess: model, repository và migration
+- RAG-Retrieval-Indexing-API: service Python phục vụ indexing và retrieval
+- RagChatbotSystem.Tests: test cases cho các chức năng cốt lõi
+
+## 📚 Tài liệu tham khảo
+
+Thông tin chi tiết về kiến trúc, quy trình xử lý tài liệu, deployment và troubleshooting có thể tìm thấy trong thư mục docs.
+
+## 📝 Ghi chú
+
+- Nếu sử dụng môi trường phát triển cục bộ, hãy đảm bảo PostgreSQL đã được cấu hình đúng và mở rộng vector đã được kích hoạt.
+- Nếu muốn làm mới chỉ mục tìm kiếm, có thể xóa thư mục cache trước khi khởi động lại API.
 
 > [!TIP]
 > **Kích hoạt Extension Vector trong PostgreSQL**:
