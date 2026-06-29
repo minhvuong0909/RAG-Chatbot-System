@@ -11,7 +11,7 @@
             <h2 class="fw-bold">@Model.FileName</h2>
             <p class="text-muted mb-0">@Model.DatasetName - @Model.FileType.ToUpper() - @Math.Ceiling(Model.FileSize / 1024.0) KB - @Model.Status</p>
         </div>
-        <a asp-page="/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-outline-secondary">Back</a>
+        <a asp-page="/Documents/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-outline-secondary">Back</a>
     </div>
 
     @if (!Model.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
