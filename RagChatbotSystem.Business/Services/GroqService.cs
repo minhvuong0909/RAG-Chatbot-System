@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
@@ -57,6 +58,79 @@ namespace RagChatbotSystem.Business.Services
                 _logger.LogError(ex, "Groq API call failed.");
                 
                 return ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
+            }
+        }
+
+        public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
+        {
+            if (!_hasApiKey)
+            {
+                var mockText = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
+                var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var word in words)
+                {
+                    yield return word + " ";
+                    await Task.Delay(40);
+                }
+                yield break;
+            }
+
+            HttpResponseMessage? response = null;
+            try
+            {
+                var payload = new
+                {
+                    model = _model,
+                    messages = new[]
+                    {
+                        new { role = "user", content = prompt }
+                    },
+                    temperature = 0.5,
+                    stream = true
+                };
+
+                // Groq API client config has BaseAddress
+                response = await _httpClient.PostAsJsonAsync("chat/completions", payload);
+                response.EnsureSuccessStatusCode();
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new System.IO.StreamReader(stream);
+
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("data: "))
+                    {
+                        var data = trimmed.Substring(6).Trim();
+                        if (data == "[DONE]")
+                        {
+                            break;
+                        }
+
+                        GroqStreamResponse? chunk = null;
+                        try
+                        {
+                            chunk = System.Text.Json.JsonSerializer.Deserialize<GroqStreamResponse>(data);
+                        }
+                        catch
+                        {
+                            // Ignore json deserialization issues on stream progress
+                        }
+
+                        var text = chunk?.Choices?[0]?.Delta?.Content;
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            yield return text;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                response?.Dispose();
             }
         }
 
@@ -139,6 +213,25 @@ namespace RagChatbotSystem.Business.Services
         {
             [JsonPropertyName("content")]
             public string Content { get; set; } = string.Empty;
+        }
+
+        // Classes for streaming
+        private class GroqStreamResponse
+        {
+            [JsonPropertyName("choices")]
+            public ChoiceStream[]? Choices { get; set; }
+        }
+
+        private class ChoiceStream
+        {
+            [JsonPropertyName("delta")]
+            public DeltaMessage? Delta { get; set; }
+        }
+
+        private class DeltaMessage
+        {
+            [JsonPropertyName("content")]
+            public string? Content { get; set; }
         }
     }
 }

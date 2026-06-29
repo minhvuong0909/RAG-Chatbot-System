@@ -1,0 +1,355 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Documents.IndexModel
+@{
+    ViewData["Title"] = "Manage Documents";
+}
+
+<!-- The data-rag-app and data-selected-dataset-id attributes trigger the SignalR connection to join this dataset group for progress notifications -->
+<div id="documents-workspace" data-rag-app data-selected-dataset-id="@Model.DatasetId" class="container py-4">
+    <!-- Header / Breadcrumbs -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">
+                <a asp-page="/Datasets/Index" style="text-decoration: none; color: var(--muted);">Subjects</a> &gt; 
+                <span style="color: var(--ink-soft);">@Model.Dataset.Name</span>
+            </p>
+            <h2 class="fw-bold m-0" style="color: var(--ink);">Documents Management</h2>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-page="/Datasets/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Subjects List</a>
+            <a asp-page="/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-primary" style="border-radius: 8px; font-weight: 600; background: var(--accent); border: none;">Start Chat</a>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 8px;">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px;">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Document Upload Card (Drag & Drop) -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h4 class="fw-bold m-0" style="color: var(--ink);">Upload Documents</h4>
+                    <p class="text-muted small m-0 mt-1">Add files to build the subject knowledge base.</p>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="upload-doc-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="datasetId" value="@Model.DatasetId" />
+                        
+                        <div id="upload-dropzone" 
+                             style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; padding: 40px 20px; background: var(--surface-muted); text-align: center; cursor: pointer; transition: all 0.2s;" 
+                             onclick="if(!this.dataset.uploading) document.getElementById('file-upload').click();">
+                            
+                            <div id="upload-idle-state" style="display: flex; flex-direction: column; align-items: center;">
+                                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: var(--shadow-soft);">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                </div>
+                                <span style="font-weight: 700; font-size: 1rem; color: var(--ink);">Drag &amp; drop files here</span>
+                                <span style="font-size: 0.8rem; color: var(--muted); margin-top: 6px;">or click to select from folder</span>
+                                <span style="font-size: 0.7rem; color: var(--muted); margin-top: 12px;">Supports PDF, TXT, MD, DOCX (Max 50MB)</span>
+                            </div>
+
+                            <div id="upload-loading-state" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0;">
+                                <div class="spinner-border text-primary mb-3" role="status" style="width: 2rem; height: 2rem;"></div>
+                                <span style="font-weight: 700; font-size: 0.95rem; color: var(--accent);">Uploading &amp; Processing...</span>
+                                <span style="font-size: 0.75rem; color: var(--muted); margin-top: 6px;">AI is extracting text, splitting chunks, and creating embeddings.</span>
+                            </div>
+                            
+                            <input id="file-upload" name="file" type="file" required style="display: none;" onchange="triggerUpload();" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents List Card -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="fw-bold m-0" style="color: var(--ink);">Dataset Documents</h4>
+                        <p class="text-muted small m-0 mt-1">Currently indexed files grounding the AI.</p>
+                    </div>
+                    <span class="badge bg-secondary" style="border-radius: 20px; padding: 6px 12px; font-weight: 600; background: var(--bg-elevated) !important; color: var(--ink-soft) !important;">
+                        @Model.Documents.Count file(s)
+                    </span>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <div id="document-list" class="d-flex flex-column gap-3" data-document-list>
+                        @if (Model.Documents.Count == 0)
+                        {
+                            <div class="text-center py-5" id="documents-empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <p class="text-muted">No documents uploaded to this subject yet.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            @foreach (var doc in Model.Documents)
+                            {
+                                <div class="p-3" data-document-id="@doc.DocumentId" style="border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); transition: all 0.2s;">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <strong class="text-truncate d-inline-block" style="max-width: 320px; color: var(--ink);" title="@doc.FileName">@doc.FileName</strong>
+                                            <div class="text-muted small">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge status-badge @doc.Status.ToLower()" data-document-status style="font-size: 0.8rem; border-radius: 4px; padding: 4px 8px;">@doc.Status</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="progress mb-3" style="height: 6px; border-radius: 3px; background: var(--line);">
+                                        <div class="progress-bar" data-document-progress role="progressbar" 
+                                             style="width: @(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55%" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100%" : "0%"); background: var(--accent);" 
+                                             aria-valuenow="@(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100" : "0")" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    
+                                    <!-- Actions Row -->
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="text-muted small" style="font-size: 0.75rem;">Uploaded: @doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                        <div class="d-flex gap-2">
+                                            <a asp-page="/Documents/Preview" asp-route-documentId="@doc.DocumentId" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
+                                                Preview Chunks
+                                            </a>
+                                            <form method="post" asp-page-handler="DeleteDocument" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="datasetId" value="@Model.DatasetId" />
+                                                <input type="hidden" name="documentId" value="@doc.DocumentId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Processing Overlay -->
+<div id="documentProcessingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center; color: white; flex-direction: column;">
+    <div class="spinner-border text-light mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h3 style="font-weight: 700;">Processing document...</h3>
+    <p style="color: rgba(255,255,255,0.85); font-size: 0.95rem; max-width: 400px; text-align: center; margin-top: 8px;">AI is extracting text, splitting chunks, and indexing this file. Please keep this page open.</p>
+</div>
+
+@section Scripts {
+    <script>
+        const uploadDocForm = document.getElementById("upload-doc-form");
+        const fileUploadInput = document.getElementById("file-upload");
+        const dropzone = document.getElementById("upload-dropzone");
+        const processingOverlay = document.getElementById("documentProcessingOverlay");
+
+        // Show overlay on form submit
+        if (uploadDocForm && processingOverlay) {
+            uploadDocForm.addEventListener("submit", function () {
+                processingOverlay.style.display = "flex";
+            });
+        }
+
+        // Trigger submit when file is selected
+        function triggerUpload() {
+            if (fileUploadInput.files.length > 0 && uploadDocForm) {
+                // Change UI state inside dropzone to loading
+                document.getElementById("upload-idle-state").style.display = "none";
+                document.getElementById("upload-loading-state").style.display = "flex";
+                dropzone.dataset.uploading = "true";
+                uploadDocForm.submit();
+            }
+        }
+
+        // Drag & Drop visual effects
+        if (dropzone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    if (dropzone.dataset.uploading) return;
+                    dropzone.style.borderColor = 'var(--accent)';
+                    dropzone.style.background = 'var(--accent-soft)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    if (dropzone.dataset.uploading) return;
+                    dropzone.style.borderColor = 'var(--line)';
+                    dropzone.style.background = 'var(--surface-muted)';
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                if (dropzone.dataset.uploading) return;
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    fileUploadInput.files = files;
+                    triggerUpload();
+                }
+            }, false);
+        }
+
+        // Escape HTML helper
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Anti-forgery input helper
+        function antiForgeryInput() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
+        }
+
+        // Create document row dynamically if progress event comes for a new file
+        function createDocumentRow(payload) {
+            const item = document.createElement("div");
+            item.className = "p-3";
+            item.dataset.documentId = payload.documentId;
+            item.style.border = "1px solid var(--line)";
+            item.style.borderRadius = "10px";
+            item.style.background = "var(--surface-muted)";
+            item.style.transition = "all 0.2s";
+            
+            const status = payload.status || "Uploaded";
+            const percent = Math.max(0, Math.min(100, payload.percentComplete || 0));
+            const sizeKb = Math.ceil((payload.fileSize || 0) / 1024);
+            const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <strong class="text-truncate d-inline-block" style="max-width: 320px; color: var(--ink);" title="${escapeHtml(payload.fileName)}">${escapeHtml(payload.fileName)}</strong>
+                        <div class="text-muted small">${escapeHtml(payload.fileType).toUpperCase()} - ${sizeKb} KB</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge status-badge ${escapeHtml(status.toLowerCase())}" data-document-status style="font-size: 0.8rem; border-radius: 4px; padding: 4px 8px;">${escapeHtml(status)}</span>
+                    </div>
+                </div>
+                <div class="progress mb-3" style="height: 6px; border-radius: 3px; background: var(--line);">
+                    <div class="progress-bar" data-document-progress role="progressbar" style="width: ${percent}%; background: var(--accent);" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small" style="font-size: 0.75rem;">Uploaded: ${dateStr}</span>
+                    <div class="d-flex gap-2">
+                        <a href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
+                            Preview Chunks
+                        </a>
+                        <form method="post" action="?handler=DeleteDocument" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                            ${antiForgeryInput()}
+                            <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
+                            <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            return item;
+        }
+
+        // SignalR: Document Progress listener
+        window.addEventListener("rag:document-progress", function (event) {
+            const payload = event.detail;
+            if (!payload || !payload.documentId) return;
+
+            // Make sure the event is for this dataset
+            if (payload.datasetId && String(payload.datasetId) !== "@Model.DatasetId") {
+                return;
+            }
+
+            const docList = document.getElementById("document-list");
+            const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
+            
+            if (payload.action === "deleted") {
+                if (documentRow) {
+                    documentRow.remove();
+                    // Show empty state if list is empty
+                    if (docList && docList.querySelectorAll("[data-document-id]").length === 0) {
+                        docList.innerHTML = `
+                            <div class="text-center py-5" id="documents-empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <p class="text-muted">No documents uploaded to this subject yet.</p>
+                            </div>
+                        `;
+                    }
+                }
+                return;
+            }
+
+            if (!documentRow) {
+                if (docList) {
+                    const emptyState = document.getElementById("documents-empty-state");
+                    if (emptyState) emptyState.remove();
+                    
+                    if (payload.action === "completed" || payload.action === "uploaded" || payload.action === "processing") {
+                        docList.prepend(createDocumentRow(payload));
+                    }
+                }
+                return;
+            }
+
+            // Update status badge class and text
+            const statusBadge = documentRow.querySelector("[data-document-status]");
+            if (statusBadge) {
+                const status = payload.status || payload.action || "Updated";
+                statusBadge.textContent = status;
+                statusBadge.className = `badge status-badge ${status.toLowerCase()}`;
+            }
+
+            // Update progress bar width
+            const progressBar = documentRow.querySelector("[data-document-progress]");
+            if (progressBar) {
+                const percent = Math.max(0, Math.min(100, payload.percentComplete || 0));
+                progressBar.style.width = `${percent}%`;
+                progressBar.setAttribute("aria-valuenow", String(percent));
+            }
+        });
+    </script>
+    
+    <style>
+        .status-badge.uploaded {
+            background: var(--bg-elevated) !important;
+            color: var(--ink-soft) !important;
+            border: 1px solid var(--line);
+        }
+        .status-badge.processing {
+            background: var(--warning-soft) !important;
+            color: var(--warning) !important;
+        }
+        .status-badge.completed {
+            background: var(--success-soft) !important;
+            color: var(--success) !important;
+        }
+        .status-badge.failed {
+            background: var(--danger-soft) !important;
+            color: var(--danger) !important;
+        }
+    </style>
+}

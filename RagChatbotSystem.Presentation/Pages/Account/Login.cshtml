@@ -1,0 +1,60 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-title">
+            <span class="brand-mark mb-3" style="display: inline-grid; width: 54px; height: 54px; place-items: center; border-radius: 12px; font-size: 1.8rem; margin-bottom: 12px;">R</span>
+            <h1>Access Workspace</h1>
+            <p>Connect credentials to interact with RAG AI</p>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success border-0 mb-4" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2) !important; padding: 12px; font-size: 0.85rem; font-weight: 700;">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-warning border-0 mb-4" style="border-radius: 8px; padding: 12px; font-size: 0.85rem; font-weight: 700;">
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger border-0 mb-4" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2) !important;">
+                <div asp-validation-summary="All" class="small list-unstyled m-0 fw-bold"></div>
+            </div>
+        }
+
+        <form method="post" style="display: grid; gap: 20px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+            <div>
+                <label for="email" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">USERNAME OR EMAIL</label>
+                <input type="text" id="email" name="email" placeholder="Enter your username or email" required style="min-height: 48px;" />
+            </div>
+
+            <div>
+                <label for="password" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">PASSWORD</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required style="min-height: 48px;" />
+            </div>
+
+            <div style="margin-top: 10px;">
+                <button type="submit" style="width: 100%; min-height: 48px; border-radius: 8px; font-size: 0.9rem;">
+                    Enter Workspace
+                </button>
+            </div>
+
+            <div class="text-center mt-3">
+                <span class="text-muted small">Accounts are provided by Admin via email.</span>
+            </div>
+        </form>
+    </div>
+</div>

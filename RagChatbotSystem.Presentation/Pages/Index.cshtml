@@ -1,0 +1,1158 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.IndexModel
+@{
+    var defaultMobileTab = Model.SelectedMessageId.HasValue ? "reference-panel" : "chat-panel";
+}
+
+@if (!Model.SelectedDatasetId.HasValue)
+{
+    <!-- Subject Portal Page -->
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
+            <div>
+                <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px;">Knowledge Portal</p>
+                <h1 class="fw-bold m-0" style="color: var(--ink); font-size: 2.2rem; letter-spacing: -0.5px;">Select a Subject Workspace</h1>
+                <p class="text-muted mb-0 mt-1">Connect to a subject knowledge base to start a grounded chat session.</p>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
+            {
+                <a asp-page="/Datasets/Index" class="btn btn-outline-primary d-flex align-items-center gap-2" style="border-radius: 8px; font-weight: 600; padding: 10px 18px; border-color: var(--accent); color: var(--accent); text-decoration: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    Manage Subjects
+                </a>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mb-4" style="border-radius: 8px;">@Model.ErrorMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success mb-4" style="border-radius: 8px;">@Model.SuccessMessage</div>
+        }
+
+        <div class="row g-4">
+            @if (Model.Datasets.Count == 0)
+            {
+                <div class="col-12 text-center py-5">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
+                    </div>
+                    <h3 class="fw-bold" style="color: var(--ink);">No subjects available</h3>
+                    <p class="text-muted" style="max-width: 400px; margin: 8px auto 0;">You don't have access to any subjects yet. Please contact an administrator or teacher.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var ds in Model.Datasets)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <a href="?datasetId=@ds.DatasetId" class="card h-100 border-0 shadow-soft text-decoration-none subject-portal-card" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; display: flex; flex-direction: column; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+                            <div class="card-body p-4 d-flex flex-column h-100">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h4 class="fw-bold m-0 subject-card-title" style="color: var(--ink); line-height: 1.3;">@ds.Name</h4>
+                                    @if (!ds.IsApproved)
+                                    {
+                                        <span class="badge" style="font-size: 0.75rem; border-radius: 4px; background: var(--warning-soft); color: var(--warning); font-weight: 600;">Pending</span>
+                                    }
+                                </div>
+                                <p class="text-muted small flex-grow-1" style="line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                    @(string.IsNullOrWhiteSpace(ds.Description) ? "No description provided." : ds.Description)
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center mt-auto pt-3" style="border-top: 1px solid var(--line);">
+                                    <span class="text-muted small d-flex align-items-center gap-1">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                        @ds.DocumentCount document(s)
+                                    </span>
+                                    <span class="small fw-bold enter-workspace-text" style="color: var(--accent); transition: all 0.2s;">
+                                        Enter Workspace &rarr;
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+else
+{
+    <section class="workspace" data-rag-app data-active-tab="@defaultMobileTab" data-selected-dataset-id="@Model.SelectedDatasetId" data-selected-session-id="@Model.SelectedSessionId">
+        <!-- Mobile Navigation Tabs (Only visible on mobile screens) -->
+        <div class="mobile-workspace-tabs" aria-label="Workspace navigation">
+            <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">Chat</button>
+            <button class="mobile-tab-btn @(defaultMobileTab == "management-panel" ? "active" : "")" data-target="management-panel">Knowledge</button>
+            <button class="mobile-tab-btn @(defaultMobileTab == "reference-panel" ? "active" : "")" data-target="reference-panel">
+                Sources @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
+            </button>
+        </div>
+
+        <!-- Cot 1: Bang dieu khien quan ly (Management) -->
+        <aside class="workspace-panel management-panel" aria-label="Subject management">
+            <div class="panel-header" style="padding: 20px; margin: -16px -16px 16px -16px; border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; background: var(--surface-muted);">
+                <div>
+                    <a asp-page="/Index" class="text-decoration-none d-inline-flex align-items-center gap-1 mb-2" style="font-size: 0.8rem; color: var(--muted); font-weight: 600;">
+                        &larr; Back to Subjects
+                    </a>
+                    <h1 style="font-weight: 700; margin: 0; color: var(--ink); font-size: 1.25rem;">@Model.SelectedDataset?.Name</h1>
+                    <p class="text-muted small mb-0">Workspace</p>
+                </div>
+                <a class="icon-button" href="?datasetId=@Model.SelectedDatasetId&sessionId=@Model.SelectedSessionId" title="Refresh workspace" aria-label="Refresh workspace" style="text-decoration: none;">
+                    <span aria-hidden="true">Refresh</span>
+                </a>
+            </div>
+
+            <!-- Thong bao loi hoac thanh cong -->
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger" style="background: rgba(180, 35, 24, 0.1); border: 1px solid rgba(180, 35, 24, 0.2); padding: 0.75rem; border-radius: 8px; color: var(--danger); margin-bottom: 1rem; font-size: 0.84rem; font-weight: 500;">
+                    @Model.ErrorMessage
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div class="alert alert-success" style="background: rgba(15, 118, 110, 0.1); border: 1px solid rgba(15, 118, 110, 0.2); padding: 0.75rem; border-radius: 8px; color: var(--accent-strong); margin-bottom: 1rem; font-size: 0.84rem; font-weight: 500;">
+                    @Model.SuccessMessage
+                </div>
+            }
+
+            <!-- Thong tin nguoi dung dang nhap -->
+            <div style="border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-muted); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--ink-soft);">
+                        @(Model.SelectedUser?.FullName?.Substring(0,1).ToUpper() ?? "U")
+                    </div>
+                    <div>
+                        <div class="fw-bold" style="color: var(--ink); font-size: 0.95rem;">@Model.SelectedUser?.FullName</div>
+                        <div class="text-muted small text-uppercase" style="font-size: 0.75rem; font-weight: bold;">Role: @User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quáº£n lÃ½ TÃ i liá»‡u (Documents) -->
+            <div class="section-block">
+                <div class="section-title">
+                    <h2>Documents</h2>
+                    @if (Model.SelectedDatasetId.HasValue && (User.IsInRole("Teacher") || User.IsInRole("Admin")))
+                    {
+                        <a asp-page="/Documents/Index" asp-route-datasetId="@Model.SelectedDatasetId" style="font-size: 0.8rem; font-weight: 500; text-decoration: none; color: var(--accent); margin-left: auto; margin-right: 8px;">Manage</a>
+                    }
+                    <span>@Model.Documents.Count</span>
+                </div>
+                @if (Model.SelectedDatasetId.HasValue)
+                {
+                    <div class="document-list" aria-live="polite" data-document-list>
+                        @if (Model.Documents.Count == 0)
+                        {
+                            <p class="helper-text">No documents in this subject. Supported files: TXT, PDF, DOCX.</p>
+                        }
+                        @foreach (var doc in Model.Documents)
+                        {
+                            <div class="document-item" data-document-id="@doc.DocumentId">
+                                <div class="document-card-header">
+                                    <div class="document-card-main">
+                                        <strong class="document-name" title="@doc.FileName">@doc.FileName</strong>
+                                        <span class="document-meta">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 6px; display: flex; align-items: center; gap: 6px;">
+                                    <span class="status-pill @doc.Status.ToLower()" data-document-status style="font-size: 0.75rem; border-radius: 4px; padding: 2px 6px;">@doc.Status</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="helper-text">Select a subject to view documents.</p>
+                }
+            </div>
+
+            <!-- Quáº£n lÃ½ Chat Sessions -->
+            <div class="section-block">
+                <div class="section-title">
+                    <h2>Chat sessions</h2>
+                    <span>@Model.Sessions.Count</span>
+                </div>
+                <p class="helper-text">A subject can have many conversations. Select one or start a fresh session.</p>
+                @if (Model.SelectedDatasetId.HasValue)
+                {
+                    <form method="post" asp-page-handler="CreateSession" class="create-form" style="margin-bottom: 6px;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                        <div class="input-row">
+                            <input name="title" type="text" placeholder="Session title (optional)" />
+                            <button type="submit">New</button>
+                        </div>
+                    </form>
+                    <div class="session-list" aria-live="polite" data-session-list>
+                        @if (Model.Sessions.Count == 0)
+                        {
+                            <p class="helper-text">No sessions yet.</p>
+                        }
+                        @foreach (var ss in Model.Sessions)
+                        {
+                            <a class="session-item @(Model.SelectedSessionId == ss.SessionId ? "active" : "")" 
+                               data-session-id="@ss.SessionId"
+                               href="?datasetId=@Model.SelectedDatasetId&sessionId=@ss.SessionId"
+                               style="text-decoration: none;">
+                                <span class="session-name">@ss.Title</span>
+                                <span class="session-meta">Updated @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(ss.UpdatedAt, "HH:mm dd/MM")</span>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Statistics -->
+            <div class="section-block mt-4 pt-3" style="border-top: 1px solid var(--line);">
+                <div class="section-title mb-2">
+                    <h2 style="font-size: 1rem; font-weight: 700; color: var(--ink);">Statistics</h2>
+                </div>
+                <div class="d-flex flex-column gap-2" style="font-size: 0.85rem;">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Total Documents</span>
+                        <strong style="color: var(--accent); font-weight: 700;">@Model.Documents.Count</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Chat Sessions</span>
+                        <strong style="color: #8b5cf6; font-weight: 700;">@Model.Sessions.Count</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Messages In Session</span>
+                        <strong style="color: #10b981; font-weight: 700;">@Model.MessageHistory.Count</strong>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Cot 2: Giao dien Hoi thoai (Chat Panel) -->
+        <main class="chat-panel" aria-label="Chat interface">
+        <div class="chat-header" style="padding: 20px; border-bottom: 1px solid var(--line); margin-bottom: 16px; background: var(--surface-muted); border-radius: var(--radius) var(--radius) 0 0;">
+            <div>
+                <p class="eyebrow" style="letter-spacing: 0.1em; color: var(--muted);">Chat Workspace</p>
+                @if (Model.SelectedSession != null)
+                {
+                    <h2 data-chat-title>@Model.SelectedSession.Title</h2>
+                }
+                else if (Model.SelectedDataset != null)
+                {
+                    <h2 data-chat-title>Select or create a chat session</h2>
+                }
+                else
+                {
+                    <h2 data-chat-title>Select a subject to start</h2>
+                }
+            </div>
+            @if (Model.SelectedDatasetId.HasValue)
+            {
+                <form method="post" asp-page-handler="CreateSession" style="margin: 0; padding: 0;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                    <input type="hidden" name="title" value="Subject chat" />
+                    <button class="secondary-button" type="submit">New session</button>
+                </form>
+            }
+        </div>
+
+        @if (Model.SelectedDatasetId.HasValue && Model.SelectedSessionId.HasValue)
+        {
+            <section class="question-suggestions" data-question-suggestions data-dataset-id="@Model.SelectedDatasetId">
+                <div class="question-suggestions-header">
+                    <div>
+                        <p class="eyebrow">AI question ideas</p>
+                        <h3>Study prompts from this subject</h3>
+                    </div>
+                    <button type="button" class="secondary-button" data-generate-questions>Generate ideas</button>
+                </div>
+                <div class="suggestion-list" data-suggestion-list>
+                    <button type="button" class="suggestion-chip" data-question-template="Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?">Tom tat y chinh</button>
+                    <button type="button" class="suggestion-chip" data-question-template="Nhung khai niem quan trong nhat trong tai lieu nay la gi?">Khai niem quan trong</button>
+                    <button type="button" class="suggestion-chip" data-question-template="Tao 5 cau hoi on tap tu cac tai lieu trong mon hoc nay?">Cau hoi on tap</button>
+                </div>
+                <p class="suggestion-helper" data-suggestion-helper>Click a prompt to place it in the chat box.</p>
+            </section>
+        }
+
+        <div class="chat-stream" aria-live="polite" id="chatStream">
+            @if (Model.SelectedSession != null)
+            {
+                if (Model.MessageHistory.Count == 0)
+                {
+                    <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.8; margin-top: 10vh; text-align: center; padding: 24px;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        <h3 style="font-weight: 700; color: var(--ink); margin-bottom: 12px; font-size: 1.25rem;">Ask questions grounded in your documents</h3>
+                        <p style="color: var(--muted); max-width: 400px; line-height: 1.6; font-size: 0.95rem;">Type your message below. The AI will retrieve the most relevant sections of your documents to provide answers.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var msg in Model.MessageHistory)
+                    {
+                        <div class="message @msg.Role.ToLower()" data-message-id="@msg.MessageId">
+                            <div class="message-bubble">
+                                <p style="margin: 0; white-space: pre-wrap;">@msg.Content</p>
+                            </div>
+                            <div class="message-meta">
+                                @(msg.Role == "User" ? "You" : "Assistant") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
+                            </div>
+                            @if (msg.Role == "Assistant")
+                            {
+                                <div class="citation-row" style="margin-top: 8px;">
+                                    <button class="citation-chip view-sources-btn" 
+                                       data-message-id="@msg.MessageId"
+                                       style="background: none; border: 1px solid var(--line); font: inherit; font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); transition: all 0.2s;" onmouseover="this.style.background='var(--surface-muted)'; this.style.color='var(--ink)';" onmouseout="this.style.background='none'; this.style.color='var(--muted)';">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                        View Sources
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            }
+            else
+            {
+                <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.8; margin-top: 10vh; text-align: center; padding: 24px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); margin-bottom: 16px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <h3 style="font-weight: 700; color: var(--ink); margin-bottom: 12px; font-size: 1.25rem;">Welcome to RAG Chatbot</h3>
+                    <p style="color: var(--muted); max-width: 400px; line-height: 1.6; font-size: 0.95rem;">Create or select a subject, upload a document, then start a chat session to interact with your data.</p>
+                </div>
+            }
+        </div>
+
+        @if (Model.SelectedSessionId.HasValue)
+        {
+            <form method="post" asp-page-handler="SendMessage" class="composer">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
+                <textarea name="question" rows="1" placeholder="Ask about this subject..." required id="chatQuestionTextarea"></textarea>
+                <button type="submit">Send</button>
+            </form>
+        }
+    </main>
+
+    <!-- Cá»™t 3: Hiá»ƒn thá»‹ trÃ­ch dáº«n tÃ i liá»‡u tham chiáº¿u (Reference Panel) -->
+    <aside class="workspace-panel reference-panel" aria-label="Citation references">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">References</p>
+                <h2>Sources</h2>
+            </div>
+        </div>
+
+        @if (Model.SelectedMessageId.HasValue && Model.Citations.Count > 0)
+        {
+            <div class="reference-content">
+                @foreach (var c in Model.Citations)
+                {
+                    <div class="reference-card">
+                        <h3 title="@c.FileName">@c.FileName</h3>
+                        <p><strong>Page:</strong> @(c.PageNumber > 0 ? c.PageNumber.ToString() : "1")</p>
+                        <p><strong>Source label:</strong> @c.SourceLabel</p>
+                        <p style="margin-top: 6px; font-style: italic; background: var(--surface-muted); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent);">
+                            "@c.QuoteText"
+                        </p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="reference-empty">
+                <h3>No citation selected</h3>
+                <p>When an AI answer includes sources, select a reference to inspect the chunk and file name.</p>
+            </div>
+        }
+    </aside>
+</section>
+}
+
+@section Scripts {
+    <style>
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .upload-dropzone {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 112px;
+            border: 2px dashed var(--line);
+            border-radius: 12px;
+            padding: 18px 12px;
+            background: var(--surface-muted);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            overflow: hidden;
+        }
+
+        .upload-dropzone:hover {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .upload-title,
+        .upload-subtitle {
+            display: block;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            line-height: 1.25;
+        }
+
+        .upload-title {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--ink);
+        }
+
+        .upload-subtitle {
+            font-size: 0.74rem;
+            color: var(--muted);
+        }
+
+        .document-card-header,
+        .document-card-main {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .document-name {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .document-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .document-preview-link,
+        .document-delete-button {
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 5px 8px;
+            line-height: 1;
+            text-decoration: none;
+        }
+
+        .document-preview-link {
+            border: 1px solid rgba(14, 165, 233, 0.28);
+            background: rgba(14, 165, 233, 0.08);
+            color: var(--accent-strong);
+        }
+
+        .document-delete-button {
+            border: 1px solid rgba(220, 38, 38, 0.25);
+            background: rgba(220, 38, 38, 0.05);
+            color: var(--danger);
+            cursor: pointer;
+        }
+
+        .question-suggestions {
+            border-bottom: 1px solid var(--line);
+            padding: 14px 18px;
+            background: var(--surface);
+        }
+
+        .question-suggestions-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .question-suggestions-header h3 {
+            margin: 0;
+            color: var(--ink);
+            font-size: 0.98rem;
+            line-height: 1.2;
+        }
+
+        .suggestion-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-chip {
+            border: 1px solid rgba(37, 99, 235, 0.22);
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.06);
+            color: var(--accent-strong);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.25;
+            max-width: 100%;
+            padding: 7px 10px;
+            overflow-wrap: anywhere;
+            text-align: left;
+        }
+
+        .suggestion-chip:hover,
+        .suggestion-chip:focus {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .suggestion-helper {
+            color: var(--muted);
+            font-size: 0.76rem;
+            margin: 8px 0 0;
+        }
+    </style>
+    <script>
+        // Tá»± Ä‘á»™ng cuá»™n khung chat xuá»‘ng dÆ°á»›i cÃ¹ng khi cÃ³ tin nháº¯n má»›i hoáº·c táº£i trang
+        const chatStream = document.getElementById("chatStream");
+        if (chatStream) {
+            chatStream.scrollTop = chatStream.scrollHeight;
+        }
+
+        const uploadDocForm = document.getElementById("upload-doc-form");
+        const fileUploadInput = document.getElementById("file-upload");
+        const processingOverlay = document.getElementById("documentProcessingOverlay");
+        if (uploadDocForm && processingOverlay) {
+            uploadDocForm.addEventListener("submit", function () {
+                processingOverlay.style.display = "flex";
+            });
+        }
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Há»— trá»£ gá»­i tin nháº¯n báº±ng tá»• há»£p phÃ­m Enter (nhÆ°ng cho phÃ©p Shift+Enter Ä‘á»ƒ xuá»‘ng dÃ²ng)
+        const textarea = document.getElementById("chatQuestionTextarea");
+        if (textarea) {
+            textarea.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    // KÃ­ch hoáº¡t submit form Ä‘Æ°á»£c xá»­ lÃ½ báº±ng AJAX á»Ÿ dÆ°á»›i
+                    this.form.dispatchEvent(new Event("submit", { cancelable: true }));
+                }
+            });
+        }
+
+        // Xá»­ lÃ½ gá»­i tin nháº¯n báº±ng AJAX (KhÃ´ng táº£i láº¡i trang)
+        const questionSuggestions = document.querySelector("[data-question-suggestions]");
+        const suggestionList = document.querySelector("[data-suggestion-list]");
+        const suggestionHelper = document.querySelector("[data-suggestion-helper]");
+        const generateQuestionsButton = document.querySelector("[data-generate-questions]");
+
+        document.addEventListener("click", function(e) {
+            const chip = e.target.closest("[data-question-template]");
+            if (!chip || !textarea) return;
+
+            textarea.value = chip.getAttribute("data-question-template") || chip.textContent.trim();
+            textarea.focus();
+            textarea.style.height = "auto";
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        });
+
+        if (generateQuestionsButton && questionSuggestions && suggestionList) {
+            generateQuestionsButton.addEventListener("click", function () {
+                const datasetId = questionSuggestions.getAttribute("data-dataset-id");
+                if (!datasetId) return;
+
+                generateQuestionsButton.disabled = true;
+                generateQuestionsButton.textContent = "Generating...";
+                if (suggestionHelper) {
+                    suggestionHelper.textContent = "Retrieving indexed chunks and building study prompts...";
+                }
+
+                fetch(`?handler=SuggestQuestions&datasetId=${encodeURIComponent(datasetId)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => { throw new Error(data.error || "Cannot generate suggestions.") });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const questions = data.questions || [];
+                        if (questions.length === 0) {
+                            throw new Error("No suggestions were generated for this subject.");
+                        }
+
+                        suggestionList.innerHTML = questions.map(q => `
+                            <button type="button" class="suggestion-chip" data-question-template="${escapeHtml(q)}">${escapeHtml(q)}</button>
+                        `).join("");
+
+                        if (suggestionHelper) {
+                            suggestionHelper.textContent = data.warning || "Click a generated prompt to place it in the chat box.";
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (suggestionHelper) {
+                            suggestionHelper.textContent = `Suggestion error: ${err.message}`;
+                        }
+                    })
+                    .finally(() => {
+                        generateQuestionsButton.disabled = false;
+                        generateQuestionsButton.textContent = "Generate ideas";
+                    });
+            });
+        }
+
+        const composerForm = document.querySelector(".composer");
+        if (composerForm) {
+            composerForm.addEventListener("submit", function(e) {
+                e.preventDefault();
+                
+                const questionInput = document.getElementById("chatQuestionTextarea");
+                if (!questionInput) return;
+                const question = questionInput.value.trim();
+                if (!question) return;
+                
+                // Clear vÃ  reset textarea ngay láº­p tá»©c
+                questionInput.value = "";
+                questionInput.style.height = "auto";
+                
+                // 1. Hiá»ƒn thá»‹ tin nháº¯n cá»§a User ngay láº­p tá»©c lÃªn mÃ n hÃ¬nh
+                appendMessage("user", question, formatVietnamTime(new Date()));
+                
+                // 2. ThÃªm bong bÃ³ng chá» tráº£ lá»i (Loading) tá»« Assistant
+                const loadingBubble = appendLoadingBubble();
+                
+                // Cuá»™n xuá»‘ng cuá»‘i
+                if (chatStream) {
+                    chatStream.scrollTop = chatStream.scrollHeight;
+                }
+                
+                // 3. Gá»­i yÃªu cáº§u qua Fetch API tá»›i Backend
+                const formData = new FormData(composerForm);
+                formData.set("question", question);
+                composerForm.dataset.realtimeSuppress = "true";
+                
+                fetch("?handler=SendMessageAjax", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => { throw new Error(data.error || "Gửi tin nhắn thất bại.") });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // XÃ³a bong bÃ³ng loading
+                    if (loadingBubble) loadingBubble.remove();
+                    
+                    // ThÃªm cÃ¢u tráº£ lá»i cá»§a AI vÃ o giao diá»‡n
+                    appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId);
+                    
+                    // Hiá»ƒn thá»‹ ngay cÃ¡c nguá»“n trÃ­ch dáº«n tÆ°Æ¡ng á»©ng bÃªn cá»™t pháº£i
+                    if (data.citations && data.citations.length > 0) {
+                        renderCitationsDirectly(data.citations);
+                    }
+                    
+                    // Cuá»™n xuá»‘ng cuá»‘i
+                    if (chatStream) {
+                        chatStream.scrollTop = chatStream.scrollHeight;
+                    }
+                    setTimeout(function () { delete composerForm.dataset.realtimeSuppress; }, 750);
+                })
+                .catch(err => {
+                    console.error(err);
+                    if (loadingBubble) loadingBubble.remove();
+                    
+                    // Hiá»ƒn thá»‹ bong bÃ³ng lá»—i
+                    appendMessage("assistant", `Lỗi: ${err.message}`, formatVietnamTime(new Date()));
+                    
+                    if (chatStream) {
+                        chatStream.scrollTop = chatStream.scrollHeight;
+                    }
+                    delete composerForm.dataset.realtimeSuppress;
+                });
+            });
+        }
+
+        window.addEventListener("rag:document-progress", function (event) {
+            const payload = event.detail;
+            if (!payload) return;
+
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            if (workspaceEl && workspaceEl.dataset.selectedDatasetId && payload.datasetId && workspaceEl.dataset.selectedDatasetId !== String(payload.datasetId)) {
+                return;
+            }
+
+            const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
+            if (payload.action === "deleted") {
+                if (documentRow) documentRow.remove();
+                return;
+            }
+
+            if (!documentRow) {
+                const list = document.querySelector("[data-document-list]");
+                if (list && (payload.action === "completed" || payload.action === "uploaded" || payload.action === "processing")) {
+                    const emptyState = list.querySelector(".helper-text");
+                    if (emptyState) emptyState.remove();
+                    list.prepend(createDocumentRow(payload));
+                }
+                return;
+            }
+
+            const status = documentRow.querySelector("[data-document-status]");
+            if (status) {
+                status.textContent = payload.status || payload.action || "Updated";
+                status.className = `status-pill ${(payload.status || "").toLowerCase()}`;
+            }
+
+            const progress = documentRow.querySelector("[data-document-progress]");
+            if (progress) {
+                progress.style.width = `${Math.max(0, Math.min(100, payload.percentComplete || 0))}%`;
+            }
+        });
+
+        function createDocumentRow(payload) {
+            const item = document.createElement("div");
+            item.className = "document-item";
+            item.dataset.documentId = payload.documentId;
+            const status = payload.status || "Uploaded";
+            const sizeKb = Math.ceil((payload.fileSize || 0) / 1024);
+            item.innerHTML = `
+                <div class="document-card-header">
+                    <div class="document-card-main">
+                        <strong class="document-name" title="${escapeHtml(payload.fileName || "Document")}">${escapeHtml(payload.fileName || "Document")}</strong>
+                        <span class="document-meta">${escapeHtml(String(payload.fileType || "")).toUpperCase()} - ${sizeKb} KB</span>
+                    </div>
+                </div>
+                <div class="progress-track" aria-hidden="true">
+                    <span class="progress-fill" data-document-progress style="width: ${Math.max(0, Math.min(100, payload.percentComplete || 0))}%"></span>
+                </div>
+                <div class="document-actions-row">
+                    <span class="status-pill ${escapeHtml(status.toLowerCase())}" data-document-status>${escapeHtml(status)}</span>
+                    <a class="document-preview-link" href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" title="View indexed chunks and metadata">Preview chunks</a>
+                    <form method="post" action="?handler=DeleteDocument" style="margin: 0; padding: 0;" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                        ${antiForgeryInput()}
+                        <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
+                        <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
+                        <button class="document-delete-button" type="submit" title="Delete document">Delete</button>
+                    </form>
+                </div>
+            `;
+            return item;
+        }
+
+        function antiForgeryInput() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
+        }
+
+        // =====================================================================
+        // Real-time: Dataset Changed (created / updated / deleted / approved)
+        // Admin thay đổi dataset → tự động cập nhật sidebar của Teacher/Student
+        // =====================================================================
+        window.addEventListener("rag:dataset-changed", function (event) {
+            const payload = event.detail;
+            if (!payload || !payload.datasetId) return;
+
+            const datasetId = String(payload.datasetId);
+            const action = payload.action;
+            const datasetList = document.querySelector("[data-dataset-list]");
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            const existingEntry = datasetList
+                ? Array.from(datasetList.querySelectorAll("[data-dataset-id]"))
+                    .find(function (el) { return el.dataset.datasetId === datasetId; })
+                : null;
+
+            if (action === "deleted") {
+                const deletedName = escapeHtml(payload.name || "A subject");
+                // Xóa dataset khỏi sidebar
+                if (existingEntry) existingEntry.remove();
+                // Nếu user đang xem dataset bị xóa → redirect về trang chủ
+                if (workspaceEl && workspaceEl.dataset.selectedDatasetId === datasetId) {
+                    if (window.showToastNotification) {
+                        window.showToastNotification(`Subject "${deletedName}" has been deleted by Admin.`);
+                    }
+                    setTimeout(function () { window.location.assign("/"); }, 1500);
+                } else if (existingEntry && window.showToastNotification) {
+                    // Dataset bị xóa nhưng user không đang xem → vẫn báo
+                    window.showToastNotification(`Subject "${deletedName}" has been removed.`);
+                }
+                // Cập nhật counter
+                if (datasetList) {
+                    const count = document.querySelector("[data-dataset-count]");
+                    if (count) {
+                        count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
+                    }
+                }
+                return;
+            }
+
+            if (action === "created") {
+                // Thêm dataset mới vào đầu sidebar
+                if (!existingEntry && datasetList) {
+                    const emptyState = datasetList.querySelector(".helper-text");
+                    if (emptyState) emptyState.remove();
+
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "dataset-entry";
+                    wrapper.dataset.datasetId = datasetId;
+
+                    const link = document.createElement("a");
+                    link.className = "dataset-item";
+                    link.href = "/?datasetId=" + encodeURIComponent(datasetId);
+
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Private</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? '<span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Pending</span> ' : "";
+
+                    link.innerHTML = `
+                        <span class="dataset-name">${isApprovedIcon}${escapeHtml(payload.name || "New Subject")}${isPublicIcon}</span>
+                        <span class="dataset-meta">0 document(s)</span>
+                    `;
+                    wrapper.appendChild(link);
+                    datasetList.prepend(wrapper);
+
+                    const count = document.querySelector("[data-dataset-count]");
+                    if (count) {
+                        count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
+                    }
+
+                    // Toast cho teacher/student biết có môn học mới
+                    if (window.showToastNotification) {
+                        window.showToastNotification(`New subject added: "${escapeHtml(payload.name || "New Subject")}"`);
+                    }
+                }
+                return;
+            }
+
+            if ((action === "updated" || action === "approved" || action === "unapproved") && existingEntry) {
+                const subjectName = escapeHtml(payload.name || "A subject");
+
+                // Cập nhật tên, badge public, badge approval in-place (không reload)
+                const nameEl = existingEntry.querySelector(".dataset-name");
+                if (nameEl && payload.name) {
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Private</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? '<span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Pending</span> ' : "";
+                    nameEl.innerHTML = `${isApprovedIcon}${escapeHtml(payload.name)}${isPublicIcon}`;
+                }
+
+                // Nếu đang xem chính dataset này → cũng highlight lại link
+                const link = existingEntry.querySelector(".dataset-item");
+                if (link && workspaceEl && workspaceEl.dataset.selectedDatasetId === datasetId) {
+                    link.classList.add("active");
+                }
+
+                // Toast thông báo theo action
+                if (window.showToastNotification) {
+                    if (action === "updated") {
+                        window.showToastNotification(`Subject "${subjectName}" has been updated by Admin.`);
+                    } else if (action === "approved") {
+                        window.showToastNotification(`Subject "${subjectName}" has been approved and is now active.`);
+                    } else if (action === "unapproved") {
+                        window.showToastNotification(`Subject "${subjectName}" has been temporarily suspended.`);
+                    }
+                }
+                return;
+            }
+        });
+
+        window.addEventListener("rag:chat-session-changed", function (event) {
+            const payload = event.detail;
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            const sessionList = document.querySelector("[data-session-list]");
+            if (!payload || !workspaceEl || !sessionList || workspaceEl.dataset.selectedDatasetId !== String(payload.datasetId)) {
+                return;
+            }
+
+            if (sessionList.querySelector(`[data-session-id="${payload.sessionId}"]`)) {
+                return;
+            }
+
+            const emptyState = sessionList.querySelector(".helper-text");
+            if (emptyState) emptyState.remove();
+
+            const link = document.createElement("a");
+            link.className = "session-item";
+            link.dataset.sessionId = payload.sessionId;
+            link.href = `?datasetId=${encodeURIComponent(payload.datasetId)}&sessionId=${encodeURIComponent(payload.sessionId)}`;
+            link.style.textDecoration = "none";
+            link.innerHTML = `
+                <span class="session-name">${escapeHtml(payload.title || "Subject chat")}</span>
+                <span class="session-meta">Updated ${formatVietnamTime(new Date(payload.updatedAt || payload.changedAt))}</span>
+            `;
+            sessionList.prepend(link);
+        });
+
+        window.addEventListener("rag:chat-message-saved", function (event) {
+            const payload = event.detail;
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            if (!payload || !workspaceEl || workspaceEl.dataset.selectedSessionId !== String(payload.sessionId)) {
+                return;
+            }
+
+            if (composerForm && composerForm.dataset.realtimeSuppress === "true") {
+                return;
+            }
+
+            appendRealtimeMessage(payload.userMessage);
+            appendRealtimeMessage(payload.assistantMessage);
+
+            if (payload.citations && payload.citations.length > 0) {
+                renderCitationsDirectly(payload.citations);
+            }
+
+            if (chatStream) {
+                chatStream.scrollTop = chatStream.scrollHeight;
+            }
+        });
+
+        function appendMessage(role, content, time, messageId = null) {
+            if (messageId && document.querySelector(`[data-message-id="${messageId}"]`)) {
+                return document.querySelector(`[data-message-id="${messageId}"]`);
+            }
+
+            const emptyState = chatStream.querySelector(".empty-state");
+            if (emptyState) emptyState.remove();
+
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${role}`;
+            if (messageId) {
+                messageDiv.dataset.messageId = messageId;
+            }
+            
+            let citationHtml = "";
+            if (role === "assistant" && messageId) {
+                citationHtml = `
+                    <div class="citation-row" style="margin-top: 8px;">
+                        <button class="citation-chip view-sources-btn" 
+                                data-message-id="${messageId}"
+                                style="background: none; border: none; font: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+                            &#128269; View Sources
+                        </button>
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(content)}</p>
+                </div>
+                <div class="message-meta">
+                    ${role === "user" ? "You" : "Assistant"} &bull; ${time}
+                </div>
+                ${citationHtml}
+            `;
+            chatStream.appendChild(messageDiv);
+            return messageDiv;
+        }
+
+        function appendRealtimeMessage(message) {
+            if (!message) return;
+
+            const role = String(message.role || "").toLowerCase();
+            appendMessage(
+                role === "assistant" ? "assistant" : "user",
+                message.content || "",
+                formatVietnamTime(new Date(message.createdAt)),
+                message.messageId
+            );
+        }
+
+        function formatVietnamTime(value) {
+            return new Intl.DateTimeFormat("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            }).format(value);
+        }
+
+        function appendLoadingBubble() {
+            const emptyState = chatStream.querySelector(".empty-state");
+            if (emptyState) emptyState.remove();
+
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "message assistant loading-bubble";
+            loadingDiv.innerHTML = `
+                <div class="message-bubble" style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-block; animation: spin 1s linear infinite;">&#9203;</span>
+                    <span style="font-style: italic; color: var(--muted);">Searching knowledge base and thinking...</span>
+                </div>
+                <div class="message-meta">
+                    Assistant &bull; Loading
+                </div>
+            `;
+            chatStream.appendChild(loadingDiv);
+            return loadingDiv;
+        }
+
+        // Láº¯ng nghe sá»± kiá»‡n click vÃ o nÃºt xem trÃ­ch dáº«n (Event Delegation Ä‘á»ƒ há»— trá»£ cáº£ tin nháº¯n má»›i)
+        document.addEventListener("click", function(e) {
+            const btn = e.target.closest(".view-sources-btn");
+            if (btn) {
+                e.preventDefault();
+                const messageId = btn.getAttribute("data-message-id");
+                fetchCitations(messageId);
+            }
+        });
+
+        function fetchCitations(messageId) {
+            const referencePanel = document.querySelector(".reference-panel");
+            if (!referencePanel) return;
+
+            // Render giao diá»‡n chá» táº£i trÃ­ch dáº«n bÃªn cá»™t pháº£i
+            referencePanel.innerHTML = `
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">References</p>
+                        <h2>Sources</h2>
+                    </div>
+                </div>
+                <div style="padding: 24px; text-align: center; color: var(--muted);">
+                    <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">&#9203;</span>
+                    <p style="font-size: 0.85rem; margin: 0;">Retrieving source documents...</p>
+                </div>
+            `;
+
+            // Tá»± Ä‘á»™ng chuyá»ƒn tab trÃªn Mobile sang tab "Sources"
+            const workspace = document.querySelector(".workspace");
+            if (workspace && window.innerWidth <= 820) {
+                workspace.setAttribute("data-active-tab", "reference-panel");
+                const refTabBtn = document.querySelector('.mobile-tab-btn[data-target="reference-panel"]');
+                if (refTabBtn) {
+                    document.querySelectorAll(".mobile-tab-btn").forEach(b => b.classList.remove("active"));
+                    refTabBtn.classList.add("active");
+                }
+            }
+
+            // Gá»i API láº¥y thÃ´ng tin trÃ­ch dáº«n
+            fetch(`?handler=GetCitations&messageId=${messageId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Failed to load citations");
+                    return response.json();
+                })
+                .then(citations => {
+                    renderCitationsDirectly(citations);
+                })
+                .catch(err => {
+                    console.error(err);
+                    referencePanel.innerHTML = `
+                        <div class="panel-header">
+                            <div>
+                                <p class="eyebrow">References</p>
+                                <h2>Sources</h2>
+                            </div>
+                        </div>
+                        <div style="padding: 24px; text-align: center; color: var(--danger);">
+                            <p style="font-size: 0.85rem; margin: 0;">Error loading sources: ${err.message}</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderCitationsDirectly(citations) {
+            const referencePanel = document.querySelector(".reference-panel");
+            if (!referencePanel) return;
+
+            let html = `
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">References</p>
+                        <h2>Sources</h2>
+                    </div>
+                </div>
+            `;
+
+            if (!citations || citations.length === 0) {
+                html += `
+                    <div class="reference-empty">
+                        <h3>No citations found</h3>
+                        <p>No specific chunks were retrieved for this response.</p>
+                    </div>
+                `;
+            } else {
+                html += `<div class="reference-content">`;
+                citations.forEach(c => {
+                    html += `
+                        <div class="reference-card">
+                            <h3 title="${escapeHtml(c.fileName)}">${escapeHtml(c.fileName)}</h3>
+                            <p><strong>Page:</strong> ${c.pageNumber > 0 ? c.pageNumber : 1}</p>
+                            <p><strong>Source label:</strong> ${escapeHtml(c.sourceLabel || "N/A")}</p>
+                            <p style="margin-top: 6px; font-style: italic; background: var(--surface-muted); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent);">
+                                "${escapeHtml(c.quoteText)}"
+                            </p>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            referencePanel.innerHTML = html;
+        }
+
+        // Logic chuyá»ƒn Ä‘á»•i Tab trÃªn thiáº¿t bá»‹ di Ä‘á»™ng
+        const tabBtns = document.querySelectorAll(".mobile-tab-btn");
+        const workspace = document.querySelector(".workspace");
+        if (tabBtns && workspace) {
+            tabBtns.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    tabBtns.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    const target = btn.getAttribute("data-target");
+                    workspace.setAttribute("data-active-tab", target);
+                });
+            });
+        }
+
+        function triggerUpload() {
+            const fileInput = document.getElementById('file-upload');
+            const uploadForm = document.getElementById('upload-doc-form');
+            if (!fileInput || !uploadForm || uploadForm.dataset.submitting === "true") {
+                return;
+            }
+
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                if (file.size > maxSize) {
+                    alert('Kích thước tệp vượt quá giới hạn cho phép (tối đa 50MB). Vui lòng chọn tệp nhỏ hơn.');
+                    fileInput.value = ""; // Reset
+                    return;
+                }
+            } else {
+                return;
+            }
+
+            const dropzone = document.getElementById('upload-dropzone');
+            const idleState = document.getElementById('upload-idle-state');
+            const loadingState = document.getElementById('upload-loading-state');
+
+            uploadForm.dataset.submitting = "true";
+            if (dropzone) {
+                dropzone.dataset.uploading = "true";
+                dropzone.style.cursor = "not-allowed";
+                dropzone.style.borderColor = "var(--accent)";
+            }
+            if (idleState) idleState.style.display = "none";
+            if (loadingState) loadingState.style.display = "flex";
+            if (processingOverlay) processingOverlay.style.display = "flex";
+
+            uploadForm.requestSubmit();
+        }
+
+    </script>
+}

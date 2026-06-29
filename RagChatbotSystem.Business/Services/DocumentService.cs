@@ -20,8 +20,6 @@ namespace RagChatbotSystem.Business.Services
 {
     public class DocumentService : IDocumentService
     {
-        private const int DefaultChunkSize = 600;
-        private const int DefaultChunkOverlap = 120;
         private const string EmbeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
 
         private readonly IUnitOfWork _unitOfWork;
@@ -32,9 +30,17 @@ namespace RagChatbotSystem.Business.Services
         private readonly IGenericRepository<VectorRecord> _vectorRecordRepository;
         private readonly IRagApiClient _ragApiClient;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IRealtimeService _realtimeService;
+        private readonly ISystemSettingService _systemSettingService;
         private readonly ILogger<DocumentService> _logger;
 
-        public DocumentService(IUnitOfWork unitOfWork, IRagApiClient ragApiClient, IFileStorageService fileStorageService, ILogger<DocumentService> logger)
+        public DocumentService(
+            IUnitOfWork unitOfWork,
+            IRagApiClient ragApiClient,
+            IFileStorageService fileStorageService,
+            IRealtimeService realtimeService,
+            ISystemSettingService systemSettingService,
+            ILogger<DocumentService> logger)
         {
             _unitOfWork = unitOfWork;
             _documentRepository = _unitOfWork.Repository<Document>();
@@ -44,6 +50,8 @@ namespace RagChatbotSystem.Business.Services
             _vectorRecordRepository = _unitOfWork.Repository<VectorRecord>();
             _ragApiClient = ragApiClient;
             _fileStorageService = fileStorageService;
+            _realtimeService = realtimeService;
+            _systemSettingService = systemSettingService;
             _logger = logger;
         }
 
@@ -151,18 +159,25 @@ namespace RagChatbotSystem.Business.Services
             document.UpdatedAt = DateTime.UtcNow;
             _documentRepository.Update(document);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Processing", 10, cancellationToken);
 
             try
             {
+                await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Extracting text", 30, cancellationToken);
                 await using var stream = await _fileStorageService.OpenReadAsync(document.FilePath, cancellationToken);
                 var segments = await ExtractTextSegmentsAsync(stream, document.FileType, cancellationToken);
-                var chunks = SplitTextSegments(segments, DefaultChunkSize, DefaultChunkOverlap);
+
+                await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Chunking text", 50, cancellationToken);
+                var chunkSize = await _systemSettingService.GetChunkSizeAsync(cancellationToken);
+                var chunkOverlap = await _systemSettingService.GetChunkOverlapAsync(cancellationToken);
+                var chunks = SplitTextSegments(segments, chunkSize, chunkOverlap);
 
                 if (chunks.Count == 0)
                 {
                     throw new InvalidOperationException("No extractable text found.");
                 }
 
+                await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Embedding & indexing", 75, cancellationToken);
                 await IndexExistingDocumentAsync(document, chunks, cancellationToken);
 
                 document.Status = "Completed";
@@ -170,9 +185,12 @@ namespace RagChatbotSystem.Business.Services
                 _documentRepository.Update(document);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+                await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Completed", 100, cancellationToken);
+                await _realtimeService.TriggerUiUpdateAsync("Document", document.DocumentId, cancellationToken);
+
                 return ToDto(document);
             }
-            catch
+            catch (Exception ex)
             {
                 _unitOfWork.ClearTracker();
 
@@ -183,6 +201,7 @@ namespace RagChatbotSystem.Business.Services
                     failedDocument.UpdatedAt = DateTime.UtcNow;
                     _documentRepository.Update(failedDocument);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    await _realtimeService.SendDocumentProgressAsync(failedDocument.DatasetId, failedDocument.DocumentId, $"Failed: {ex.Message}", 0, cancellationToken);
                 }
 
                 throw;
@@ -216,20 +235,6 @@ namespace RagChatbotSystem.Business.Services
                 };
 
                 await _documentRepository.AddAsync(document);
-
-                var chunks = SplitTextSegments(
-                    new List<ExtractedTextSegment> { new(rawText, 1) },
-                    DefaultChunkSize,
-                    DefaultChunkOverlap);
-
-                if (chunks.Count > 0)
-                {
-                    await AddIndexedChunksAsync(document, chunks, rebuildCache: false, cancellationToken: default);
-                }
-
-                document.Status = "Completed";
-                document.UpdatedAt = DateTime.UtcNow;
-                _documentRepository.Update(document);
                 await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -257,6 +262,8 @@ namespace RagChatbotSystem.Business.Services
             _documentRepository.Delete(document);
             await _unitOfWork.SaveChangesAsync();
             await _fileStorageService.DeleteFileIfExistsAsync(document.FilePath);
+
+            await _realtimeService.TriggerUiUpdateAsync("Document", documentId);
 
             return true;
         }

@@ -1,0 +1,232 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.Datasets.IndexModel
+@{
+    ViewData["Title"] = "Subject Management";
+}
+
+<section class="dataset-page" data-datasets-page>
+    <header class="dataset-page-header">
+        <div>
+            <p class="eyebrow">Admin / Subjects</p>
+            <h1>Subject Management</h1>
+            <p class="helper-text">Create subjects, control visibility, approve availability, and manage access.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Admin sections">
+        <a asp-page="/Admin/Index">Overview</a>
+        <a class="active" asp-page="/Admin/Datasets/Index" aria-current="page">Subjects</a>
+        <a asp-page="/Admin/Settings">Settings</a>
+    </nav>
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <div id="realtimeDatasetStatus" class="dataset-realtime-status" hidden></div>
+
+    <div class="dataset-grid">
+        <section class="dataset-create-panel">
+            <div class="section-title"><h2>Create subject</h2></div>
+            <form method="post" asp-page-handler="Create" class="create-form">
+                <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+                <label asp-for="CreateInput.Name">Subject name</label>
+                <input asp-for="CreateInput.Name" placeholder="PRN222" />
+                <span asp-validation-for="CreateInput.Name" class="text-danger small"></span>
+                <label asp-for="CreateInput.Description">Description</label>
+                <textarea asp-for="CreateInput.Description" rows="4" placeholder="Short subject description"></textarea>
+                <span asp-validation-for="CreateInput.Description" class="text-danger small"></span>
+                <div class="form-check dataset-check-row">
+                    <input asp-for="CreateInput.IsPublic" class="form-check-input" />
+                    <label asp-for="CreateInput.IsPublic" class="form-check-label">Public for approved users</label>
+                </div>
+                <button type="submit">Create subject</button>
+            </form>
+        </section>
+
+        <section class="dataset-list-panel">
+            <div class="section-title"><h2>Subjects</h2><span>@Model.Datasets.Count</span></div>
+            @if (Model.Datasets.Count == 0)
+            {
+                <p class="helper-text">No subjects available in the system.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle dataset-table">
+                        <thead><tr><th>Subject</th><th>Visibility</th><th>Status</th><th>Documents</th><th>Teacher</th><th class="text-end">Actions</th></tr></thead>
+                        <tbody>
+                            @foreach (var dataset in Model.Datasets)
+                            {
+                                <tr data-dataset-row="@dataset.DatasetId">
+                                    <td>
+                                        <form id="edit-@dataset.DatasetId" method="post" asp-page-handler="Edit" class="dataset-edit-form">
+                                            <input type="hidden" name="EditInput.DatasetId" value="@dataset.DatasetId" />
+                                            <input name="EditInput.Name" value="@dataset.Name" aria-label="Subject name" required maxlength="120" />
+                                            <textarea name="EditInput.Description" rows="2" aria-label="Subject description" maxlength="500">@(dataset.Description ?? string.Empty)</textarea>
+                                            <div class="form-check dataset-check-row">
+                                                <input type="checkbox" name="EditInput.IsPublic" value="true" class="form-check-input" checked="@dataset.IsPublic" id="public-@dataset.DatasetId" />
+                                                <input type="hidden" name="EditInput.IsPublic" value="false" />
+                                                <label class="form-check-label" for="public-@dataset.DatasetId">Public</label>
+                                            </div>
+                                        </form>
+                                    </td>
+                                    <td><span class="status-pill @(dataset.IsPublic ? string.Empty : "dataset-private-pill")">@(dataset.IsPublic ? "Public" : "Private")</span></td>
+                                    <td><span class="status-pill @(dataset.IsApproved ? "dataset-approved-pill" : "processing")">@(dataset.IsApproved ? "Approved" : "Pending")</span></td>
+                                    <td>@dataset.DocumentCount</td>
+                                    <td>@(dataset.AssignedTeacherName ?? "Unassigned")</td>
+                                    <td>
+                                        <div class="dataset-actions">
+                                            <button type="submit" form="edit-@dataset.DatasetId" class="secondary-button">Save</button>
+                                            <a asp-page="/Admin/Datasets/Permissions" asp-route-id="@dataset.DatasetId" class="secondary-button">Permissions</a>
+                                            <form method="post" asp-page-handler="Approve">
+                                                <input type="hidden" name="id" value="@dataset.DatasetId" />
+                                                <input type="hidden" name="approve" value="@(!dataset.IsApproved)" />
+                                                <button type="submit" class="secondary-button">@(dataset.IsApproved ? "Unapprove" : "Approve")</button>
+                                            </form>
+                                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Delete this subject and all documents inside it?');">
+                                                <input type="hidden" name="id" value="@dataset.DatasetId" />
+                                                <button type="submit" class="dataset-danger-button">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        window.addEventListener("rag:dataset-changed", function (event) {
+            const status = document.getElementById("realtimeDatasetStatus");
+            if (!status || !event.detail) return;
+            const payload = event.detail;
+            status.hidden = false;
+            status.textContent = `Realtime: ${payload.name} was ${payload.action}.`;
+            syncDatasetRow(payload);
+        });
+
+        function syncDatasetRow(payload) {
+            if (!payload || !payload.datasetId) return;
+
+            const tableBody = document.querySelector(".dataset-table tbody");
+            if (!tableBody) return;
+
+            const row = tableBody.querySelector(`[data-dataset-row="${payload.datasetId}"]`);
+            if (payload.action === "deleted") {
+                if (row) row.remove();
+                updateDatasetCount();
+                return;
+            }
+
+            if (row) {
+                updateDatasetRow(row, payload);
+            } else {
+                tableBody.prepend(createDatasetRow(payload));
+            }
+
+            updateDatasetCount();
+        }
+
+        function updateDatasetRow(row, payload) {
+            const nameInput = row.querySelector('input[name="EditInput.Name"]');
+            const descriptionInput = row.querySelector('textarea[name="EditInput.Description"]');
+            const publicInput = row.querySelector('input[type="checkbox"][name="EditInput.IsPublic"]');
+            const cells = row.querySelectorAll("td");
+
+            if (nameInput) nameInput.value = payload.name || "";
+            if (descriptionInput) descriptionInput.value = payload.description || "";
+            if (publicInput) publicInput.checked = payload.isPublic === true;
+            if (cells[1]) cells[1].innerHTML = visibilityPill(payload);
+            if (cells[2]) cells[2].innerHTML = approvalPill(payload);
+            if (cells[3]) cells[3].textContent = String(payload.documentCount || 0);
+            if (cells[4]) cells[4].textContent = payload.assignedTeacherName || "Unassigned";
+
+            const approveValue = row.querySelector('input[name="approve"]');
+            const approveButton = approveValue?.closest("form")?.querySelector("button");
+            if (approveValue) approveValue.value = payload.isApproved === true ? "False" : "True";
+            if (approveButton) approveButton.textContent = payload.isApproved === true ? "Unapprove" : "Approve";
+        }
+
+        function createDatasetRow(payload) {
+            const row = document.createElement("tr");
+            row.dataset.datasetRow = payload.datasetId;
+            row.innerHTML = `
+                <td>
+                    <form id="edit-${payload.datasetId}" method="post" action="?handler=Edit" class="dataset-edit-form">
+                        ${antiForgeryInput()}
+                        <input type="hidden" name="EditInput.DatasetId" value="${escapeHtml(payload.datasetId)}" />
+                        <input name="EditInput.Name" value="${escapeHtml(payload.name || "")}" aria-label="Subject name" required maxlength="120" />
+                        <textarea name="EditInput.Description" rows="2" aria-label="Subject description" maxlength="500">${escapeHtml(payload.description || "")}</textarea>
+                        <div class="form-check dataset-check-row">
+                            <input type="checkbox" name="EditInput.IsPublic" value="true" class="form-check-input" ${payload.isPublic ? "checked" : ""} id="public-${escapeHtml(payload.datasetId)}" />
+                            <input type="hidden" name="EditInput.IsPublic" value="false" />
+                            <label class="form-check-label" for="public-${escapeHtml(payload.datasetId)}">Public</label>
+                        </div>
+                    </form>
+                </td>
+                <td>${visibilityPill(payload)}</td>
+                <td>${approvalPill(payload)}</td>
+                <td>${payload.documentCount || 0}</td>
+                <td>${escapeHtml(payload.assignedTeacherName || "Unassigned")}</td>
+                <td>
+                    <div class="dataset-actions">
+                        <button type="submit" form="edit-${escapeHtml(payload.datasetId)}" class="secondary-button">Save</button>
+                        <a href="/Admin/Datasets/Permissions?id=${encodeURIComponent(payload.datasetId)}" class="secondary-button">Permissions</a>
+                        <form method="post" action="?handler=Approve">
+                            ${antiForgeryInput()}
+                            <input type="hidden" name="id" value="${escapeHtml(payload.datasetId)}" />
+                            <input type="hidden" name="approve" value="${payload.isApproved ? "False" : "True"}" />
+                            <button type="submit" class="secondary-button">${payload.isApproved ? "Unapprove" : "Approve"}</button>
+                        </form>
+                        <form method="post" action="?handler=Delete" onsubmit="return confirm('Delete this subject and all documents inside it?');">
+                            ${antiForgeryInput()}
+                            <input type="hidden" name="id" value="${escapeHtml(payload.datasetId)}" />
+                            <button type="submit" class="dataset-danger-button">Delete</button>
+                        </form>
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+
+        function visibilityPill(payload) {
+            return `<span class="status-pill ${payload.isPublic ? "" : "dataset-private-pill"}">${payload.isPublic ? "Public" : "Private"}</span>`;
+        }
+
+        function approvalPill(payload) {
+            return `<span class="status-pill ${payload.isApproved ? "dataset-approved-pill" : "processing"}">${payload.isApproved ? "Approved" : "Pending"}</span>`;
+        }
+
+        function antiForgeryInput() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
+        }
+
+        function updateDatasetCount() {
+            const count = document.querySelector(".dataset-list-panel .section-title span");
+            const rows = document.querySelectorAll(".dataset-table tbody tr[data-dataset-row]");
+            if (count) count.textContent = String(rows.length);
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+}

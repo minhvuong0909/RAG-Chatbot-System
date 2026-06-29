@@ -278,6 +278,37 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.ToTable("Documents");
                 });
 
+            modelBuilder.Entity("RagChatbotSystem.DataAccess.Models.SystemSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChunkOverlap")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ChunkSize")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SystemSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            ChunkOverlap = 100,
+                            ChunkSize = 500,
+                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("RagChatbotSystem.DataAccess.Models.TeacherSubjectAssignment", b =>
                 {
                     b.Property<Guid>("AssignmentId")

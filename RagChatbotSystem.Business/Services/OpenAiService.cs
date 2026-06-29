@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -26,7 +27,6 @@ namespace RagChatbotSystem.Business.Services
         {
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
-                // Fallback mock response if API Key is not set
                 if (prompt.Contains("Ngữ cảnh:") && prompt.Contains("Câu hỏi:"))
                 {
                     var contextStart = prompt.IndexOf("Ngữ cảnh:\n") + 10;
@@ -66,7 +66,6 @@ namespace RagChatbotSystem.Business.Services
             {
                 Console.WriteLine($"Error calling OpenAI API: {ex.Message}");
                 
-                // Fallback context extraction on actual API failure
                 if (prompt.Contains("Ngữ cảnh:") && prompt.Contains("Câu hỏi:"))
                 {
                     var contextStart = prompt.IndexOf("Ngữ cảnh:\n") + 10;
@@ -78,6 +77,82 @@ namespace RagChatbotSystem.Business.Services
                     }
                 }
                 return $"Lỗi khi kết nối với OpenAI: {ex.Message}";
+            }
+        }
+
+        public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
+        {
+            if (string.IsNullOrWhiteSpace(_apiKey))
+            {
+                var mockText = $"[MOCK ANSWER - Please configure OpenAi:ApiKey in appsettings.json]";
+                var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var word in words)
+                {
+                    yield return word + " ";
+                    await Task.Delay(30);
+                }
+                yield break;
+            }
+
+            HttpResponseMessage? response = null;
+            try
+            {
+                var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+
+                var payload = new
+                {
+                    model = _model,
+                    messages = new[]
+                    {
+                        new { role = "user", content = prompt }
+                    },
+                    temperature = 0.7,
+                    stream = true
+                };
+
+                requestMessage.Content = JsonContent.Create(payload);
+                response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new System.IO.StreamReader(stream);
+
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("data: "))
+                    {
+                        var data = trimmed.Substring(6).Trim();
+                        if (data == "[DONE]")
+                        {
+                            break;
+                        }
+
+                        OpenAiStreamResponse? chunk = null;
+                        try
+                        {
+                            chunk = System.Text.Json.JsonSerializer.Deserialize<OpenAiStreamResponse>(data);
+                        }
+                        catch
+                        {
+                            // Ignore malformed json in stream
+                        }
+
+                        var text = chunk?.Choices?[0]?.Delta?.Content;
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            yield return text;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                response?.Dispose();
             }
         }
 
@@ -97,6 +172,25 @@ namespace RagChatbotSystem.Business.Services
         {
             [JsonPropertyName("content")]
             public string Content { get; set; } = string.Empty;
+        }
+
+        // Classes for streaming
+        private class OpenAiStreamResponse
+        {
+            [JsonPropertyName("choices")]
+            public ChoiceStream[] Choices { get; set; } = Array.Empty<ChoiceStream>();
+        }
+
+        private class ChoiceStream
+        {
+            [JsonPropertyName("delta")]
+            public DeltaMessage Delta { get; set; } = null!;
+        }
+
+        private class DeltaMessage
+        {
+            [JsonPropertyName("content")]
+            public string? Content { get; set; }
         }
     }
 }

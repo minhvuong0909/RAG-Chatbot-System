@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -10,7 +9,7 @@ namespace RagChatbotSystem.DataAccess.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AppDbContext _context;
-        private Hashtable? _repositories;
+        private Dictionary<string, object>? _repositories;
         private bool _disposed;
 
         public UnitOfWork(AppDbContext context)
@@ -22,7 +21,7 @@ namespace RagChatbotSystem.DataAccess.Repositories
         {
             if (_repositories == null)
             {
-                _repositories = new Hashtable();
+                _repositories = new Dictionary<string, object>();
             }
 
             var type = typeof(TEntity).Name;
@@ -30,7 +29,8 @@ namespace RagChatbotSystem.DataAccess.Repositories
             if (!_repositories.ContainsKey(type))
             {
                 var repositoryType = typeof(GenericRepository<>);
-                var repositoryInstance = Activator.CreateInstance(repositoryType.MakeGenericType(typeof(TEntity)), _context);
+                var repositoryInstance = Activator.CreateInstance(repositoryType.MakeGenericType(typeof(TEntity)), _context)
+                    ?? throw new InvalidOperationException($"Could not create repository instance for type '{type}'.");
                 _repositories.Add(type, repositoryInstance);
             }
 

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RAG Chatbot</title>
+    <script type="importmap"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/RagChatbotSystem.Presentation.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm app-navbar">
+            <div class="container-fluid">
+                @if (User.IsInRole("Admin"))
+                {
+                    <a class="navbar-brand" asp-page="/Admin/Index">
+                        <span class="brand-mark">R</span>
+                        <span style="font-weight: 700; background: linear-gradient(135deg, var(--ink) 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">RAG Chatbot</span>
+                    </a>
+                }
+                else
+                {
+                    <a class="navbar-brand" asp-page="/Index">
+                        <span class="brand-mark">R</span>
+                        <span style="font-weight: 700; background: linear-gradient(135deg, var(--ink) 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">RAG Chatbot</span>
+                    </a>
+                }
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-danger fw-bold" asp-page="/Admin/Index">Admin</a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Index">Workspace</a>
+                                </li>
+                            }
+                        }
+                    </ul>
+                    <div class="d-flex align-items-center gap-3">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <div class="wallet-badge d-flex align-items-center gap-2">
+                                <span style="display:inline-block; width:8px; height:8px; background:var(--accent-strong); border-radius:50%; box-shadow:0 0 10px var(--accent-strong);"></span>
+                                <div class="text-start lh-sm">
+                                    <div class="fw-bold small" style="color: var(--ink);">@User.Identity.Name</div>
+                                    <div class="text-muted small text-uppercase" style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px;">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
+                                </div>
+                            </div>
+                            <form asp-page="/Account/Logout" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: rgba(255,255,255,0.15); color: var(--ink);">Sign Out</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a asp-page="/Account/Login" class="btn btn-outline-primary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: var(--accent-strong); color: var(--accent-strong);">Sign In</a>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </nav>
+    </header>
+    <div class="app-shell">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="app-footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <span class="brand-mark" style="width: 24px; height: 24px; font-size: 0.75rem; border-radius: 6px; box-shadow: none;">R</span>
+                <span style="font-size: 0.9rem;">&copy; 2026 RAG Chatbot System</span>
+            </div>
+            
+            <div class="footer-links">
+                <a href="#" class="footer-link">Docs</a>
+                <a href="#" class="footer-link">Security</a>
+                <a href="#" class="footer-link">Terms</a>
+                <div class="footer-status">
+                    <span class="footer-status-dot"></span>
+                    <span>System Operational</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+        <script src="~/js/realtime-notifications.js" asp-append-version="true"></script>
+    }
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+

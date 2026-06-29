@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,8 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
-using RagChatbotSystem.DataAccess.Repositories;
 using RagChatbotSystem.DataAccess.Models;
+using RagChatbotSystem.DataAccess.Repositories;
 
 namespace RagChatbotSystem.Business.Services
 {
@@ -21,9 +22,15 @@ namespace RagChatbotSystem.Business.Services
         private readonly IGenericRepository<Citation> _citationRepository;
         private readonly IRagApiClient _ragApiClient;
         private readonly ILlmService _llmService;
+        private readonly IRealtimeService _realtimeService;
         private readonly ILogger<ChatService> _logger;
 
-        public ChatService(IUnitOfWork unitOfWork, IRagApiClient ragApiClient, ILlmService llmService, ILogger<ChatService> logger)
+        public ChatService(
+            IUnitOfWork unitOfWork,
+            IRagApiClient ragApiClient,
+            ILlmService llmService,
+            IRealtimeService realtimeService,
+            ILogger<ChatService> logger)
         {
             _unitOfWork = unitOfWork;
             _sessionRepository = _unitOfWork.Repository<ChatSession>();
@@ -31,6 +38,7 @@ namespace RagChatbotSystem.Business.Services
             _citationRepository = _unitOfWork.Repository<Citation>();
             _ragApiClient = ragApiClient;
             _llmService = llmService;
+            _realtimeService = realtimeService;
             _logger = logger;
         }
 
@@ -58,6 +66,7 @@ namespace RagChatbotSystem.Business.Services
             };
 
             await _messageRepository.AddAsync(userMessage, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken); // Save first to ensure User message is persistent
 
             var retrieveResult = await _ragApiClient.RetrieveAsync(new RetrieveRequestDto
             {
@@ -101,14 +110,41 @@ namespace RagChatbotSystem.Business.Services
                 $"Câu hỏi: {userQuestion}\n" +
                 "Câu trả lời:";
 
-            var aiResponse = await _llmService.GenerateAnswerAsync(prompt);
+            var assistantMessageId = Guid.NewGuid();
+            var accumulatedText = new StringBuilder();
+
+            // Try to stream the response first
+            try
+            {
+                await foreach (var chunk in _llmService.GenerateAnswerStreamAsync(prompt).WithCancellation(cancellationToken))
+                {
+                    accumulatedText.Append(chunk);
+                    // Push each chunk in real-time via SignalR
+                    await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, chunk, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Streaming failed. Falling back to synchronous generation.");
+                // If stream fails, fallback to generate answer synchronously
+                var fallbackAnswer = await _llmService.GenerateAnswerAsync(prompt);
+                accumulatedText.Clear();
+                accumulatedText.Append(fallbackAnswer);
+                await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, fallbackAnswer, cancellationToken);
+            }
+
+            var finalContent = accumulatedText.ToString();
+            if (string.IsNullOrWhiteSpace(finalContent))
+            {
+                finalContent = "Xin lỗi, đã xảy ra lỗi trong quá trình tạo phản hồi.";
+            }
 
             var assistantMessage = new ChatMessage
             {
-                MessageId = Guid.NewGuid(),
+                MessageId = assistantMessageId,
                 SessionId = sessionId,
                 Role = "Assistant",
-                Content = aiResponse,
+                Content = finalContent,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -124,10 +160,22 @@ namespace RagChatbotSystem.Business.Services
             _sessionRepository.Update(session);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            // Fetch loaded citations for DTO formatting (e.g. includes Document name)
+            var savedCitations = await _citationRepository.GetQueryable()
+                .Include(c => c.Document)
+                .Where(c => c.MessageId == assistantMessageId)
+                .ToListAsync(cancellationToken);
+
+            var assistantMessageDto = ToDto(assistantMessage);
+            var citationDtos = savedCitations.Select(ToDto).ToList();
+
+            // Push completion payload via SignalR
+            await _realtimeService.SendChatCompleteAsync(sessionId, assistantMessageDto, citationDtos, cancellationToken);
+
             return new SendChatMessageResponse(
                 ToDto(userMessage),
-                ToDto(assistantMessage),
-                citations.Select(ToDto).ToList());
+                assistantMessageDto,
+                citationDtos);
         }
 
         private static List<Citation> BuildCitations(IReadOnlyList<DocumentModelDto> contextDocs, Guid messageId)
@@ -177,7 +225,7 @@ namespace RagChatbotSystem.Business.Services
                 citation.MessageId,
                 citation.ChunkId,
                 citation.DocumentId,
-                citation.Document?.FileName,
+                citation.Document?.FileName ?? citation.SourceLabel,
                 citation.PageNumber,
                 citation.QuoteText,
                 citation.SourceLabel,

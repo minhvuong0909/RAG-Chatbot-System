@@ -23,12 +23,14 @@ namespace RagChatbotSystem.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<User> _userRepository;
         private readonly IEmailService _emailService;
+        private readonly IRealtimeService _realtimeService;
 
-        public UserService(IUnitOfWork unitOfWork, IEmailService emailService)
+        public UserService(IUnitOfWork unitOfWork, IEmailService emailService, IRealtimeService realtimeService)
         {
             _unitOfWork = unitOfWork;
             _userRepository = _unitOfWork.Repository<User>();
             _emailService = emailService;
+            _realtimeService = realtimeService;
         }
 
         public async Task<IReadOnlyList<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -151,6 +153,14 @@ namespace RagChatbotSystem.Business.Services
             user.IsApproved = approve;
             _userRepository.Update(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            // Trigger UI update for the Admin & User list
+            await _realtimeService.TriggerUiUpdateAsync("User", userId, cancellationToken);
+
+            // Send a realtime notification to the user if they are online
+            var statusMessage = approve ? "đã được phê duyệt" : "đã bị khóa";
+            await _realtimeService.SendNotificationAsync(userId, $"Tài khoản của bạn {statusMessage} bởi Admin.", cancellationToken);
+
             return true;
         }
 

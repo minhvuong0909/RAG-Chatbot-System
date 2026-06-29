@@ -16,12 +16,14 @@ namespace RagChatbotSystem.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<Dataset> _datasetRepository;
         private readonly IGenericRepository<User> _userRepository;
+        private readonly IRealtimeService _realtimeService;
 
-        public DatasetService(IUnitOfWork unitOfWork)
+        public DatasetService(IUnitOfWork unitOfWork, IRealtimeService realtimeService)
         {
             _unitOfWork = unitOfWork;
             _datasetRepository = _unitOfWork.Repository<Dataset>();
             _userRepository = _unitOfWork.Repository<User>();
+            _realtimeService = realtimeService;
         }
 
         public async Task<IReadOnlyList<DatasetDto>> GetDatasetsAsync(Guid? createdBy = null, CancellationToken cancellationToken = default)
@@ -91,6 +93,8 @@ namespace RagChatbotSystem.Business.Services
             await _datasetRepository.AddAsync(dataset, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            await _realtimeService.TriggerUiUpdateAsync("Dataset", dataset.DatasetId, cancellationToken);
+
             return ToDto(dataset);
         }
 
@@ -109,6 +113,9 @@ namespace RagChatbotSystem.Business.Services
 
             _datasetRepository.Update(dataset);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _realtimeService.TriggerUiUpdateAsync("Dataset", datasetId, cancellationToken);
+
             return true;
         }
 
@@ -122,6 +129,9 @@ namespace RagChatbotSystem.Business.Services
 
             _datasetRepository.Delete(dataset);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _realtimeService.TriggerUiUpdateAsync("Dataset", datasetId, cancellationToken);
+
             return true;
         }
 
@@ -138,6 +148,9 @@ namespace RagChatbotSystem.Business.Services
 
             _datasetRepository.Update(dataset);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _realtimeService.TriggerUiUpdateAsync("Dataset", datasetId, cancellationToken);
+
             return true;
         }
 
@@ -158,6 +171,8 @@ namespace RagChatbotSystem.Business.Services
                 }, cancellationToken);
 
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                await _realtimeService.TriggerUiUpdateAsync("DatasetPermission", datasetId, cancellationToken);
             }
 
             return true;
@@ -176,6 +191,9 @@ namespace RagChatbotSystem.Business.Services
 
             permissionRepo.Delete(permission);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _realtimeService.TriggerUiUpdateAsync("DatasetPermission", datasetId, cancellationToken);
+
             return true;
         }
 
@@ -236,6 +254,9 @@ namespace RagChatbotSystem.Business.Services
             }, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _realtimeService.TriggerUiUpdateAsync("DatasetAssignment", datasetId, cancellationToken);
+
             return true;
         }
 
@@ -250,8 +271,12 @@ namespace RagChatbotSystem.Business.Services
                 return false;
             }
 
+            var teacherId = assignment.TeacherId;
             assignmentRepo.Delete(assignment);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await _realtimeService.TriggerUiUpdateAsync("DatasetAssignment", datasetId, cancellationToken);
+
             return true;
         }
 

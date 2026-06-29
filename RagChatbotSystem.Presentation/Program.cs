@@ -5,6 +5,8 @@ using Pgvector;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Business.Services;
 using RagChatbotSystem.Presentation.Services;
+using RagChatbotSystem.Presentation.Hubs;
+using RagChatbotSystem.Presentation.Realtime;
 using RagChatbotSystem.DataAccess.Repositories;
 
 namespace RagChatbotSystem.Presentation
@@ -15,7 +17,8 @@ namespace RagChatbotSystem.Presentation
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddRazorPages();
+            builder.Services.AddSignalR();
 
             // Đăng ký Cookie Authentication
             builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
@@ -79,6 +82,11 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
+            builder.Services.AddScoped<IQuestionSuggestionService, QuestionSuggestionService>();
+            builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
+            builder.Services.AddScoped<IRealtimeService, RealtimeService>();
+            builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
+            builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();
 
             var app = builder.Build();
 
@@ -172,7 +180,7 @@ namespace RagChatbotSystem.Presentation
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
+                app.UseExceptionHandler("/Error");
                 app.UseHsts();
             }
 
@@ -192,11 +200,10 @@ namespace RagChatbotSystem.Presentation
 
             app.UseAuthorization();
 
-            app.MapControllers();
-
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+            app.MapRazorPages();
+            app.MapHub<ChatHub>("/hubs/chat");
+            app.MapHub<DocumentHub>("/hubs/document");
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();
         }
