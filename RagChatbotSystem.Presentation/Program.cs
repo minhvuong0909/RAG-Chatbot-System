@@ -104,10 +104,10 @@ namespace RagChatbotSystem.Presentation
 
                     // Seed admin account nếu chưa có Admin nào trong hệ thống
                     // Đọc thông tin từ biến môi trường (cấu hình trong .env trên VPS)
-                    var adminEmail = builder.Configuration["AdminSeed:Email"]
-                        ?? Environment.GetEnvironmentVariable("ADMIN_EMAIL");
-                    var adminPassword = builder.Configuration["AdminSeed:Password"]
-                        ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL")
+                        ?? builder.Configuration["AdminSeed:Email"];
+                    var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+                        ?? builder.Configuration["AdminSeed:Password"];
                     var adminUsername = builder.Configuration["AdminSeed:Username"] ?? "admin";
                     var adminFullName = builder.Configuration["AdminSeed:FullName"] ?? "System Admin";
 
@@ -117,9 +117,9 @@ namespace RagChatbotSystem.Presentation
                         adminEmail = adminEmail.Trim().ToLowerInvariant();
                         adminUsername = adminUsername.Trim().ToLowerInvariant();
 
-                        var admin = db.Users.FirstOrDefault(u =>
-                            u.Email.ToLower() == adminEmail ||
-                            u.Username.ToLower() == adminUsername);
+                        var adminByEmail = db.Users.FirstOrDefault(u => u.Email.ToLower() == adminEmail);
+                        var adminByUsername = db.Users.FirstOrDefault(u => u.Username.ToLower() == adminUsername);
+                        var admin = adminByEmail ?? adminByUsername;
 
                         if (admin == null)
                         {
@@ -133,7 +133,7 @@ namespace RagChatbotSystem.Presentation
 
                         admin.FullName = adminFullName;
                         admin.Email = adminEmail;
-                        admin.Username = adminUsername;
+                        admin.Username = ResolveAvailableUsername(db, adminUsername, admin.UserId);
                         admin.PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword(adminPassword);
                         admin.Role = "Admin";
                         admin.IsApproved = true;
@@ -152,6 +152,7 @@ namespace RagChatbotSystem.Presentation
                             UserId = Guid.NewGuid(),
                             FullName = "Vuong Dev Admin",
                             Email = myAdminEmail,
+                            Username = ResolveAvailableUsername(db, "vuongdev-admin", Guid.Empty),
                             PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Vv123456!"),
                             Role = "Admin",
                             IsApproved = true,
@@ -206,6 +207,24 @@ namespace RagChatbotSystem.Presentation
             app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();
+        }
+
+        private static string ResolveAvailableUsername(AppDbContext db, string desiredUsername, Guid currentUserId)
+        {
+            var baseUsername = string.IsNullOrWhiteSpace(desiredUsername)
+                ? "admin"
+                : desiredUsername.Trim().ToLowerInvariant();
+
+            var username = baseUsername;
+            var suffix = 2;
+
+            while (db.Users.Any(u => u.UserId != currentUserId && u.Username.ToLower() == username))
+            {
+                username = $"{baseUsername}{suffix}";
+                suffix++;
+            }
+
+            return username;
         }
     }
 }
