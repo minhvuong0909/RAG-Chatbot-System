@@ -32,7 +32,7 @@
             <div class="alert alert-success mb-4" style="border-radius: 8px;">@Model.SuccessMessage</div>
         }
 
-        <div class="row g-4">
+        <div class="row g-4" data-dataset-list>
             @if (Model.Datasets.Count == 0)
             {
                 <div class="col-12 text-center py-5">
@@ -47,7 +47,7 @@
             {
                 @foreach (var ds in Model.Datasets)
                 {
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4" data-dataset-id="@ds.DatasetId">
                         <a href="?datasetId=@ds.DatasetId" class="card h-100 border-0 shadow-soft text-decoration-none subject-portal-card" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; display: flex; flex-direction: column; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
                             <div class="card-body p-4 d-flex flex-column h-100">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -843,12 +843,39 @@ else
             if ((action === "updated" || action === "approved" || action === "unapproved") && existingEntry) {
                 const subjectName = escapeHtml(payload.name || "A subject");
 
-                // Cập nhật tên, badge public, badge approval in-place (không reload)
-                const nameEl = existingEntry.querySelector(".dataset-name");
+                // Cập nhật tên môn học (Hỗ trợ cả Card Grid và Sidebar)
+                const nameEl = existingEntry.querySelector(".subject-card-title") || existingEntry.querySelector(".dataset-name");
                 if (nameEl && payload.name) {
-                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Private</span>' : "";
-                    const isApprovedIcon = !payload.isApproved ? '<span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Pending</span> ' : "";
-                    nameEl.innerHTML = `${isApprovedIcon}${escapeHtml(payload.name)}${isPublicIcon}`;
+                    nameEl.textContent = payload.name;
+                }
+
+                // Cập nhật mô tả (Chỉ cho Card Grid)
+                const descEl = existingEntry.querySelector(".card-body p");
+                if (descEl && payload.description) {
+                    descEl.textContent = payload.description;
+                }
+
+                // Cập nhật Pending Badge cho Card Grid
+                const headerEl = existingEntry.querySelector(".card-body > div");
+                if (headerEl) {
+                    let badgeEl = headerEl.querySelector(".badge");
+                    if (!payload.isApproved) {
+                        if (!badgeEl) {
+                            badgeEl = document.createElement("span");
+                            badgeEl.className = "badge";
+                            badgeEl.style.fontSize = "0.75rem";
+                            badgeEl.style.borderRadius = "4px";
+                            badgeEl.style.background = "var(--warning-soft)";
+                            badgeEl.style.color = "var(--warning)";
+                            badgeEl.style.fontWeight = "600";
+                            badgeEl.textContent = "Pending";
+                            headerEl.appendChild(badgeEl);
+                        }
+                    } else {
+                        if (badgeEl) {
+                            badgeEl.remove();
+                        }
+                    }
                 }
 
                 // Nếu đang xem chính dataset này → cũng highlight lại link
