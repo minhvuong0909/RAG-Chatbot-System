@@ -63,6 +63,7 @@ namespace RagChatbotSystem.Presentation.Pages
         public IReadOnlyList<ChatSessionDto> Sessions { get; set; } = Array.Empty<ChatSessionDto>();
         public IReadOnlyList<ChatMessageDto> MessageHistory { get; set; } = Array.Empty<ChatMessageDto>();
         public IReadOnlyList<CitationDto> Citations { get; set; } = Array.Empty<CitationDto>();
+        public HashSet<Guid> MessageIdsWithCitations { get; set; } = new();
         public string? ErrorMessage { get; set; }
         public string? SuccessMessage { get; set; }
 
@@ -134,6 +135,14 @@ namespace RagChatbotSystem.Presentation.Pages
                         }
 
                         MessageHistory = await _chatSessionService.GetMessageHistoryAsync(sessionId.Value, HttpContext.RequestAborted);
+                        foreach (var assistantMessage in MessageHistory.Where(m => string.Equals(m.Role, "Assistant", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            var messageCitations = await _chatSessionService.GetCitationsAsync(assistantMessage.MessageId, HttpContext.RequestAborted);
+                            if (messageCitations.Count > 0)
+                            {
+                                MessageIdsWithCitations.Add(assistantMessage.MessageId);
+                            }
+                        }
                     }
                 }
 
