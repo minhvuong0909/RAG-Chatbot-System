@@ -298,7 +298,7 @@ else
                             <div class="message-meta">
                                 @(msg.Role == "User" ? "You" : "Assistant") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
                             </div>
-                            @if (msg.Role == "Assistant")
+                            @if (msg.Role == "Assistant" && Model.MessageIdsWithCitations.Contains(msg.MessageId))
                             {
                                 <div class="citation-row" style="margin-top: 8px;">
                                     <button class="citation-chip view-sources-btn" 
@@ -330,7 +330,7 @@ else
                 <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
                 <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
                 <textarea name="question" rows="1" placeholder="Ask about this subject..." required id="chatQuestionTextarea"></textarea>
-                <button type="submit">Send</button>
+                <button type="submit" class="composer-send-btn">Send</button>
             </form>
         }
     </main>
@@ -342,6 +342,9 @@ else
                 <p class="eyebrow">References</p>
                 <h2>Sources</h2>
             </div>
+            <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
 
         @if (Model.SelectedMessageId.HasValue && Model.Citations.Count > 0)
@@ -521,6 +524,10 @@ else
     </style>
     <script>
         // Tá»± Ä‘á»™ng cuá»™n khung chat xuá»‘ng dÆ°á»›i cÃ¹ng khi cÃ³ tin nháº¯n má»›i hoáº·c táº£i trang
+        if (document.querySelector(".workspace")) {
+            window.scrollTo(0, 0);
+        }
+
         const chatStream = document.getElementById("chatStream");
         if (chatStream) {
             chatStream.scrollTop = chatStream.scrollHeight;
@@ -662,7 +669,7 @@ else
                     if (loadingBubble) loadingBubble.remove();
                     
                     // ThÃªm cÃ¢u tráº£ lá»i cá»§a AI vÃ o giao diá»‡n
-                    appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId);
+                    appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId, data.citations && data.citations.length > 0);
                     
                     // Hiá»ƒn thá»‹ ngay cÃ¡c nguá»“n trÃ­ch dáº«n tÆ°Æ¡ng á»©ng bÃªn cá»™t pháº£i
                     if (data.citations && data.citations.length > 0) {
@@ -937,7 +944,7 @@ else
             }
 
             appendRealtimeMessage(payload.userMessage);
-            appendRealtimeMessage(payload.assistantMessage);
+            appendRealtimeMessage(payload.assistantMessage, payload.citations && payload.citations.length > 0);
 
             if (payload.citations && payload.citations.length > 0) {
                 renderCitationsDirectly(payload.citations);
@@ -948,9 +955,14 @@ else
             }
         });
 
-        function appendMessage(role, content, time, messageId = null) {
+        function appendMessage(role, content, time, messageId = null, hasCitations = false) {
             if (messageId && document.querySelector(`[data-message-id="${messageId}"]`)) {
-                return document.querySelector(`[data-message-id="${messageId}"]`);
+                const existing = document.querySelector(`[data-message-id="${messageId}"]`);
+                const existingText = existing.querySelector(".message-bubble p");
+                if (existingText && content) {
+                    existingText.textContent = content;
+                }
+                return existing;
             }
 
             const emptyState = chatStream.querySelector(".empty-state");
@@ -963,7 +975,7 @@ else
             }
             
             let citationHtml = "";
-            if (role === "assistant" && messageId) {
+            if (role === "assistant" && messageId && hasCitations) {
                 citationHtml = `
                     <div class="citation-row" style="margin-top: 8px;">
                         <button class="citation-chip view-sources-btn" 
@@ -988,7 +1000,7 @@ else
             return messageDiv;
         }
 
-        function appendRealtimeMessage(message) {
+        function appendRealtimeMessage(message, hasCitations = false) {
             if (!message) return;
 
             const role = String(message.role || "").toLowerCase();
@@ -996,7 +1008,8 @@ else
                 role === "assistant" ? "assistant" : "user",
                 message.content || "",
                 formatVietnamTime(new Date(message.createdAt)),
-                message.messageId
+                message.messageId,
+                hasCitations
             );
         }
 
@@ -1039,6 +1052,8 @@ else
         });
 
         function fetchCitations(messageId) {
+            openReferencePanel();
+
             const referencePanel = document.querySelector(".reference-panel");
             if (!referencePanel) return;
 
@@ -1049,6 +1064,9 @@ else
                         <p class="eyebrow">References</p>
                         <h2>Sources</h2>
                     </div>
+                    <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
                 <div style="padding: 24px; text-align: center; color: var(--muted);">
                     <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">&#9203;</span>
@@ -1084,6 +1102,9 @@ else
                                 <p class="eyebrow">References</p>
                                 <h2>Sources</h2>
                             </div>
+                            <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
                         <div style="padding: 24px; text-align: center; color: var(--danger);">
                             <p style="font-size: 0.85rem; margin: 0;">Error loading sources: ${err.message}</p>
@@ -1093,6 +1114,8 @@ else
         }
 
         function renderCitationsDirectly(citations) {
+            openReferencePanel();
+
             const referencePanel = document.querySelector(".reference-panel");
             if (!referencePanel) return;
 
@@ -1102,6 +1125,9 @@ else
                         <p class="eyebrow">References</p>
                         <h2>Sources</h2>
                     </div>
+                    <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
             `;
 
@@ -1132,6 +1158,28 @@ else
         }
 
         // Logic chuyá»ƒn Ä‘á»•i Tab trÃªn thiáº¿t bá»‹ di Ä‘á»™ng
+        function openReferencePanel() {
+            const workspace = document.querySelector(".workspace");
+            if (workspace) {
+                workspace.classList.add("citations-active");
+            }
+        }
+
+        function closeReferencePanel() {
+            const workspace = document.querySelector(".workspace");
+            if (workspace) {
+                workspace.classList.remove("citations-active");
+            }
+        }
+
+        document.addEventListener("click", function(e) {
+            const closeBtn = e.target.closest("[data-close-references]");
+            if (closeBtn) {
+                e.preventDefault();
+                closeReferencePanel();
+            }
+        });
+
         const tabBtns = document.querySelectorAll(".mobile-tab-btn");
         const workspace = document.querySelector(".workspace");
         if (tabBtns && workspace) {
