@@ -80,4 +80,13 @@ public class DocumentProcessingTests
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             DocumentService.ExtractTextSegmentsAsync(stream, "png"));
     }
+
+    [Fact]
+    public async Task ExtractTextSegmentsAsync_RejectsMarkdownForMvp()
+    {
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("# markdown"));
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            DocumentService.ExtractTextSegmentsAsync(stream, "md"));
+    }
 }

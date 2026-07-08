@@ -32,7 +32,7 @@
             <div class="alert alert-success mb-4" style="border-radius: 8px;">@Model.SuccessMessage</div>
         }
 
-        <div class="row g-4">
+        <div class="row g-4" data-dataset-list>
             @if (Model.Datasets.Count == 0)
             {
                 <div class="col-12 text-center py-5">
@@ -47,7 +47,7 @@
             {
                 @foreach (var ds in Model.Datasets)
                 {
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4" data-dataset-id="@ds.DatasetId">
                         <a href="?datasetId=@ds.DatasetId" class="card h-100 border-0 shadow-soft text-decoration-none subject-portal-card" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; display: flex; flex-direction: column; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
                             <div class="card-body p-4 d-flex flex-column h-100">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -270,7 +270,7 @@ else
                 <div class="suggestion-list" data-suggestion-list>
                     <button type="button" class="suggestion-chip" data-question-template="Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?">Tom tat y chinh</button>
                     <button type="button" class="suggestion-chip" data-question-template="Nhung khai niem quan trong nhat trong tai lieu nay la gi?">Khai niem quan trong</button>
-                    <button type="button" class="suggestion-chip" data-question-template="Tao 5 cau hoi on tap tu cac tai lieu trong mon hoc nay?">Cau hoi on tap</button>
+                    <button type="button" class="suggestion-chip" data-question-template="Create 5 review questions from the documents in this subject.">Review questions</button>
                 </div>
                 <p class="suggestion-helper" data-suggestion-helper>Click a prompt to place it in the chat box.</p>
             </section>
@@ -298,7 +298,7 @@ else
                             <div class="message-meta">
                                 @(msg.Role == "User" ? "You" : "Assistant") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
                             </div>
-                            @if (msg.Role == "Assistant")
+                            @if (msg.Role == "Assistant" && Model.MessageIdsWithCitations.Contains(msg.MessageId))
                             {
                                 <div class="citation-row" style="margin-top: 8px;">
                                     <button class="citation-chip view-sources-btn" 
@@ -330,7 +330,7 @@ else
                 <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
                 <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
                 <textarea name="question" rows="1" placeholder="Ask about this subject..." required id="chatQuestionTextarea"></textarea>
-                <button type="submit">Send</button>
+                <button type="submit" class="composer-send-btn">Send</button>
             </form>
         }
     </main>
@@ -342,6 +342,9 @@ else
                 <p class="eyebrow">References</p>
                 <h2>Sources</h2>
             </div>
+            <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
 
         @if (Model.SelectedMessageId.HasValue && Model.Citations.Count > 0)
@@ -521,6 +524,10 @@ else
     </style>
     <script>
         // Tá»± Ä‘á»™ng cuá»™n khung chat xuá»‘ng dÆ°á»›i cÃ¹ng khi cÃ³ tin nháº¯n má»›i hoáº·c táº£i trang
+        if (document.querySelector(".workspace")) {
+            window.scrollTo(0, 0);
+        }
+
         const chatStream = document.getElementById("chatStream");
         if (chatStream) {
             chatStream.scrollTop = chatStream.scrollHeight;
@@ -662,7 +669,7 @@ else
                     if (loadingBubble) loadingBubble.remove();
                     
                     // ThÃªm cÃ¢u tráº£ lá»i cá»§a AI vÃ o giao diá»‡n
-                    appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId);
+                    appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId, data.citations && data.citations.length > 0);
                     
                     // Hiá»ƒn thá»‹ ngay cÃ¡c nguá»“n trÃ­ch dáº«n tÆ°Æ¡ng á»©ng bÃªn cá»™t pháº£i
                     if (data.citations && data.citations.length > 0) {
@@ -746,11 +753,11 @@ else
                 <div class="document-actions-row">
                     <span class="status-pill ${escapeHtml(status.toLowerCase())}" data-document-status>${escapeHtml(status)}</span>
                     <a class="document-preview-link" href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" title="View indexed chunks and metadata">Preview chunks</a>
-                    <form method="post" action="?handler=DeleteDocument" style="margin: 0; padding: 0;" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                    <form method="post" action="?handler=DeleteDocument" style="margin: 0; padding: 0;" onsubmit="return confirm('This document will be hidden from chat and removed from the RAG index. Continue?');">
                         ${antiForgeryInput()}
                         <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
                         <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
-                        <button class="document-delete-button" type="submit" title="Delete document">Delete</button>
+                        <button class="document-delete-button" type="submit" title="Hide document">Hide</button>
                     </form>
                 </div>
             `;
@@ -832,7 +839,7 @@ else
                         count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
                     }
 
-                    // Toast cho teacher/student biết có môn học mới
+                    // Notify teacher/student when a new subject becomes available.
                     if (window.showToastNotification) {
                         window.showToastNotification(`New subject added: "${escapeHtml(payload.name || "New Subject")}"`);
                     }
@@ -843,12 +850,39 @@ else
             if ((action === "updated" || action === "approved" || action === "unapproved") && existingEntry) {
                 const subjectName = escapeHtml(payload.name || "A subject");
 
-                // Cập nhật tên, badge public, badge approval in-place (không reload)
-                const nameEl = existingEntry.querySelector(".dataset-name");
+                // Cập nhật tên môn học (Hỗ trợ cả Card Grid và Sidebar)
+                const nameEl = existingEntry.querySelector(".subject-card-title") || existingEntry.querySelector(".dataset-name");
                 if (nameEl && payload.name) {
-                    const isPublicIcon = !payload.isPublic ? ' <span title="Private subject" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Private</span>' : "";
-                    const isApprovedIcon = !payload.isApproved ? '<span title="Pending approval" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Pending</span> ' : "";
-                    nameEl.innerHTML = `${isApprovedIcon}${escapeHtml(payload.name)}${isPublicIcon}`;
+                    nameEl.textContent = payload.name;
+                }
+
+                // Cập nhật mô tả (Chỉ cho Card Grid)
+                const descEl = existingEntry.querySelector(".card-body p");
+                if (descEl && payload.description) {
+                    descEl.textContent = payload.description;
+                }
+
+                // Cập nhật Pending Badge cho Card Grid
+                const headerEl = existingEntry.querySelector(".card-body > div");
+                if (headerEl) {
+                    let badgeEl = headerEl.querySelector(".badge");
+                    if (!payload.isApproved) {
+                        if (!badgeEl) {
+                            badgeEl = document.createElement("span");
+                            badgeEl.className = "badge";
+                            badgeEl.style.fontSize = "0.75rem";
+                            badgeEl.style.borderRadius = "4px";
+                            badgeEl.style.background = "var(--warning-soft)";
+                            badgeEl.style.color = "var(--warning)";
+                            badgeEl.style.fontWeight = "600";
+                            badgeEl.textContent = "Pending";
+                            headerEl.appendChild(badgeEl);
+                        }
+                    } else {
+                        if (badgeEl) {
+                            badgeEl.remove();
+                        }
+                    }
                 }
 
                 // Nếu đang xem chính dataset này → cũng highlight lại link
@@ -910,7 +944,7 @@ else
             }
 
             appendRealtimeMessage(payload.userMessage);
-            appendRealtimeMessage(payload.assistantMessage);
+            appendRealtimeMessage(payload.assistantMessage, payload.citations && payload.citations.length > 0);
 
             if (payload.citations && payload.citations.length > 0) {
                 renderCitationsDirectly(payload.citations);
@@ -921,9 +955,14 @@ else
             }
         });
 
-        function appendMessage(role, content, time, messageId = null) {
+        function appendMessage(role, content, time, messageId = null, hasCitations = false) {
             if (messageId && document.querySelector(`[data-message-id="${messageId}"]`)) {
-                return document.querySelector(`[data-message-id="${messageId}"]`);
+                const existing = document.querySelector(`[data-message-id="${messageId}"]`);
+                const existingText = existing.querySelector(".message-bubble p");
+                if (existingText && content) {
+                    existingText.textContent = content;
+                }
+                return existing;
             }
 
             const emptyState = chatStream.querySelector(".empty-state");
@@ -936,7 +975,7 @@ else
             }
             
             let citationHtml = "";
-            if (role === "assistant" && messageId) {
+            if (role === "assistant" && messageId && hasCitations) {
                 citationHtml = `
                     <div class="citation-row" style="margin-top: 8px;">
                         <button class="citation-chip view-sources-btn" 
@@ -961,7 +1000,7 @@ else
             return messageDiv;
         }
 
-        function appendRealtimeMessage(message) {
+        function appendRealtimeMessage(message, hasCitations = false) {
             if (!message) return;
 
             const role = String(message.role || "").toLowerCase();
@@ -969,7 +1008,8 @@ else
                 role === "assistant" ? "assistant" : "user",
                 message.content || "",
                 formatVietnamTime(new Date(message.createdAt)),
-                message.messageId
+                message.messageId,
+                hasCitations
             );
         }
 
@@ -1012,6 +1052,8 @@ else
         });
 
         function fetchCitations(messageId) {
+            openReferencePanel();
+
             const referencePanel = document.querySelector(".reference-panel");
             if (!referencePanel) return;
 
@@ -1022,6 +1064,9 @@ else
                         <p class="eyebrow">References</p>
                         <h2>Sources</h2>
                     </div>
+                    <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
                 <div style="padding: 24px; text-align: center; color: var(--muted);">
                     <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">&#9203;</span>
@@ -1057,6 +1102,9 @@ else
                                 <p class="eyebrow">References</p>
                                 <h2>Sources</h2>
                             </div>
+                            <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
                         <div style="padding: 24px; text-align: center; color: var(--danger);">
                             <p style="font-size: 0.85rem; margin: 0;">Error loading sources: ${err.message}</p>
@@ -1066,6 +1114,8 @@ else
         }
 
         function renderCitationsDirectly(citations) {
+            openReferencePanel();
+
             const referencePanel = document.querySelector(".reference-panel");
             if (!referencePanel) return;
 
@@ -1075,6 +1125,9 @@ else
                         <p class="eyebrow">References</p>
                         <h2>Sources</h2>
                     </div>
+                    <button type="button" class="reference-close-btn" aria-label="Close sources" data-close-references>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
             `;
 
@@ -1105,6 +1158,28 @@ else
         }
 
         // Logic chuyá»ƒn Ä‘á»•i Tab trÃªn thiáº¿t bá»‹ di Ä‘á»™ng
+        function openReferencePanel() {
+            const workspace = document.querySelector(".workspace");
+            if (workspace) {
+                workspace.classList.add("citations-active");
+            }
+        }
+
+        function closeReferencePanel() {
+            const workspace = document.querySelector(".workspace");
+            if (workspace) {
+                workspace.classList.remove("citations-active");
+            }
+        }
+
+        document.addEventListener("click", function(e) {
+            const closeBtn = e.target.closest("[data-close-references]");
+            if (closeBtn) {
+                e.preventDefault();
+                closeReferencePanel();
+            }
+        });
+
         const tabBtns = document.querySelectorAll(".mobile-tab-btn");
         const workspace = document.querySelector(".workspace");
         if (tabBtns && workspace) {
@@ -1129,7 +1204,7 @@ else
                 const file = fileInput.files[0];
                 const maxSize = 50 * 1024 * 1024; // 50MB
                 if (file.size > maxSize) {
-                    alert('Kích thước tệp vượt quá giới hạn cho phép (tối đa 50MB). Vui lòng chọn tệp nhỏ hơn.');
+                    alert('File size exceeds the allowed limit (max 50MB). Please choose a smaller file.');
                     fileInput.value = ""; // Reset
                     return;
                 }

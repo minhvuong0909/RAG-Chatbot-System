@@ -87,6 +87,7 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
             builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();
+            builder.Services.AddHostedService<RagIndexRehydrationService>();
 
             var app = builder.Build();
 
