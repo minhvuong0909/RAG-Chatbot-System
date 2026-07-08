@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
@@ -28,8 +29,51 @@ public class DocumentWorkflowTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.UploadDocumentAsync(datasetId, userId, duplicateFile, "copy.txt", duplicateFile.Length));
 
-        Assert.Contains("Tài liệu có nội dung tương tự đã tồn tại trong môn học", ex.Message);
+        Assert.Contains("This document already exists in this subject.", ex.Message);
         Assert.Equal(1, await context.Documents.CountAsync());
+    }
+
+    [Fact]
+    public async Task UploadDocumentAsync_BlocksSameFileNameUntilOverwriteConfirmed()
+    {
+        await using var context = CreateContext();
+        var datasetId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        SeedDatasetAndUser(context, datasetId, userId);
+
+        var service = CreateService(context);
+        var firstFile = NewTextStream("old content");
+        await service.UploadDocumentAsync(datasetId, userId, firstFile, "outline.txt", firstFile.Length);
+
+        var replacementFile = NewTextStream("new content");
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UploadDocumentAsync(datasetId, userId, replacementFile, "outline.txt", replacementFile.Length));
+
+        Assert.Contains("Confirm overwrite", ex.Message);
+        Assert.Equal(1, await context.Documents.CountAsync(d => !d.IsDeleted));
+    }
+
+    [Fact]
+    public async Task UploadDocumentAsync_OverwriteConfirmedSoftDeletesExistingFileName()
+    {
+        await using var context = CreateContext();
+        var datasetId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        SeedDatasetAndUser(context, datasetId, userId);
+
+        var service = CreateService(context);
+        var firstFile = NewTextStream("old content");
+        await service.UploadDocumentAsync(datasetId, userId, firstFile, "outline.txt", firstFile.Length);
+
+        var replacementFile = NewTextStream("new content");
+        var replacement = await service.UploadDocumentAsync(datasetId, userId, replacementFile, "outline.txt", replacementFile.Length, overwriteExistingFileName: true);
+        Assert.Equal(2, await context.Documents.CountAsync(d => !d.IsDeleted));
+
+        await service.ProcessUploadedDocumentAsync(replacement.DocumentId);
+
+        Assert.Equal(2, await context.Documents.CountAsync());
+        Assert.Equal(1, await context.Documents.CountAsync(d => d.IsDeleted));
+        Assert.Equal(1, await context.Documents.CountAsync(d => !d.IsDeleted && d.FileName == "outline.txt"));
     }
 
     [Fact]
@@ -99,6 +143,7 @@ public class DocumentWorkflowTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         return new TestAppDbContext(options);
@@ -194,7 +239,11 @@ public class DocumentWorkflowTests
 
         public Task<IndexResponseDto> IndexDocumentsAsync(IndexRequestDto request)
         {
-            return Task.FromResult(new IndexResponseDto { Message = "ok" });
+            return Task.FromResult(new IndexResponseDto
+            {
+                Message = "ok",
+                Embeddings = request.Documents.Select(_ => new float[384]).ToList()
+            });
         }
 
         public Task<RetrieveResponseDto> RetrieveAsync(RetrieveRequestDto request)

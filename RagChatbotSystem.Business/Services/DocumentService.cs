@@ -118,7 +118,7 @@ namespace RagChatbotSystem.Business.Services
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<DocumentDto> UploadDocumentAsync(Guid datasetId, Guid userId, Stream fileStream, string fileName, long fileSize, CancellationToken cancellationToken = default)
+        public async Task<DocumentDto> UploadDocumentAsync(Guid datasetId, Guid userId, Stream fileStream, string fileName, long fileSize, bool overwriteExistingFileName = false, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(fileName))
             {
@@ -165,14 +165,19 @@ namespace RagChatbotSystem.Business.Services
                 .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted, cancellationToken);
             if (duplicate != null)
             {
-                throw new InvalidOperationException($"Tài liệu có nội dung tương tự đã tồn tại trong môn học ('{duplicate.FileName}').");
+                throw new InvalidOperationException("This document already exists in this subject.");
             }
 
             var existingDoc = await _documentRepository.GetQueryable()
                 .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower() && !d.IsDeleted, cancellationToken);
             if (existingDoc != null)
             {
-                await DeleteDocumentAsync(existingDoc.DocumentId, userId, cancellationToken);
+                if (!overwriteExistingFileName)
+                {
+                    throw new InvalidOperationException("A document with this file name already exists. Confirm overwrite to replace it.");
+                }
+
+                // Do NOT delete the old document here. Wait until the new document is successfully processed.
             }
 
             bufferedStream.Position = 0;
@@ -235,6 +240,15 @@ namespace RagChatbotSystem.Business.Services
                 await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Embedding & indexing", 75, cancellationToken);
                 await IndexExistingDocumentAsync(document, chunks, cancellationToken);
 
+                var oldDocs = await _documentRepository.GetQueryable()
+                    .Where(d => d.DatasetId == document.DatasetId && d.FileName.ToLower() == document.FileName.ToLower() && !d.IsDeleted && d.DocumentId != document.DocumentId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var oldDoc in oldDocs)
+                {
+                    await DeleteDocumentAsync(oldDoc.DocumentId, document.UploadedBy, cancellationToken);
+                }
+
                 document.Status = "Completed";
                 document.ProcessError = null;
                 document.UpdatedAt = DateTime.UtcNow;
@@ -285,17 +299,17 @@ namespace RagChatbotSystem.Business.Services
                 }
 
                 var duplicate = await _documentRepository.GetQueryable()
-                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash);
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted);
                 if (duplicate != null)
                 {
-                    throw new InvalidOperationException($"Document with the same content already exists: '{duplicate.FileName}'.");
+                    throw new InvalidOperationException("This document already exists in this subject.");
                 }
 
                 var existingDoc = await _documentRepository.GetQueryable()
-                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower());
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower() && !d.IsDeleted);
                 if (existingDoc != null)
                 {
-                    await DeleteDocumentAsync(existingDoc.DocumentId, userId);
+                    throw new InvalidOperationException("A document with this file name already exists. Confirm overwrite to replace it.");
                 }
 
                 var now = DateTime.UtcNow;

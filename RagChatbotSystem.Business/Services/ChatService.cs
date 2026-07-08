@@ -69,7 +69,7 @@ namespace RagChatbotSystem.Business.Services
                 var isLimitExceeded = await _tokenUsageService.IsLimitExceededAsync(session.UserId, cancellationToken);
                 if (isLimitExceeded)
                 {
-                    throw new InvalidOperationException("Hạn mức sử dụng token hàng ngày của bạn đã vượt quá giới hạn. Vui lòng thử lại vào ngày mai hoặc liên hệ Admin.");
+                    throw new InvalidOperationException("Bạn đã dùng hết hạn mức AI hôm nay. Bạn vẫn có thể xem lịch sử chat và nguồn dẫn chứng. Vui lòng quay lại vào ngày mai hoặc liên hệ giảng viên/quản trị viên.");
                 }
             }
 
@@ -174,7 +174,7 @@ namespace RagChatbotSystem.Business.Services
                 var tokensUsed = _llmService.LastTotalTokens;
                 if (tokensUsed > 0)
                 {
-                    await _tokenUsageService.RecordUsageAsync(session.UserId, tokensUsed, cancellationToken);
+                    await _tokenUsageService.RecordUsageAsync(session.UserId, session.DatasetId, tokensUsed, cancellationToken);
                 }
             }
 

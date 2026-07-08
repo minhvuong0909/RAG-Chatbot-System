@@ -19,6 +19,7 @@ namespace RagChatbotSystem.Tests
         private readonly Mock<IGenericRepository<SystemSetting>> _mockSettingRepository;
         private readonly TokenUsageService _tokenUsageService;
         private readonly Guid _userId;
+        private readonly Guid _datasetId;
         private readonly List<UserTokenUsage> _usages;
         private readonly List<SystemSetting> _settings;
 
@@ -64,16 +65,18 @@ namespace RagChatbotSystem.Tests
 
             _tokenUsageService = new TokenUsageService(_mockUnitOfWork.Object);
             _userId = Guid.NewGuid();
+            _datasetId = Guid.NewGuid();
         }
 
         [Fact]
         public async Task RecordUsageAsync_SavesNewDailyUsageCorrectly()
         {
             // Act
-            await _tokenUsageService.RecordUsageAsync(_userId, 1000);
+            await _tokenUsageService.RecordUsageAsync(_userId, _datasetId, 1000);
 
             // Assert
             Assert.Single(_usages);
+            Assert.Equal(_datasetId, _usages[0].DatasetId);
             Assert.Equal(1000, _usages[0].TokenCount);
             Assert.Equal(1, _usages[0].QueryCount);
         }
@@ -82,8 +85,8 @@ namespace RagChatbotSystem.Tests
         public async Task RecordUsageAsync_AccumulatesDailyUsageCorrectly()
         {
             // Act
-            await _tokenUsageService.RecordUsageAsync(_userId, 1000);
-            await _tokenUsageService.RecordUsageAsync(_userId, 1500);
+            await _tokenUsageService.RecordUsageAsync(_userId, _datasetId, 1000);
+            await _tokenUsageService.RecordUsageAsync(_userId, _datasetId, 1500);
 
             // Assert
             Assert.Single(_usages);
@@ -106,7 +109,7 @@ namespace RagChatbotSystem.Tests
         {
             // Arrange
             _settings.Add(new SystemSetting { DailyTokenLimit = 5000 });
-            await _tokenUsageService.RecordUsageAsync(_userId, 4000);
+            await _tokenUsageService.RecordUsageAsync(_userId, _datasetId, 4000);
 
             // Act
             var exceeded = await _tokenUsageService.IsLimitExceededAsync(_userId);
@@ -120,7 +123,7 @@ namespace RagChatbotSystem.Tests
         {
             // Arrange
             _settings.Add(new SystemSetting { DailyTokenLimit = 5000 });
-            await _tokenUsageService.RecordUsageAsync(_userId, 5000);
+            await _tokenUsageService.RecordUsageAsync(_userId, _datasetId, 5000);
 
             // Act
             var exceeded = await _tokenUsageService.IsLimitExceededAsync(_userId);

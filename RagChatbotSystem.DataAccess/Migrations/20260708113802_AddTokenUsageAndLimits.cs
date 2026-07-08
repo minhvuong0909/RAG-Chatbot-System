@@ -24,6 +24,7 @@ namespace RagChatbotSystem.DataAccess.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DatasetId = table.Column<Guid>(type: "uuid", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     TokenCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     QueryCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
@@ -31,6 +32,12 @@ namespace RagChatbotSystem.DataAccess.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserTokenUsages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserTokenUsages_Datasets_DatasetId",
+                        column: x => x.DatasetId,
+                        principalTable: "Datasets",
+                        principalColumn: "DatasetId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UserTokenUsages_Users_UserId",
                         column: x => x.UserId,
@@ -47,9 +54,14 @@ namespace RagChatbotSystem.DataAccess.Migrations
                 value: 50000);
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserTokenUsages_UserId_Date",
+                name: "IX_UserTokenUsages_DatasetId",
                 table: "UserTokenUsages",
-                columns: new[] { "UserId", "Date" },
+                column: "DatasetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserTokenUsages_UserId_DatasetId_Date",
+                table: "UserTokenUsages",
+                columns: new[] { "UserId", "DatasetId", "Date" },
                 unique: true);
         }
 

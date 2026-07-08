@@ -6,11 +6,12 @@ namespace RagChatbotSystem.DataAccess.Models
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public Guid DatasetId { get; set; }
         public DateTime Date { get; set; }
         public int TokenCount { get; set; }
         public int QueryCount { get; set; }
 
-        // Navigation property
         public virtual User User { get; set; } = null!;
+        public virtual Dataset Dataset { get; set; } = null!;
     }
 }
