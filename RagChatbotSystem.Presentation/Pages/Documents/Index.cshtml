@@ -1,4 +1,5 @@
 @page
+@using System.Text.Encodings.Web
 @model RagChatbotSystem.Presentation.Pages.Documents.IndexModel
 @{
     ViewData["Title"] = "Manage Documents";
@@ -49,6 +50,7 @@
                     <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="upload-doc-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.DatasetId" />
+                        <input type="hidden" id="overwrite-existing-file-name" name="overwriteExistingFileName" value="false" />
                         
                         <div id="upload-dropzone" 
                              style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; padding: 40px 20px; background: var(--surface-muted); text-align: center; cursor: pointer; transition: all 0.2s;" 
@@ -163,8 +165,15 @@
     <script>
         const uploadDocForm = document.getElementById("upload-doc-form");
         const fileUploadInput = document.getElementById("file-upload");
+        const overwriteExistingFileNameInput = document.getElementById("overwrite-existing-file-name");
         const dropzone = document.getElementById("upload-dropzone");
         const processingOverlay = document.getElementById("documentProcessingOverlay");
+        const existingDocumentNames = new Set([
+            @foreach (var doc in Model.Documents)
+            {
+                @: "@JavaScriptEncoder.Default.Encode(doc.FileName.ToLowerInvariant())",
+            }
+        ]);
 
         // Show overlay on form submit
         if (uploadDocForm && processingOverlay) {
@@ -176,6 +185,23 @@
         // Trigger submit when file is selected
         function triggerUpload() {
             if (fileUploadInput.files.length > 0 && uploadDocForm) {
+                const selectedFileName = fileUploadInput.files[0].name.toLowerCase();
+                if (overwriteExistingFileNameInput) {
+                    overwriteExistingFileNameInput.value = "false";
+                }
+
+                if (existingDocumentNames.has(selectedFileName)) {
+                    const confirmed = confirm("A document with this file name already exists. Do you want to replace it? The current document will be hidden from chat and kept as trace data.");
+                    if (!confirmed) {
+                        fileUploadInput.value = "";
+                        return;
+                    }
+
+                    if (overwriteExistingFileNameInput) {
+                        overwriteExistingFileNameInput.value = "true";
+                    }
+                }
+
                 // Change UI state inside dropzone to loading
                 document.getElementById("upload-idle-state").style.display = "none";
                 document.getElementById("upload-loading-state").style.display = "flex";

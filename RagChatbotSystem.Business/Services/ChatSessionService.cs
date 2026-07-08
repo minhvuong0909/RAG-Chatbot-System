@@ -71,6 +71,21 @@ namespace RagChatbotSystem.Business.Services
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<ChatSessionDto?> GetSessionForMessageAsync(Guid messageId, CancellationToken cancellationToken = default)
+        {
+            return await _messageRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(m => m.MessageId == messageId)
+                .Select(m => new ChatSessionDto(
+                    m.ChatSession.SessionId,
+                    m.ChatSession.UserId,
+                    m.ChatSession.DatasetId,
+                    m.ChatSession.Title,
+                    m.ChatSession.StartedAt,
+                    m.ChatSession.UpdatedAt))
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         public async Task<ChatSessionDto> CreateSessionAsync(CreateChatSessionRequest request, CancellationToken cancellationToken = default)
         {
             var userExists = await _userRepository.GetQueryable().AnyAsync(u => u.UserId == request.UserId, cancellationToken);

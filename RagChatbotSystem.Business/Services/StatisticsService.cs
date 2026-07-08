@@ -16,8 +16,6 @@ namespace RagChatbotSystem.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<UserTokenUsage> _tokenUsageRepository;
         private readonly IGenericRepository<Citation> _citationRepository;
-        private readonly IGenericRepository<User> _userRepository;
-
         private static readonly TimeZoneInfo VietnamTz = ResolveVietnamTimeZone();
 
         public StatisticsService(IUnitOfWork unitOfWork)
@@ -25,7 +23,6 @@ namespace RagChatbotSystem.Business.Services
             _unitOfWork = unitOfWork;
             _tokenUsageRepository = _unitOfWork.Repository<UserTokenUsage>();
             _citationRepository = _unitOfWork.Repository<Citation>();
-            _userRepository = _unitOfWork.Repository<User>();
         }
 
         private static TimeZoneInfo ResolveVietnamTimeZone()
@@ -44,21 +41,23 @@ namespace RagChatbotSystem.Business.Services
             return DateTime.SpecifyKind(vietnamNow.Date, DateTimeKind.Utc);
         }
 
-        public async Task<TokenUsageSummaryDto> GetTokenUsageSummaryAsync(CancellationToken cancellationToken = default)
+        public async Task<TokenUsageSummaryDto> GetTokenUsageSummaryAsync(IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
         {
             var today = GetTodayInVietnam();
-            
-            var totalTokensUsed = await _tokenUsageRepository.GetQueryable()
+
+            var query = ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds);
+
+            var totalTokensUsed = await query
                 .SumAsync(u => u.TokenCount, cancellationToken);
-                
-            var totalQueriesCount = await _tokenUsageRepository.GetQueryable()
+
+            var totalQueriesCount = await query
                 .SumAsync(u => u.QueryCount, cancellationToken);
 
-            var todayTokensUsed = await _tokenUsageRepository.GetQueryable()
+            var todayTokensUsed = await query
                 .Where(u => u.Date == today)
                 .SumAsync(u => u.TokenCount, cancellationToken);
 
-            var activeUsersCount = await _tokenUsageRepository.GetQueryable()
+            var activeUsersCount = await query
                 .Select(u => u.UserId)
                 .Distinct()
                 .CountAsync(cancellationToken);
@@ -72,11 +71,11 @@ namespace RagChatbotSystem.Business.Services
             };
         }
 
-        public async Task<List<DailyTokenUsageDto>> GetDailyTokenUsageAsync(int days = 7, CancellationToken cancellationToken = default)
+        public async Task<List<DailyTokenUsageDto>> GetDailyTokenUsageAsync(int days = 7, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
         {
             var cutoffDate = GetTodayInVietnam().AddDays(-days + 1);
 
-            var rawUsage = await _tokenUsageRepository.GetQueryable()
+            var rawUsage = await ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds)
                 .Where(u => u.Date >= cutoffDate)
                 .GroupBy(u => u.Date)
                 .Select(g => new
@@ -107,11 +106,16 @@ namespace RagChatbotSystem.Business.Services
             return result;
         }
 
-        public async Task<List<TopDocumentUsageDto>> GetTopDocumentsUsageAsync(int limit = 5, CancellationToken cancellationToken = default)
+        public async Task<List<TopDocumentUsageDto>> GetTopDocumentsUsageAsync(int limit = 5, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
         {
-            return await _citationRepository.GetQueryable()
-                .Include(c => c.Document)
-                .ThenInclude(d => d.Dataset)
+            var query = _citationRepository.GetQueryable();
+
+            if (datasetIds != null)
+            {
+                query = query.Where(c => datasetIds.Contains(c.Document.DatasetId));
+            }
+
+            return await query
                 .GroupBy(c => new { c.DocumentId, c.Document.FileName, DatasetName = c.Document.Dataset.Name })
                 .Select(g => new TopDocumentUsageDto
                 {
@@ -125,9 +129,9 @@ namespace RagChatbotSystem.Business.Services
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<UserTokenUsageLeaderboardDto>> GetUserLeaderboardAsync(int limit = 10, CancellationToken cancellationToken = default)
+        public async Task<List<UserTokenUsageLeaderboardDto>> GetUserLeaderboardAsync(int limit = 10, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
         {
-            return await _tokenUsageRepository.GetQueryable()
+            return await ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds)
                 .Include(u => u.User)
                 .GroupBy(u => new { u.UserId, u.User.FullName, u.User.Email, u.User.Role })
                 .Select(g => new UserTokenUsageLeaderboardDto
@@ -142,6 +146,15 @@ namespace RagChatbotSystem.Business.Services
                 .OrderByDescending(u => u.TotalTokensUsed)
                 .Take(limit)
                 .ToListAsync(cancellationToken);
+        }
+
+        private static IQueryable<UserTokenUsage> ApplyDatasetScope(
+            IQueryable<UserTokenUsage> query,
+            IReadOnlyCollection<Guid>? datasetIds)
+        {
+            return datasetIds != null
+                ? query.Where(u => datasetIds.Contains(u.DatasetId))
+                : query;
         }
     }
 }

@@ -346,8 +346,35 @@ namespace RagChatbotSystem.Presentation.Pages
 
         public async Task<IActionResult> OnGetGetCitationsAsync(Guid messageId)
         {
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
+            {
+                return new UnauthorizedResult();
+            }
+
             try
             {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                }
+
+                var session = await _chatSessionService.GetSessionForMessageAsync(messageId, HttpContext.RequestAborted);
+                if (session == null)
+                {
+                    return NotFound();
+                }
+
+                var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
+                var canAccessDataset = allowedDatasets.Any(d => d.DatasetId == session.DatasetId);
+                var hasAccess = role == "Admin"
+                    || (role == "Teacher" && canAccessDataset)
+                    || (session.UserId == currentUserId && canAccessDataset);
+                if (!hasAccess)
+                {
+                    return new ForbidResult();
+                }
+
                 var citations = await _chatSessionService.GetCitationsAsync(messageId, HttpContext.RequestAborted);
                 return new JsonResult(citations.Select(c => new
                 {

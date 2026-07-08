@@ -9,15 +9,26 @@
         <div>
             <p class="eyebrow">Administration</p>
             <h1>Statistical Reports</h1>
-            <p class="helper-text">Monitor system activity, daily token consumption, document citations, and student engagement.</p>
+            <p class="helper-text">Monitor activity, daily token consumption, document citations, and student engagement. Scope: @Model.ReportScopeLabel.</p>
         </div>
     </header>
 
     <nav class="admin-tabs" aria-label="Admin sections">
-        <a asp-page="/Admin/Index">Overview</a>
-        <a asp-page="/Admin/Datasets/Index">Subjects</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Index">Overview</a>
+            <a asp-page="/Admin/Datasets/Index">Subjects</a>
+        }
+        else
+        {
+            <a asp-page="/Index">Workspace</a>
+            <a asp-page="/Datasets/Index">Subjects</a>
+        }
         <a class="active" asp-page="/Admin/Reports" aria-current="page">Reports</a>
-        <a asp-page="/Admin/Settings">Settings</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Settings">Settings</a>
+        }
     </nav>
 
     <!-- Stats Summary Cards Grid -->

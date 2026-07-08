@@ -46,24 +46,21 @@ namespace RagChatbotSystem.Business.Services
         {
             var today = GetTodayInVietnam();
             var usages = await _tokenUsageRepository.FindAsync(u => u.UserId == userId && u.Date == today, cancellationToken);
-            var usage = usages.Count > 0 ? usages[0] : null;
-
-            if (usage == null)
-            {
-                return false;
-            }
+            var usedTokens = usages.Sum(u => u.TokenCount);
 
             var settingsList = await _settingRepository.GetAllAsync(cancellationToken);
             var settings = settingsList.Count > 0 ? settingsList[0] : null;
             var limit = settings?.DailyTokenLimit ?? 50000;
 
-            return usage.TokenCount >= limit;
+            return limit > 0 && usedTokens >= limit;
         }
 
-        public async Task RecordUsageAsync(Guid userId, int tokens, CancellationToken cancellationToken = default)
+        public async Task RecordUsageAsync(Guid userId, Guid datasetId, int tokens, CancellationToken cancellationToken = default)
         {
             var today = GetTodayInVietnam();
-            var usages = await _tokenUsageRepository.FindAsync(u => u.UserId == userId && u.Date == today, cancellationToken);
+            var usages = await _tokenUsageRepository.FindAsync(
+                u => u.UserId == userId && u.DatasetId == datasetId && u.Date == today,
+                cancellationToken);
             var usage = usages.Count > 0 ? usages[0] : null;
 
             if (usage == null)
@@ -72,6 +69,7 @@ namespace RagChatbotSystem.Business.Services
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
+                    DatasetId = datasetId,
                     Date = today,
                     TokenCount = tokens,
                     QueryCount = 1
@@ -91,8 +89,7 @@ namespace RagChatbotSystem.Business.Services
         {
             var today = GetTodayInVietnam();
             var usages = await _tokenUsageRepository.FindAsync(u => u.UserId == userId && u.Date == today, cancellationToken);
-            var usage = usages.Count > 0 ? usages[0] : null;
-            return usage?.TokenCount ?? 0;
+            return usages.Sum(u => u.TokenCount);
         }
     }
 }

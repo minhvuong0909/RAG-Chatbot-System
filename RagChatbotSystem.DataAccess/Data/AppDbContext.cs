@@ -223,12 +223,17 @@ namespace RagChatbotSystem.DataAccess.Data
                 entity.Property(e => e.Date).IsRequired();
                 entity.Property(e => e.TokenCount).IsRequired().HasDefaultValue(0);
                 entity.Property(e => e.QueryCount).IsRequired().HasDefaultValue(0);
-                
-                entity.HasIndex(e => new { e.UserId, e.Date }).IsUnique();
+
+                entity.HasIndex(e => new { e.UserId, e.DatasetId, e.Date }).IsUnique();
 
                 entity.HasOne(utu => utu.User)
                     .WithMany()
                     .HasForeignKey(utu => utu.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(utu => utu.Dataset)
+                    .WithMany()
+                    .HasForeignKey(utu => utu.DatasetId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
