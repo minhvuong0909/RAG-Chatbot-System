@@ -27,6 +27,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
         {
             Input.ChunkSize = await _systemSettingService.GetChunkSizeAsync();
             Input.ChunkOverlap = await _systemSettingService.GetChunkOverlapAsync();
+            Input.DailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync();
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -45,7 +46,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
 
             try
             {
-                await _systemSettingService.UpdateSettingsAsync(Input.ChunkSize, Input.ChunkOverlap);
+                await _systemSettingService.UpdateSettingsAsync(Input.ChunkSize, Input.ChunkOverlap, Input.DailyTokenLimit);
                 SuccessMessage = "Settings updated successfully.";
             }
             catch (System.ArgumentOutOfRangeException ex)
@@ -67,6 +68,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             [Range(100, 350, ErrorMessage = "Chunk Overlap must be between 100 and 350.")]
             [Display(Name = "Chunk Overlap")]
             public int ChunkOverlap { get; set; } = 100;
+
+            [Required]
+            [Range(1000, 10000000, ErrorMessage = "Daily Token Limit must be between 1,000 and 10,000,000.")]
+            [Display(Name = "Daily Token Limit")]
+            public int DailyTokenLimit { get; set; } = 50000;
         }
     }
 }

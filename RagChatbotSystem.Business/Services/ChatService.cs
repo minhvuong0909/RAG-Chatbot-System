@@ -23,6 +23,7 @@ namespace RagChatbotSystem.Business.Services
         private readonly IRagApiClient _ragApiClient;
         private readonly ILlmService _llmService;
         private readonly IRealtimeService _realtimeService;
+        private readonly ITokenUsageService _tokenUsageService;
         private readonly ILogger<ChatService> _logger;
 
         public ChatService(
@@ -30,6 +31,7 @@ namespace RagChatbotSystem.Business.Services
             IRagApiClient ragApiClient,
             ILlmService llmService,
             IRealtimeService realtimeService,
+            ITokenUsageService tokenUsageService,
             ILogger<ChatService> logger)
         {
             _unitOfWork = unitOfWork;
@@ -39,6 +41,7 @@ namespace RagChatbotSystem.Business.Services
             _ragApiClient = ragApiClient;
             _llmService = llmService;
             _realtimeService = realtimeService;
+            _tokenUsageService = tokenUsageService;
             _logger = logger;
         }
 
@@ -49,10 +52,21 @@ namespace RagChatbotSystem.Business.Services
                 throw new ArgumentException("Question is required.", nameof(userQuestion));
             }
 
-            var session = await _sessionRepository.GetQueryable().FirstOrDefaultAsync(s => s.SessionId == sessionId, cancellationToken);
+            var session = await _sessionRepository.GetQueryable()
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.SessionId == sessionId, cancellationToken);
             if (session == null)
             {
                 throw new ArgumentException("Chat session not found.");
+            }
+
+            if (session.User != null && string.Equals(session.User.Role, "Student", StringComparison.OrdinalIgnoreCase))
+            {
+                var isLimitExceeded = await _tokenUsageService.IsLimitExceededAsync(session.UserId, cancellationToken);
+                if (isLimitExceeded)
+                {
+                    throw new InvalidOperationException("Hạn mức sử dụng token hàng ngày của bạn đã vượt quá giới hạn. Vui lòng thử lại vào ngày mai hoặc liên hệ Admin.");
+                }
             }
 
             var now = DateTime.UtcNow;
@@ -141,6 +155,13 @@ namespace RagChatbotSystem.Business.Services
                     accumulatedText.Clear();
                     accumulatedText.Append(fallbackAnswer);
                     await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, fallbackAnswer, cancellationToken);
+                }
+
+                // Record token usage
+                var tokensUsed = _llmService.LastTotalTokens;
+                if (tokensUsed > 0)
+                {
+                    await _tokenUsageService.RecordUsageAsync(session.UserId, tokensUsed, cancellationToken);
                 }
             }
 

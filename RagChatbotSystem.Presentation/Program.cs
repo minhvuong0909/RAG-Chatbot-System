@@ -84,6 +84,8 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
             builder.Services.AddScoped<IQuestionSuggestionService, QuestionSuggestionService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
+            builder.Services.AddScoped<ITokenUsageService, TokenUsageService>();
+            builder.Services.AddScoped<IStatisticsService, StatisticsService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
             builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();
@@ -161,6 +163,25 @@ namespace RagChatbotSystem.Presentation
                         db.Users.Add(myAdmin);
                         db.SaveChanges();
                         startupLogger.LogInformation("Admin account seeded successfully for {Email}.", myAdminEmail);
+                    }
+
+                    var studentEmail = "student@example.com";
+                    if (!db.Users.Any(u => u.Email == studentEmail))
+                    {
+                        var studentUser = new RagChatbotSystem.DataAccess.Models.User
+                        {
+                            UserId = Guid.NewGuid(),
+                            FullName = "Demo Student",
+                            Email = studentEmail,
+                            Username = "student",
+                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Student@123456"),
+                            Role = "Student",
+                            IsApproved = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.Users.Add(studentUser);
+                        db.SaveChanges();
+                        startupLogger.LogInformation("Student account seeded successfully for {Email}.", studentEmail);
                     }
                 }
                 catch (Exception ex)

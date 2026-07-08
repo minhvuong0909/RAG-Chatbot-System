@@ -1,0 +1,566 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.ReportsModel
+@{
+    ViewData["Title"] = "Statistical Reports";
+}
+
+<section class="admin-page" data-reports-page>
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Statistical Reports</h1>
+            <p class="helper-text">Monitor system activity, daily token consumption, document citations, and student engagement.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Admin sections">
+        <a asp-page="/Admin/Index">Overview</a>
+        <a asp-page="/Admin/Datasets/Index">Subjects</a>
+        <a class="active" asp-page="/Admin/Reports" aria-current="page">Reports</a>
+        <a asp-page="/Admin/Settings">Settings</a>
+    </nav>
+
+    <!-- Stats Summary Cards Grid -->
+    <div class="stats-summary-grid">
+        <div class="stats-card">
+            <div class="stats-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            </div>
+            <div class="stats-card-content">
+                <span class="stats-card-label">Total Tokens Used</span>
+                <span class="stats-card-value">@Model.Summary.TotalTokensUsed.ToString("N0")</span>
+            </div>
+        </div>
+
+        <div class="stats-card highlight-card">
+            <div class="stats-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div class="stats-card-content">
+                <span class="stats-card-label">Today's Tokens</span>
+                <span class="stats-card-value">@Model.Summary.TodayTokensUsed.ToString("N0")</span>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <div class="stats-card-content">
+                <span class="stats-card-label">Total Queries</span>
+                <span class="stats-card-value">@Model.Summary.TotalQueriesCount.ToString("N0")</span>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stats-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="stats-card-content">
+                <span class="stats-card-label">Active Users</span>
+                <span class="stats-card-value">@Model.Summary.ActiveUsersCount.ToString("N0")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart and Top Documents Grid -->
+    <div class="reports-main-grid">
+        <section class="admin-section chart-section">
+            <div class="section-title">
+                <h2>Daily Token Consumption</h2>
+                <span class="helper-text">Past 7 days usage trend</span>
+            </div>
+            <div class="chart-container" style="position: relative; height: 320px; width: 100%;">
+                <canvas id="tokenUsageChart"></canvas>
+            </div>
+        </section>
+
+        <section class="admin-section top-docs-section">
+            <div class="section-title">
+                <h2>Most Queried Documents</h2>
+                <span>Top Citations</span>
+            </div>
+            <div class="top-docs-list">
+                @if (Model.TopDocuments.Count == 0)
+                {
+                    <div class="empty-state">
+                        <p class="text-muted">No documents have been cited yet.</p>
+                    </div>
+                }
+                else
+                {
+                    int maxCitations = Model.TopDocuments.First().CitationCount;
+                    @foreach (var doc in Model.TopDocuments)
+                    {
+                        double percentage = maxCitations > 0 ? (double)doc.CitationCount / maxCitations * 100 : 0;
+                        <div class="doc-stat-item">
+                            <div class="doc-info">
+                                <div class="doc-name">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    <span>@doc.DocumentName</span>
+                                </div>
+                                <span class="doc-subject">@doc.DatasetName</span>
+                            </div>
+                            <div class="doc-bar-container">
+                                <div class="doc-progress-bar" style="width: @percentage%"></div>
+                                <span class="doc-count">@doc.CitationCount citations</span>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </section>
+    </div>
+
+    <!-- Leaderboard Grid Section -->
+    <section class="admin-section leaderboard-section" style="margin-top: 2rem;">
+        <div class="section-title">
+            <h2>User Activity Leaderboard</h2>
+            <span>Top 10 Consumers</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Queries Count</th>
+                        <th class="text-end">Tokens Consumed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Leaderboard.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No active student logs found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int rank = 1;
+                        @foreach (var user in Model.Leaderboard)
+                        {
+                            <tr>
+                                <td>
+                                    @if (rank == 1)
+                                    {
+                                        <span class="badge rank-badge gold">🥇 1</span>
+                                    }
+                                    else if (rank == 2)
+                                    {
+                                        <span class="badge rank-badge silver">🥈 2</span>
+                                    }
+                                    else if (rank == 3)
+                                    {
+                                        <span class="badge rank-badge bronze">🥉 3</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rank-number">#@rank</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar">
+                                            @user.FullName.Substring(0, Math.Min(2, user.FullName.Length)).ToUpper()
+                                        </div>
+                                        <div class="user-meta">
+                                            <strong>@user.FullName</strong>
+                                            <small>@user.Email</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-pill @(user.Role == "Admin" ? "dataset-approved-pill" : (user.Role == "Teacher" ? "processing" : "secondary"))">
+                                        @user.Role
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>@user.TotalQueriesCount.ToString("N0")</strong> queries
+                                </td>
+                                <td class="text-end">
+                                    <strong class="token-highlighter">@user.TotalTokensUsed.ToString("N0")</strong> tokens
+                                </td>
+                            </tr>
+                            rank++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+<!-- Include Premium Styling for Reports Dashboard -->
+<style>
+    /* Stats Summary Grid */
+    .stats-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stats-card {
+        background: var(--bg-card, #ffffff);
+        border: 1px solid var(--border, #e2e8f0);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .stats-card.highlight-card {
+        border-color: var(--primary, #3b82f6);
+        background: linear-gradient(135deg, var(--bg-card, #ffffff) 0%, rgba(59, 130, 246, 0.03) 100%);
+    }
+
+    .stats-card-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--primary, #3b82f6);
+        border-radius: 10px;
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stats-card.highlight-card .stats-card-icon {
+        background: var(--primary, #3b82f6);
+        color: #ffffff;
+    }
+
+    .stats-card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .stats-card-label {
+        font-size: 0.85rem;
+        color: var(--text-muted, #64748b);
+        font-weight: 500;
+    }
+
+    .stats-card-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text, #0f172a);
+    }
+
+    /* Reports Main Grid Layout */
+    .reports-main-grid {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 2rem;
+    }
+
+    @@media (max-width: 1024px) {
+        .reports-main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Top Documents List Styling */
+    .top-docs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 0.5rem 0;
+    }
+
+    .doc-stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .doc-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .doc-name {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text, #1e293b);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .doc-name svg {
+        color: var(--primary, #3b82f6);
+        flex-shrink: 0;
+    }
+
+    .doc-subject {
+        font-size: 0.8rem;
+        background: rgba(59, 130, 246, 0.08);
+        color: var(--primary, #3b82f6);
+        padding: 0.15rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .doc-bar-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .doc-progress-bar {
+        height: 8px;
+        background: linear-gradient(90deg, var(--primary, #3b82f6) 0%, #60a5fa 100%);
+        border-radius: 4px;
+        transition: width 1s ease-in-out;
+    }
+
+    .doc-count {
+        font-size: 0.85rem;
+        color: var(--text-muted, #64748b);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    /* Leaderboard User cells */
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: -0.5px;
+    }
+
+    .user-meta {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-meta strong {
+        color: var(--text, #0f172a);
+    }
+
+    .user-meta small {
+        color: var(--text-muted, #64748b);
+    }
+
+    .token-highlighter {
+        color: var(--primary, #3b82f6);
+        font-size: 1.05rem;
+    }
+
+    /* Rank badges */
+    .rank-badge {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-weight: 700;
+        display: inline-block;
+    }
+
+    .rank-badge.gold {
+        background: rgba(245, 158, 11, 0.15);
+        color: #d97706;
+    }
+
+    .rank-badge.silver {
+        background: rgba(100, 116, 139, 0.15);
+        color: #475569;
+    }
+
+    .rank-badge.bronze {
+        background: rgba(180, 83, 9, 0.15);
+        color: #b45309;
+    }
+
+    .rank-number {
+        font-weight: 700;
+        color: var(--text-muted, #94a3b8);
+        padding-left: 0.5rem;
+    }
+</style>
+
+@section Scripts {
+    <!-- Include Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const ctx = document.getElementById('tokenUsageChart').getContext('2d');
+            
+            // Prepare data from model
+            const dates = [];
+            const tokenCounts = [];
+            const queryCounts = [];
+
+            @foreach (var item in Model.DailyUsage)
+            {
+                <text>
+                    dates.push('@item.FormattedDate');
+                    tokenCounts.push(@item.TokenCount);
+                    queryCounts.push(@item.QueryCount);
+                </text>
+            }
+
+            // Create beautiful gradient area under line
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Tokens Used',
+                            data: tokenCounts,
+                            borderColor: '#3b82f6',
+                            borderWidth: 3,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Queries Count',
+                            data: queryCounts,
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            backgroundColor: 'transparent',
+                            fill: false,
+                            tension: 0.35,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    family: 'Inter, system-ui, sans-serif',
+                                    weight: '600'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 13,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                family: 'Inter, system-ui, sans-serif',
+                                size: 12
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter, system-ui, sans-serif',
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Tokens Count',
+                                font: {
+                                    family: 'Inter, system-ui, sans-serif',
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter, system-ui, sans-serif',
+                                    size: 11
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Queries Count',
+                                font: {
+                                    family: 'Inter, system-ui, sans-serif',
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false // only want grid lines for left y-axis
+                            },
+                            ticks: {
+                                font: {
+                                    family: 'Inter, system-ui, sans-serif',
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

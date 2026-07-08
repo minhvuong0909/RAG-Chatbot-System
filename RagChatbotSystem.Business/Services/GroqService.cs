@@ -17,6 +17,14 @@ namespace RagChatbotSystem.Business.Services
         private readonly string _model;
         private readonly bool _hasApiKey;
 
+        private int _lastPromptTokens;
+        private int _lastCompletionTokens;
+        private int _lastTotalTokens;
+
+        public int LastPromptTokens => _lastPromptTokens;
+        public int LastCompletionTokens => _lastCompletionTokens;
+        public int LastTotalTokens => _lastTotalTokens;
+
         public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger)
         {
             _httpClient = httpClient;
@@ -28,9 +36,17 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<string> GenerateAnswerAsync(string prompt)
         {
+            _lastPromptTokens = 0;
+            _lastCompletionTokens = 0;
+            _lastTotalTokens = 0;
+
             if (!_hasApiKey)
             {
-                return ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
+                var mockAnswer = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = mockAnswer.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                return mockAnswer;
             }
 
             try
@@ -51,21 +67,48 @@ namespace RagChatbotSystem.Business.Services
                 response.EnsureSuccessStatusCode();
 
                 var result = await response.Content.ReadFromJsonAsync<GroqResponse>();
-                return result?.Choices?[0]?.Message?.Content ?? "Không nhận được phản hồi từ Groq.";
+                var content = result?.Choices?[0]?.Message?.Content ?? "Không nhận được phản hồi từ Groq.";
+
+                if (result?.Usage != null)
+                {
+                    _lastPromptTokens = result.Usage.PromptTokens;
+                    _lastCompletionTokens = result.Usage.CompletionTokens;
+                    _lastTotalTokens = result.Usage.TotalTokens;
+                }
+                else
+                {
+                    _lastPromptTokens = prompt.Length / 4;
+                    _lastCompletionTokens = content.Length / 4;
+                    _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                }
+
+                return content;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Groq API call failed.");
                 
-                return ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
+                var fallbackAnswer = ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = fallbackAnswer.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                return fallbackAnswer;
             }
         }
 
         public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
         {
+            _lastPromptTokens = 0;
+            _lastCompletionTokens = 0;
+            _lastTotalTokens = 0;
+
             if (!_hasApiKey)
             {
                 var mockText = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = mockText.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+
                 var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var word in words)
                 {
@@ -76,6 +119,7 @@ namespace RagChatbotSystem.Business.Services
             }
 
             HttpResponseMessage? response = null;
+            var accumulatedText = new System.Text.StringBuilder();
             try
             {
                 var payload = new
@@ -86,7 +130,8 @@ namespace RagChatbotSystem.Business.Services
                         new { role = "user", content = prompt }
                     },
                     temperature = 0.5,
-                    stream = true
+                    stream = true,
+                    stream_options = new { include_usage = true }
                 };
 
                 // Groq API client config has BaseAddress
@@ -120,12 +165,28 @@ namespace RagChatbotSystem.Business.Services
                             // Ignore json deserialization issues on stream progress
                         }
 
+                        if (chunk?.Usage != null)
+                        {
+                            _lastPromptTokens = chunk.Usage.PromptTokens;
+                            _lastCompletionTokens = chunk.Usage.CompletionTokens;
+                            _lastTotalTokens = chunk.Usage.TotalTokens;
+                        }
+
                         var text = chunk?.Choices?[0]?.Delta?.Content;
                         if (!string.IsNullOrEmpty(text))
                         {
+                            accumulatedText.Append(text);
                             yield return text;
                         }
                     }
+                }
+
+                // Fallback if Usage wasn't provided in the stream
+                if (_lastTotalTokens == 0)
+                {
+                    _lastPromptTokens = prompt.Length / 4;
+                    _lastCompletionTokens = accumulatedText.Length / 4;
+                    _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 }
             }
             finally
@@ -197,10 +258,25 @@ namespace RagChatbotSystem.Business.Services
         }
 
         // Các class để deserialize phản hồi từ Groq API
+        private class UsageInfo
+        {
+            [JsonPropertyName("prompt_tokens")]
+            public int PromptTokens { get; set; }
+
+            [JsonPropertyName("completion_tokens")]
+            public int CompletionTokens { get; set; }
+
+            [JsonPropertyName("total_tokens")]
+            public int TotalTokens { get; set; }
+        }
+
         private class GroqResponse
         {
             [JsonPropertyName("choices")]
             public Choice[]? Choices { get; set; }
+
+            [JsonPropertyName("usage")]
+            public UsageInfo? Usage { get; set; }
         }
 
         private class Choice
@@ -220,6 +296,9 @@ namespace RagChatbotSystem.Business.Services
         {
             [JsonPropertyName("choices")]
             public ChoiceStream[]? Choices { get; set; }
+
+            [JsonPropertyName("usage")]
+            public UsageInfo? Usage { get; set; }
         }
 
         private class ChoiceStream
