@@ -60,7 +60,7 @@
                                 </div>
                                 <span style="font-weight: 700; font-size: 1rem; color: var(--ink);">Drag &amp; drop files here</span>
                                 <span style="font-size: 0.8rem; color: var(--muted); margin-top: 6px;">or click to select from folder</span>
-                                <span style="font-size: 0.7rem; color: var(--muted); margin-top: 12px;">Supports PDF, TXT, MD, DOCX (Max 50MB)</span>
+                                <span style="font-size: 0.7rem; color: var(--muted); margin-top: 12px;">Supports PDF, TXT, DOCX (Max 50MB)</span>
                             </div>
 
                             <div id="upload-loading-state" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0;">
@@ -69,7 +69,7 @@
                                 <span style="font-size: 0.75rem; color: var(--muted); margin-top: 6px;">AI is extracting text, splitting chunks, and creating embeddings.</span>
                             </div>
                             
-                            <input id="file-upload" name="file" type="file" required style="display: none;" onchange="triggerUpload();" />
+                            <input id="file-upload" name="file" type="file" accept=".pdf,.txt,.docx" required style="display: none;" onchange="triggerUpload();" />
                         </div>
                     </form>
                 </div>
@@ -120,13 +120,19 @@
                                     </div>
                                     
                                     <!-- Actions Row -->
+                                    @if (!string.IsNullOrWhiteSpace(doc.ProcessError))
+                                    {
+                                        <div class="alert alert-warning py-2 px-3 mb-3" style="border-radius: 8px; font-size: 0.8rem;">
+                                            @doc.ProcessError
+                                        </div>
+                                    }
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="text-muted small" style="font-size: 0.75rem;">Uploaded: @doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
                                         <div class="d-flex gap-2">
                                             <a asp-page="/Documents/Preview" asp-route-documentId="@doc.DocumentId" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
                                                 Preview Chunks
                                             </a>
-                                            <form method="post" asp-page-handler="DeleteDocument" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                                            <form method="post" asp-page-handler="DeleteDocument" class="d-inline" onsubmit="return confirm('This document will be deleted from chat and removed from the RAG index. Continue?');">
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="datasetId" value="@Model.DatasetId" />
                                                 <input type="hidden" name="documentId" value="@doc.DocumentId" />
@@ -260,7 +266,7 @@
                         <a href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
                             Preview Chunks
                         </a>
-                        <form method="post" action="?handler=DeleteDocument" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                        <form method="post" action="?handler=DeleteDocument" class="d-inline" onsubmit="return confirm('This document will be deleted from chat and removed from the RAG index. Continue?');">
                             ${antiForgeryInput()}
                             <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
                             <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />

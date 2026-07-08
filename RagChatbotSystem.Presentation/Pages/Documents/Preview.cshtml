@@ -14,10 +14,24 @@
         <a asp-page="/Documents/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-outline-secondary">Back</a>
     </div>
 
+    @if (Model.Preview.IsDeleted)
+    {
+        <div class="alert alert-secondary">
+            This document has been hidden from chat and is kept only for traceability.
+        </div>
+    }
+
     @if (!Model.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
     {
         <div class="alert alert-warning">
             This document is not completed yet. Current status: <strong>@Model.Status</strong>.
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Preview.ProcessError))
+    {
+        <div class="alert alert-warning">
+            @Model.Preview.ProcessError
         </div>
     }
 
@@ -36,7 +50,7 @@
                 <div class="d-flex flex-column gap-3">
                     @foreach (var chunk in Model.Chunks)
                     {
-                        <div class="p-3" style="border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted);">
+                        <div id="chunk-@chunk.ChunkId" data-chunk-id="@chunk.ChunkId" data-chunk-index="@chunk.ChunkIndex" class="p-3" style="border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted);">
                             <div class="d-flex justify-content-between gap-3 mb-2">
                                 <strong>Chunk #@chunk.ChunkIndex</strong>
                                 <span class="text-muted small">Page @chunk.PageNumber</span>

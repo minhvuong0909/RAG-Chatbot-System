@@ -111,7 +111,11 @@ namespace RagChatbotSystem.DataAccess.Data
                 entity.HasKey(e => e.DocumentId);
                 entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.FileType).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FileHash).HasMaxLength(64);
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ProcessError).HasMaxLength(2000);
+                entity.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
+                entity.HasIndex(e => new { e.DatasetId, e.FileHash });
 
                 entity.HasOne(d => d.Dataset)
                     .WithMany(ds => ds.Documents)

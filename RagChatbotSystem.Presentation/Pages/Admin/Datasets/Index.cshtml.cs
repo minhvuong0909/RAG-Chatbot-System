@@ -119,19 +119,26 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
             try
             {
                 var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-                var deleted = await _datasetService.DeleteDatasetAsync(id, cancellationToken);
-                if (!deleted)
+                if (dataset == null)
                 {
                     ErrorMessage = "Subject was not found.";
                     return RedirectToPage();
                 }
 
-                SuccessMessage = "Subject deleted successfully.";
-                await _realtimeNotifier.DatasetChangedAsync("deleted", dataset, cancellationToken);
+                var archived = await _datasetService.ApproveDatasetAsync(id, approve: false, cancellationToken);
+                if (!archived)
+                {
+                    ErrorMessage = "Subject was not found.";
+                    return RedirectToPage();
+                }
+
+                var archivedDataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
+                SuccessMessage = "Subject archived successfully. Existing documents and traces were kept.";
+                await _realtimeNotifier.DatasetChangedAsync("unapproved", archivedDataset ?? dataset, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to delete dataset {DatasetId}.", id);
+                _logger.LogError(ex, "Failed to archive dataset {DatasetId}.", id);
                 ErrorMessage = ex.Message;
             }
 

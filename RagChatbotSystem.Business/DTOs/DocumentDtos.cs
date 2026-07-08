@@ -13,7 +13,11 @@ namespace RagChatbotSystem.Business.DTOs
         Guid UploadedBy,
         DateTime UploadedAt,
         DateTime UpdatedAt,
-        string? FileHash);
+        string? FileHash = null,
+        string? ProcessError = null,
+        bool IsDeleted = false,
+        DateTime? DeletedAt = null,
+        Guid? DeletedBy = null);
 
     public sealed record StoredFileDto(
         string OriginalFileName,
@@ -46,5 +50,8 @@ namespace RagChatbotSystem.Business.DTOs
         long FileSize,
         string Status,
         DateTime UploadedAt,
+        string? ProcessError,
+        bool IsDeleted,
+        DateTime? DeletedAt,
         IReadOnlyList<DocumentChunkPreviewDto> Chunks);
 }
