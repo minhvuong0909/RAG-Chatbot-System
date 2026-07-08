@@ -20,6 +20,8 @@ namespace RagChatbotSystem.Business.Services
         private readonly IGenericRepository<ChatSession> _sessionRepository;
         private readonly IGenericRepository<ChatMessage> _messageRepository;
         private readonly IGenericRepository<Citation> _citationRepository;
+        private readonly IGenericRepository<Document> _documentRepository;
+        private readonly IGenericRepository<Chunk> _chunkRepository;
         private readonly IRagApiClient _ragApiClient;
         private readonly ILlmService _llmService;
         private readonly IRealtimeService _realtimeService;
@@ -36,6 +38,8 @@ namespace RagChatbotSystem.Business.Services
             _sessionRepository = _unitOfWork.Repository<ChatSession>();
             _messageRepository = _unitOfWork.Repository<ChatMessage>();
             _citationRepository = _unitOfWork.Repository<Citation>();
+            _documentRepository = _unitOfWork.Repository<Document>();
+            _chunkRepository = _unitOfWork.Repository<Chunk>();
             _ragApiClient = ragApiClient;
             _llmService = llmService;
             _realtimeService = realtimeService;
@@ -53,6 +57,15 @@ namespace RagChatbotSystem.Business.Services
             if (session == null)
             {
                 throw new ArgumentException("Chat session not found.");
+            }
+
+            var hasCompletedDocuments = await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .AnyAsync(d => d.DatasetId == session.DatasetId && !d.IsDeleted && d.Status == "Completed", cancellationToken);
+
+            if (!hasCompletedDocuments)
+            {
+                throw new InvalidOperationException("This subject does not have any indexed documents yet. Please upload a document before starting chat.");
             }
 
             var now = DateTime.UtcNow;
@@ -96,8 +109,9 @@ namespace RagChatbotSystem.Business.Services
             var contextDocs = (retrieveResult.Documents ?? Enumerable.Empty<DocumentModelDto>())
                 .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
                     && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
-                .Take(3)
                 .ToList();
+
+            contextDocs = await FilterActiveCompletedContextAsync(contextDocs, session.DatasetId, cancellationToken);
 
             var contextText = contextDocs.Count > 0
                 ? string.Join("\n\n---\n\n", contextDocs.Select(d => d.PageContent))
@@ -178,6 +192,43 @@ namespace RagChatbotSystem.Business.Services
                 citationDtos);
         }
 
+        private async Task<List<DocumentModelDto>> FilterActiveCompletedContextAsync(
+            IReadOnlyList<DocumentModelDto> candidates,
+            Guid datasetId,
+            CancellationToken cancellationToken)
+        {
+            var chunkIds = candidates
+                .Select(doc => TryGetGuidMetadata(doc.Metadata, "id"))
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToHashSet();
+
+            if (chunkIds.Count == 0)
+            {
+                return new List<DocumentModelDto>();
+            }
+
+            var activeChunkIds = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(c => chunkIds.Contains(c.ChunkId) &&
+                    c.DatasetId == datasetId &&
+                    !c.Document.IsDeleted &&
+                    c.Document.Status == "Completed")
+                .Select(c => c.ChunkId)
+                .ToListAsync(cancellationToken);
+
+            var activeSet = activeChunkIds.ToHashSet();
+
+            return candidates
+                .Where(doc =>
+                {
+                    var chunkId = TryGetGuidMetadata(doc.Metadata, "id");
+                    return chunkId.HasValue && activeSet.Contains(chunkId.Value);
+                })
+                .Take(3)
+                .ToList();
+        }
+
         private static List<Citation> BuildCitations(IReadOnlyList<DocumentModelDto> contextDocs, Guid messageId)
         {
             var citations = new List<Citation>(contextDocs.Count);
@@ -255,6 +306,13 @@ namespace RagChatbotSystem.Business.Services
             }
 
             return int.TryParse(value.ToString(), out var parsed) ? parsed : null;
+        }
+
+        private static Guid? TryGetGuidMetadata(Dictionary<string, object> metadata, string key)
+        {
+            return metadata.TryGetValue(key, out var value) && Guid.TryParse(value?.ToString(), out var parsed)
+                ? parsed
+                : null;
         }
 
         private static string? GetMetadataString(Dictionary<string, object> metadata, string key)

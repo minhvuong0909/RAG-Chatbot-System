@@ -140,11 +140,11 @@
                                                     </a>
                                                     @if (User.IsInRole("Admin") || ds.CreatedBy == Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? ""))
                                                     {
-                                                        <form method="post" asp-page-handler="DeleteDataset" class="d-inline" onsubmit="return confirm('Delete this subject and all documents inside it?');">
+                                                        <form method="post" asp-page-handler="DeleteDataset" class="d-inline" onsubmit="return confirm('Archive this subject? Existing documents, chunks, and trace data will be kept.');">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="id" value="@ds.DatasetId" />
                                                             <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
-                                                                Delete
+                                                                Archive
                                                             </button>
                                                         </form>
                                                     }

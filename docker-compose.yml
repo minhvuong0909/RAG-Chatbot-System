@@ -46,6 +46,12 @@ services:
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Groq__ApiKey=${GROQ_API_KEY:-}
       - OpenAi__ApiKey=${OPENAI_API_KEY:-}
+      - Smtp__Host=${SMTP_HOST:-smtp.gmail.com}
+      - Smtp__Port=${SMTP_PORT:-587}
+      - Smtp__Username=${SMTP_USERNAME:-anhnguyenphamnhat@gmail.com}
+      - Smtp__Password=${SMTP_PASSWORD:-mogvxcwaniaahygl}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL:-anhnguyenphamnhat@gmail.com}
+      - Smtp__FromName=${SMTP_FROM_NAME:-RAG Chatbot System}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - ASPNETCORE_ENVIRONMENT=Production

@@ -343,7 +343,7 @@ namespace RagChatbotSystem.Business.Services
                 dataset.CreatedBy,
                 dataset.CreatedAt,
                 dataset.UpdatedAt,
-                dataset.Documents.Count,
+                dataset.Documents.Count(d => !d.IsDeleted),
                 dataset.IsPublic,
                 dataset.IsApproved,
                 dataset.TeacherSubjectAssignment?.TeacherId,

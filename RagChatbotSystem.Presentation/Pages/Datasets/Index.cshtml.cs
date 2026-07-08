@@ -111,18 +111,19 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
 
             try
             {
-                var deleted = await _datasetService.DeleteDatasetAsync(id, HttpContext.RequestAborted);
-                if (deleted)
+                var archived = await _datasetService.ApproveDatasetAsync(id, approve: false, HttpContext.RequestAborted);
+                if (archived)
                 {
-                    await _realtimeNotifier.DatasetChangedAsync("deleted", dataset, HttpContext.RequestAborted);
+                    var archivedDataset = await _datasetService.GetDatasetAsync(id, HttpContext.RequestAborted);
+                    await _realtimeNotifier.DatasetChangedAsync("unapproved", archivedDataset ?? dataset, HttpContext.RequestAborted);
                 }
 
-                return RedirectToPage("/Datasets/Index", new { success = deleted ? "Subject deleted successfully." : "Subject was not found." });
+                return RedirectToPage("/Datasets/Index", new { success = archived ? "Subject archived successfully. Existing documents and traces were kept." : "Subject was not found." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to delete dataset {DatasetId}.", id);
-                return RedirectToPage("/Datasets/Index", new { error = $"Delete subject failed: {ex.Message}" });
+                _logger.LogError(ex, "Failed to archive dataset {DatasetId}.", id);
+                return RedirectToPage("/Datasets/Index", new { error = $"Archive subject failed: {ex.Message}" });
             }
         }
 

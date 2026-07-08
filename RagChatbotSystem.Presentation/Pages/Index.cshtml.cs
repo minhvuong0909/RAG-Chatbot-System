@@ -145,7 +145,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading workspace data.");
-                ErrorMessage = $"Loi he thong: {ex.Message}";
+                ErrorMessage = $"System error: {ex.Message}";
             }
 
             return Page();
@@ -172,17 +172,22 @@ namespace RagChatbotSystem.Presentation.Pages
                     return RedirectToPage("/Index", new { error = "You do not have access to this subject." });
                 }
 
+                if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
+                {
+                    return RedirectToPage("/Index", new { datasetId, error = "This subject does not have any indexed documents yet. Please upload a document before starting chat." });
+                }
+
                 var session = await _chatSessionService.CreateSessionAsync(
                     new CreateChatSessionRequest(currentUserId, datasetId, title),
                     HttpContext.RequestAborted);
 
                 await _realtimeNotifier.ChatSessionChangedAsync(currentUserId, datasetId, session, "created", HttpContext.RequestAborted);
 
-                return RedirectToPage("/Index", new { datasetId, sessionId = session.SessionId, success = "Khoi tao phong chat moi thanh cong!" });
+                return RedirectToPage("/Index", new { datasetId, sessionId = session.SessionId, success = "Chat session created successfully." });
             }
             catch (Exception ex)
             {
-                return RedirectToPage("/Index", new { datasetId, error = $"Khong the khoi tao phong chat: {ex.Message}" });
+                return RedirectToPage("/Index", new { datasetId, error = $"Could not create chat session: {ex.Message}" });
             }
         }
 
@@ -190,7 +195,7 @@ namespace RagChatbotSystem.Presentation.Pages
         {
             if (string.IsNullOrWhiteSpace(question))
             {
-                return RedirectToPage("/Index", new { datasetId, sessionId, error = "Cau hoi khong duoc de trong." });
+                return RedirectToPage("/Index", new { datasetId, sessionId, error = "Question cannot be empty." });
             }
 
             if (!TryGetCurrentUser(out var currentUserId, out _))
@@ -208,7 +213,17 @@ namespace RagChatbotSystem.Presentation.Pages
                 var session = await _chatSessionService.GetSessionAsync(sessionId, HttpContext.RequestAborted);
                 if (session == null || session.UserId != currentUserId)
                 {
-                    return RedirectToPage("/Index", new { datasetId, error = "Ban khong co quyen gui tin nhan trong phong chat nay." });
+                    return RedirectToPage("/Index", new { datasetId, error = "You do not have permission to send messages in this chat session." });
+                }
+
+                if (session.DatasetId != datasetId)
+                {
+                    return RedirectToPage("/Index", new { datasetId, error = "This chat session does not belong to the selected subject." });
+                }
+
+                if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
+                {
+                    return RedirectToPage("/Index", new { datasetId, sessionId, error = "This subject does not have any indexed documents yet. Please upload a document before starting chat." });
                 }
 
                 var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
@@ -218,7 +233,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send chat message.");
-                return RedirectToPage("/Index", new { datasetId, sessionId, error = $"Loi gui tin nhan: {ex.Message}" });
+                return RedirectToPage("/Index", new { datasetId, sessionId, error = $"Send message failed: {ex.Message}" });
             }
         }
 
@@ -226,7 +241,7 @@ namespace RagChatbotSystem.Presentation.Pages
         {
             if (string.IsNullOrWhiteSpace(question))
             {
-                return new BadRequestObjectResult(new { error = "Cau hoi khong duoc de trong." });
+                return new BadRequestObjectResult(new { error = "Question cannot be empty." });
             }
 
             if (!TryGetCurrentUser(out var currentUserId, out _))
@@ -246,6 +261,16 @@ namespace RagChatbotSystem.Presentation.Pages
                 if (session == null || session.UserId != currentUserId)
                 {
                     return new ForbidResult();
+                }
+
+                if (session.DatasetId != datasetId)
+                {
+                    return new BadRequestObjectResult(new { error = "This chat session does not belong to the selected subject." });
+                }
+
+                if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
+                {
+                    return new BadRequestObjectResult(new { error = "This subject does not have any indexed documents yet. Please upload a document before starting chat." });
                 }
 
                 var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
@@ -337,7 +362,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to generate suggested questions for dataset {DatasetId}.", datasetId);
-                return new ObjectResult(new { error = $"Khong the tao cau hoi goi y: {ex.Message}" }) { StatusCode = StatusCodes.Status500InternalServerError };
+                return new ObjectResult(new { error = $"Could not generate suggested questions: {ex.Message}" }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
