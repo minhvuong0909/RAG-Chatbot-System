@@ -12,6 +12,7 @@ namespace RagChatbotSystem.DataAccess.Models
         public string FileType { get; set; } = string.Empty;
         public long FileSize { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? FileHash { get; set; }
         public Guid UploadedBy { get; set; }
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

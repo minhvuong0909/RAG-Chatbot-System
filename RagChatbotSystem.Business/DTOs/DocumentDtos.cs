@@ -12,7 +12,8 @@ namespace RagChatbotSystem.Business.DTOs
         string Status,
         Guid UploadedBy,
         DateTime UploadedAt,
-        DateTime UpdatedAt);
+        DateTime UpdatedAt,
+        string? FileHash);
 
     public sealed record StoredFileDto(
         string OriginalFileName,

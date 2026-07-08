@@ -77,7 +77,8 @@ namespace RagChatbotSystem.Business.Services
                     d.Status,
                     d.UploadedBy,
                     d.UploadedAt,
-                    d.UpdatedAt))
+                    d.UpdatedAt,
+                    d.FileHash))
                 .ToListAsync(cancellationToken);
         }
 
@@ -96,7 +97,8 @@ namespace RagChatbotSystem.Business.Services
                     d.Status,
                     d.UploadedBy,
                     d.UploadedAt,
-                    d.UpdatedAt))
+                    d.UpdatedAt,
+                    d.FileHash))
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
@@ -125,6 +127,32 @@ namespace RagChatbotSystem.Business.Services
             }
 
             var storedFile = await _fileStorageService.SaveDatasetFileAsync(datasetId, fileStream, fileName, fileSize, cancellationToken);
+
+            string fileHash;
+            using (var savedStream = await _fileStorageService.OpenReadAsync(storedFile.RelativePath, cancellationToken))
+            {
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    var hashBytes = await sha256.ComputeHashAsync(savedStream, cancellationToken);
+                    fileHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                }
+            }
+
+            var duplicate = await _documentRepository.GetQueryable()
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash, cancellationToken);
+            if (duplicate != null)
+            {
+                await _fileStorageService.DeleteFileIfExistsAsync(storedFile.RelativePath);
+                throw new InvalidOperationException($"Tài liệu có nội dung tương tự đã tồn tại trong môn học ('{duplicate.FileName}').");
+            }
+
+            var existingDoc = await _documentRepository.GetQueryable()
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == storedFile.OriginalFileName.ToLower(), cancellationToken);
+            if (existingDoc != null)
+            {
+                await DeleteDocumentAsync(existingDoc.DocumentId);
+            }
+
             var now = DateTime.UtcNow;
 
             var document = new Document
@@ -136,6 +164,7 @@ namespace RagChatbotSystem.Business.Services
                 FileType = storedFile.FileType,
                 FileSize = storedFile.FileSize,
                 Status = "Uploaded",
+                FileHash = fileHash,
                 UploadedBy = userId,
                 UploadedAt = now,
                 UpdatedAt = now
@@ -219,6 +248,28 @@ namespace RagChatbotSystem.Business.Services
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                string fileHash;
+                byte[] textBytes = Encoding.UTF8.GetBytes(rawText);
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    byte[] hashBytes = sha256.ComputeHash(textBytes);
+                    fileHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                }
+
+                var duplicate = await _documentRepository.GetQueryable()
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash);
+                if (duplicate != null)
+                {
+                    throw new InvalidOperationException($"Document with the same content already exists: '{duplicate.FileName}'.");
+                }
+
+                var existingDoc = await _documentRepository.GetQueryable()
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower());
+                if (existingDoc != null)
+                {
+                    await DeleteDocumentAsync(existingDoc.DocumentId);
+                }
+
                 var now = DateTime.UtcNow;
                 var document = new Document
                 {
@@ -226,9 +277,10 @@ namespace RagChatbotSystem.Business.Services
                     DatasetId = datasetId,
                     FileName = fileName,
                     FilePath = fileName,
-                    FileSize = Encoding.UTF8.GetByteCount(rawText),
+                    FileSize = textBytes.Length,
                     FileType = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant(),
                     Status = "Processing",
+                    FileHash = fileHash,
                     UploadedBy = userId,
                     UploadedAt = now,
                     UpdatedAt = now
@@ -570,7 +622,8 @@ namespace RagChatbotSystem.Business.Services
                 document.Status,
                 document.UploadedBy,
                 document.UploadedAt,
-                document.UpdatedAt);
+                document.UpdatedAt,
+                document.FileHash);
         }
     }
 
