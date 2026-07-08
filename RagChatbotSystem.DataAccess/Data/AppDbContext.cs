@@ -25,6 +25,7 @@ namespace RagChatbotSystem.DataAccess.Data
         public DbSet<DatasetPermission> DatasetPermissions { get; set; } = null!;
         public DbSet<TeacherSubjectAssignment> TeacherSubjectAssignments { get; set; } = null!;
         public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
+        public DbSet<UserTokenUsage> UserTokenUsages { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -210,8 +211,25 @@ namespace RagChatbotSystem.DataAccess.Data
                     Id = 1,
                     ChunkSize = 500,
                     ChunkOverlap = 100,
+                    DailyTokenLimit = 50000,
                     UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 });
+            });
+
+            // UserTokenUsage configuration
+            modelBuilder.Entity<UserTokenUsage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Date).IsRequired();
+                entity.Property(e => e.TokenCount).IsRequired().HasDefaultValue(0);
+                entity.Property(e => e.QueryCount).IsRequired().HasDefaultValue(0);
+                
+                entity.HasIndex(e => new { e.UserId, e.Date }).IsUnique();
+
+                entity.HasOne(utu => utu.User)
+                    .WithMany()
+                    .HasForeignKey(utu => utu.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Citation configuration

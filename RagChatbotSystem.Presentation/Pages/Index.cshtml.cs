@@ -28,6 +28,8 @@ namespace RagChatbotSystem.Presentation.Pages
         private readonly IChatService _chatService;
         private readonly IQuestionSuggestionService _questionSuggestionService;
         private readonly IRealtimeNotifier _realtimeNotifier;
+        private readonly ITokenUsageService _tokenUsageService;
+        private readonly ISystemSettingService _systemSettingService;
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
@@ -38,6 +40,8 @@ namespace RagChatbotSystem.Presentation.Pages
             IChatService chatService,
             IQuestionSuggestionService questionSuggestionService,
             IRealtimeNotifier realtimeNotifier,
+            ITokenUsageService tokenUsageService,
+            ISystemSettingService systemSettingService,
             ILogger<IndexModel> logger)
         {
             _userService = userService;
@@ -47,6 +51,8 @@ namespace RagChatbotSystem.Presentation.Pages
             _chatService = chatService;
             _questionSuggestionService = questionSuggestionService;
             _realtimeNotifier = realtimeNotifier;
+            _tokenUsageService = tokenUsageService;
+            _systemSettingService = systemSettingService;
             _logger = logger;
         }
 
@@ -66,6 +72,8 @@ namespace RagChatbotSystem.Presentation.Pages
         public HashSet<Guid> MessageIdsWithCitations { get; set; } = new();
         public string? ErrorMessage { get; set; }
         public string? SuccessMessage { get; set; }
+        public int DailyTokensUsed { get; set; }
+        public int DailyTokenLimit { get; set; }
 
         public async Task<IActionResult> OnGetAsync(
             Guid? datasetId = null,
@@ -98,6 +106,12 @@ namespace RagChatbotSystem.Presentation.Pages
 
             try
             {
+                if (currentUserRole == "Student")
+                {
+                    DailyTokensUsed = await _tokenUsageService.GetDailyUsageAsync(currentUserId, HttpContext.RequestAborted);
+                    DailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync(HttpContext.RequestAborted);
+                }
+
                 SelectedUser = await _userService.GetUserAsync(currentUserId, HttpContext.RequestAborted);
                 if (SelectedUser == null)
                 {
@@ -253,7 +267,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 return new BadRequestObjectResult(new { error = "Question cannot be empty." });
             }
 
-            if (!TryGetCurrentUser(out var currentUserId, out _))
+            if (!TryGetCurrentUser(out var currentUserId, out var currentUserRole))
             {
                 return new UnauthorizedResult();
             }
@@ -285,6 +299,14 @@ namespace RagChatbotSystem.Presentation.Pages
                 var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
                 await _realtimeNotifier.ChatMessageSavedAsync(currentUserId, datasetId, sessionId, response, HttpContext.RequestAborted);
 
+                int? dailyTokensUsed = null;
+                int? dailyTokenLimit = null;
+                if (currentUserRole == "Student")
+                {
+                    dailyTokensUsed = await _tokenUsageService.GetDailyUsageAsync(currentUserId, HttpContext.RequestAborted);
+                    dailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync(HttpContext.RequestAborted);
+                }
+
                 return new JsonResult(new
                 {
                     userMessage = new
@@ -307,8 +329,12 @@ namespace RagChatbotSystem.Presentation.Pages
                         fileName = c.FileName,
                         pageNumber = c.PageNumber,
                         quoteText = c.QuoteText,
-                        sourceLabel = c.SourceLabel
-                    })
+                        sourceLabel = c.SourceLabel,
+                        documentId = c.DocumentId,
+                        chunkId = c.ChunkId
+                    }),
+                    dailyTokensUsed,
+                    dailyTokenLimit
                 });
             }
             catch (Exception ex)
@@ -329,7 +355,9 @@ namespace RagChatbotSystem.Presentation.Pages
                     fileName = c.FileName,
                     pageNumber = c.PageNumber,
                     quoteText = c.QuoteText,
-                    sourceLabel = c.SourceLabel
+                    sourceLabel = c.SourceLabel,
+                    documentId = c.DocumentId,
+                    chunkId = c.ChunkId
                 }));
             }
             catch (Exception ex)
@@ -372,6 +400,54 @@ namespace RagChatbotSystem.Presentation.Pages
             {
                 _logger.LogError(ex, "Failed to generate suggested questions for dataset {DatasetId}.", datasetId);
                 return new ObjectResult(new { error = $"Could not generate suggested questions: {ex.Message}" }) { StatusCode = StatusCodes.Status500InternalServerError };
+            }
+        }
+
+        public async Task<IActionResult> OnGetDocumentChunksAsync(Guid documentId)
+        {
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
+            {
+                return new UnauthorizedResult();
+            }
+
+            try
+            {
+                if (!await IsCurrentUserStillValidAsync(currentUserId))
+                {
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                }
+
+                var doc = await _documentService.GetDocumentAsync(documentId, HttpContext.RequestAborted);
+                if (doc == null)
+                {
+                    return NotFound();
+                }
+
+                var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
+                if (!allowedDatasets.Any(d => d.DatasetId == doc.DatasetId))
+                {
+                    return new ForbidResult();
+                }
+
+                var chunks = await _documentService.GetDocumentChunksAsync(documentId, HttpContext.RequestAborted);
+                return new JsonResult(new
+                {
+                    documentId = doc.DocumentId,
+                    fileName = doc.FileName,
+                    chunks = chunks.Select(c => new
+                    {
+                        chunkId = c.ChunkId,
+                        chunkIndex = c.ChunkIndex,
+                        pageNumber = c.PageNumber,
+                        content = c.Content
+                    })
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get document chunks for {DocumentId}", documentId);
+                return new ObjectResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 

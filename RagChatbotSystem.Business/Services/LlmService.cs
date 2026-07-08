@@ -14,6 +14,14 @@ namespace RagChatbotSystem.Business.Services
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
 
+        private int _lastPromptTokens;
+        private int _lastCompletionTokens;
+        private int _lastTotalTokens;
+
+        public int LastPromptTokens => _lastPromptTokens;
+        public int LastCompletionTokens => _lastCompletionTokens;
+        public int LastTotalTokens => _lastTotalTokens;
+
         public LlmService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
@@ -22,11 +30,20 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<string> GenerateAnswerAsync(string prompt)
         {
+            _lastPromptTokens = 0;
+            _lastCompletionTokens = 0;
+            _lastTotalTokens = 0;
+
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
-                return $"[MOCK ANSWER - Please configure Gemini:ApiKey in appsettings.json]\n\n" +
+                var mockAnswer = $"[MOCK ANSWER - Please configure Gemini:ApiKey in appsettings.json]\n\n" +
                        $"Dựa vào các tài liệu tìm thấy, đây là câu trả lời thử nghiệm cho câu hỏi của bạn. Hệ thống RAG đã tìm thấy các đoạn trích liên quan và đang đợi khóa API của bạn hoạt động để tạo ra câu trả lời AI hoàn chỉnh.\n\n" +
                        $"Nội dung câu hỏi của bạn: {prompt.Substring(0, Math.Min(prompt.Length, 100))}...";
+                       
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = mockAnswer.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                return mockAnswer;
             }
 
             try
@@ -52,18 +69,24 @@ namespace RagChatbotSystem.Business.Services
 
                 var result = await response.Content.ReadFromJsonAsync<GeminiResponse>();
                 
+                string answer = "Không thể nhận diện được câu trả lời từ AI model.";
                 if (result?.Candidates != null && result.Candidates.Length > 0 && 
                     result.Candidates[0].Content?.Parts != null && result.Candidates[0].Content.Parts.Length > 0)
                 {
-                    return result.Candidates[0].Content.Parts[0].Text ?? string.Empty;
+                    answer = result.Candidates[0].Content.Parts[0].Text ?? string.Empty;
                 }
 
-                return "Không thể nhận diện được câu trả lời từ AI model.";
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = answer.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+
+                return answer;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error calling Gemini API: {ex.Message}");
                 
+                string errorAnswer = $"Lỗi khi kết nối với AI (Gemini): {ex.Message}";
                 if (prompt.Contains("Ngữ cảnh:") && prompt.Contains("Câu hỏi:"))
                 {
                     var contextStart = prompt.IndexOf("Ngữ cảnh:\n") + 10;
@@ -71,19 +94,32 @@ namespace RagChatbotSystem.Business.Services
                     if (contextEnd > contextStart)
                     {
                         var context = prompt.Substring(contextStart, contextEnd - contextStart);
-                        return $"[LƯU Ý: Lỗi kết nối Gemini API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]:\n\n{context.Trim()}";
+                        errorAnswer = $"[LƯU Ý: Lỗi kết nối Gemini API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]:\n\n{context.Trim()}";
                     }
                 }
-                return $"Lỗi khi kết nối với AI (Gemini): {ex.Message}";
+
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = errorAnswer.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                return errorAnswer;
             }
         }
 
         public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
         {
+            _lastPromptTokens = 0;
+            _lastCompletionTokens = 0;
+            _lastTotalTokens = 0;
+
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
                 var mockText = $"[MOCK ANSWER - Please configure Gemini:ApiKey in appsettings.json]\n\n" +
                                $"Dựa vào các tài liệu tìm thấy, đây là câu trả lời thử nghiệm cho câu hỏi của bạn. Hệ thống RAG đã tìm thấy các đoạn trích liên quan và đang đợi khóa API của bạn hoạt động để tạo ra câu trả lời AI hoàn chỉnh.";
+                
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = mockText.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+
                 var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var word in words)
                 {
@@ -94,6 +130,7 @@ namespace RagChatbotSystem.Business.Services
             }
 
             HttpResponseMessage? response = null;
+            var accumulatedText = new System.Text.StringBuilder();
             try
             {
                 var requestUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key={_apiKey}";
@@ -149,6 +186,7 @@ namespace RagChatbotSystem.Business.Services
                         var text = chunk.Candidates[0].Content.Parts[0].Text;
                         if (!string.IsNullOrEmpty(text))
                         {
+                            accumulatedText.Append(text);
                             yield return text;
                         }
                     }
@@ -157,6 +195,11 @@ namespace RagChatbotSystem.Business.Services
             finally
             {
                 response?.Dispose();
+                
+                // Calculate estimated token usage
+                _lastPromptTokens = prompt.Length / 4;
+                _lastCompletionTokens = accumulatedText.Length / 4;
+                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
             }
         }
 

@@ -28,7 +28,7 @@ public class DocumentWorkflowTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.UploadDocumentAsync(datasetId, userId, duplicateFile, "copy.txt", duplicateFile.Length));
 
-        Assert.Equal("This document already exists in this subject.", ex.Message);
+        Assert.Contains("Tài liệu có nội dung tương tự đã tồn tại trong môn học", ex.Message);
         Assert.Equal(1, await context.Documents.CountAsync());
     }
 
@@ -216,7 +216,8 @@ public class DocumentWorkflowTests
     {
         public Task<int> GetChunkOverlapAsync(CancellationToken cancellationToken = default) => Task.FromResult(100);
         public Task<int> GetChunkSizeAsync(CancellationToken cancellationToken = default) => Task.FromResult(500);
-        public Task UpdateSettingsAsync(int chunkSize, int chunkOverlap, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<int> GetDailyTokenLimitAsync(CancellationToken cancellationToken = default) => Task.FromResult(50000);
+        public Task UpdateSettingsAsync(int chunkSize, int chunkOverlap, int dailyTokenLimit, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class TestAppDbContext : AppDbContext

@@ -161,13 +161,18 @@ namespace RagChatbotSystem.Business.Services
             }
 
             var fileHash = ComputeSha256(bufferedStream);
-            var duplicateExists = await _documentRepository.GetQueryable()
-                .AsNoTracking()
-                .AnyAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted, cancellationToken);
-
-            if (duplicateExists)
+            var duplicate = await _documentRepository.GetQueryable()
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted, cancellationToken);
+            if (duplicate != null)
             {
-                throw new InvalidOperationException("This document already exists in this subject.");
+                throw new InvalidOperationException($"Tài liệu có nội dung tương tự đã tồn tại trong môn học ('{duplicate.FileName}').");
+            }
+
+            var existingDoc = await _documentRepository.GetQueryable()
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower() && !d.IsDeleted, cancellationToken);
+            if (existingDoc != null)
+            {
+                await DeleteDocumentAsync(existingDoc.DocumentId, userId, cancellationToken);
             }
 
             bufferedStream.Position = 0;
@@ -271,6 +276,28 @@ namespace RagChatbotSystem.Business.Services
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                string fileHash;
+                byte[] textBytes = Encoding.UTF8.GetBytes(rawText);
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    byte[] hashBytes = sha256.ComputeHash(textBytes);
+                    fileHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                }
+
+                var duplicate = await _documentRepository.GetQueryable()
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash);
+                if (duplicate != null)
+                {
+                    throw new InvalidOperationException($"Document with the same content already exists: '{duplicate.FileName}'.");
+                }
+
+                var existingDoc = await _documentRepository.GetQueryable()
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower());
+                if (existingDoc != null)
+                {
+                    await DeleteDocumentAsync(existingDoc.DocumentId, userId);
+                }
+
                 var now = DateTime.UtcNow;
                 var document = new Document
                 {
@@ -278,9 +305,10 @@ namespace RagChatbotSystem.Business.Services
                     DatasetId = datasetId,
                     FileName = fileName,
                     FilePath = fileName,
-                    FileSize = Encoding.UTF8.GetByteCount(rawText),
+                    FileSize = textBytes.Length,
                     FileType = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant(),
                     Status = "Processing",
+                    FileHash = fileHash,
                     UploadedBy = userId,
                     UploadedAt = now,
                     UpdatedAt = now
