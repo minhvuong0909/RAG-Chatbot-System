@@ -20,6 +20,8 @@ namespace RagChatbotSystem.Business.Services
         private readonly IGenericRepository<ChatSession> _sessionRepository;
         private readonly IGenericRepository<ChatMessage> _messageRepository;
         private readonly IGenericRepository<Citation> _citationRepository;
+        private readonly IGenericRepository<Document> _documentRepository;
+        private readonly IGenericRepository<Chunk> _chunkRepository;
         private readonly IRagApiClient _ragApiClient;
         private readonly ILlmService _llmService;
         private readonly IRealtimeService _realtimeService;
@@ -36,6 +38,8 @@ namespace RagChatbotSystem.Business.Services
             _sessionRepository = _unitOfWork.Repository<ChatSession>();
             _messageRepository = _unitOfWork.Repository<ChatMessage>();
             _citationRepository = _unitOfWork.Repository<Citation>();
+            _documentRepository = _unitOfWork.Repository<Document>();
+            _chunkRepository = _unitOfWork.Repository<Chunk>();
             _ragApiClient = ragApiClient;
             _llmService = llmService;
             _realtimeService = realtimeService;
@@ -53,6 +57,15 @@ namespace RagChatbotSystem.Business.Services
             if (session == null)
             {
                 throw new ArgumentException("Chat session not found.");
+            }
+
+            var hasCompletedDocuments = await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .AnyAsync(d => d.DatasetId == session.DatasetId && !d.IsDeleted && d.Status == "Completed", cancellationToken);
+
+            if (!hasCompletedDocuments)
+            {
+                throw new InvalidOperationException("This subject does not have any indexed documents yet. Please upload a document before starting chat.");
             }
 
             var now = DateTime.UtcNow;
@@ -96,9 +109,9 @@ namespace RagChatbotSystem.Business.Services
             var contextDocs = (retrieveResult.Documents ?? Enumerable.Empty<DocumentModelDto>())
                 .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
                     && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
-                .Take(3)
                 .ToList();
 
+            contextDocs = await FilterActiveCompletedContextAsync(contextDocs, session.DatasetId, cancellationToken);
             var isDocumentScopedQuestion = IsDocumentScopedQuestion(userQuestion, contextDocs);
 
             var contextText = contextDocs.Count > 0
@@ -194,165 +207,44 @@ namespace RagChatbotSystem.Business.Services
                 citationDtos);
         }
 
-        private static bool LooksLikeNoInformationAnswer(string answer)
-        {
-            var normalized = answer.ToLowerInvariant();
-            return normalized.Contains("không tìm thấy")
-                || normalized.Contains("khong tim thay")
-                || normalized.Contains("không có thông tin")
-                || normalized.Contains("khong co thong tin")
-                || normalized.Contains("bổ sung thêm tài liệu")
-                || normalized.Contains("bo sung them tai lieu");
-        }
-
-        private static bool IsDocumentScopedQuestion(string question, IReadOnlyList<DocumentModelDto> contextDocs)
-        {
-            var normalized = NormalizeForIntent(question);
-
-            if (LooksLikeSmallTalk(normalized))
-            {
-                return false;
-            }
-
-            if (LooksLikeExternalQuestion(normalized))
-            {
-                return false;
-            }
-
-            var documentIntentKeywords = new[]
-            {
-                "tai lieu", "file", "doc", "docx", "pdf", "van ban", "noi dung", "upload",
-                "mon hoc", "bai hoc", "chu de", "nguon", "trich dan", "theo tai lieu",
-                "tom tat", "y chinh", "khai niem", "cau hoi on tap", "tu vung", "giai thich"
-            };
-
-            if (documentIntentKeywords.Any(normalized.Contains))
-            {
-                return true;
-            }
-
-            return HasMeaningfulOverlapWithContext(normalized, contextDocs);
-        }
-
-        private static bool LooksLikeSmallTalk(string normalizedQuestion)
-        {
-            var smallTalk = new[]
-            {
-                "xin chao", "chao", "hello", "hi", "cam on", "thank", "ban la ai"
-            };
-
-            return smallTalk.Any(term => normalizedQuestion.Equals(term, StringComparison.Ordinal)
-                || normalizedQuestion.StartsWith(term + " ", StringComparison.Ordinal));
-        }
-
-        private static bool LooksLikeExternalQuestion(string normalizedQuestion)
-        {
-            var externalTerms = new[]
-            {
-                "hom nay", "ngay mai", "hom qua", "thu may", "may gio", "thoi tiet",
-                "tin tuc", "gia vang", "ty gia", "bitcoin", "tong thong", "ceo"
-            };
-
-            return externalTerms.Any(normalizedQuestion.Contains);
-        }
-
-        private static bool HasMeaningfulOverlapWithContext(string normalizedQuestion, IReadOnlyList<DocumentModelDto> contextDocs)
-        {
-            if (contextDocs.Count == 0)
-            {
-                return false;
-            }
-
-            var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "la", "gi", "co", "khong", "nhung", "cac", "cua", "ve", "trong", "nay",
-                "hay", "cho", "toi", "biet", "the", "nao", "duoc", "khong"
-            };
-
-            var tokens = normalizedQuestion
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Where(token => token.Length >= 4 && !stopWords.Contains(token))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            if (tokens.Count == 0)
-            {
-                return false;
-            }
-
-            var context = NormalizeForIntent(string.Join(" ", contextDocs.Select(d => d.PageContent)));
-            var overlap = tokens.Count(context.Contains);
-            return overlap >= Math.Min(2, tokens.Count);
-        }
-
-        private static string NormalizeForIntent(string value)
-        {
-            var normalized = value.Trim().ToLowerInvariant();
-            var replacements = new Dictionary<string, string>
-            {
-                ["á"] = "a", ["à"] = "a", ["ả"] = "a", ["ã"] = "a", ["ạ"] = "a",
-                ["ă"] = "a", ["ắ"] = "a", ["ằ"] = "a", ["ẳ"] = "a", ["ẵ"] = "a", ["ặ"] = "a",
-                ["â"] = "a", ["ấ"] = "a", ["ầ"] = "a", ["ẩ"] = "a", ["ẫ"] = "a", ["ậ"] = "a",
-                ["é"] = "e", ["è"] = "e", ["ẻ"] = "e", ["ẽ"] = "e", ["ẹ"] = "e",
-                ["ê"] = "e", ["ế"] = "e", ["ề"] = "e", ["ể"] = "e", ["ễ"] = "e", ["ệ"] = "e",
-                ["í"] = "i", ["ì"] = "i", ["ỉ"] = "i", ["ĩ"] = "i", ["ị"] = "i",
-                ["ó"] = "o", ["ò"] = "o", ["ỏ"] = "o", ["õ"] = "o", ["ọ"] = "o",
-                ["ô"] = "o", ["ố"] = "o", ["ồ"] = "o", ["ổ"] = "o", ["ỗ"] = "o", ["ộ"] = "o",
-                ["ơ"] = "o", ["ớ"] = "o", ["ờ"] = "o", ["ở"] = "o", ["ỡ"] = "o", ["ợ"] = "o",
-                ["ú"] = "u", ["ù"] = "u", ["ủ"] = "u", ["ũ"] = "u", ["ụ"] = "u",
-                ["ư"] = "u", ["ứ"] = "u", ["ừ"] = "u", ["ử"] = "u", ["ữ"] = "u", ["ự"] = "u",
-                ["ý"] = "y", ["ỳ"] = "y", ["ỷ"] = "y", ["ỹ"] = "y", ["ỵ"] = "y",
-                ["đ"] = "d"
-            };
-
-            foreach (var replacement in replacements)
-            {
-                normalized = normalized.Replace(replacement.Key, replacement.Value);
-            }
-
-            var builder = new StringBuilder(normalized.Length);
-            foreach (var ch in normalized)
-            {
-                builder.Append(char.IsLetterOrDigit(ch) ? ch : ' ');
-            }
-
-            return string.Join(' ', builder.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries));
-        }
-
-        private static string BuildOutOfScopeAnswer()
-        {
-            return "Cau hoi nay nam ngoai pham vi tai lieu da upload, nen minh khong dung noi dung trong file de tra loi. Hay hoi ve noi dung, tu vung, y chinh, khai niem, hoac cau hoi on tap tu tai lieu de minh tra loi kem nguon tham khao.";
-        }
-
-        private static string BuildGroundedFallbackAnswer(IReadOnlyList<DocumentModelDto> contextDocs)
-        {
-            var builder = new StringBuilder();
-            builder.AppendLine("Dựa trên tài liệu đã upload, các ý chính có thể rút ra là:");
-
-            var points = contextDocs
-                .SelectMany(d => d.PageContent
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(line => line.Trim()))
-                .Where(line => line.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(12)
-                .ToList();
-
-            if (points.Count == 0)
-            {
-                builder.AppendLine("- Tài liệu có nội dung liên quan, nhưng phần trích xuất hiện tại quá ngắn để tóm tắt chi tiết.");
-            }
-            else
-            {
-                foreach (var point in points)
-                {
-                    builder.AppendLine($"- {point}");
-                }
-            }
-
-            builder.AppendLine();
-            builder.Append("Các nguồn tham khảo đã được gắn ở phần View Sources.");
             return builder.ToString();
+        }
+        private async Task<List<DocumentModelDto>> FilterActiveCompletedContextAsync(
+            IReadOnlyList<DocumentModelDto> candidates,
+            Guid datasetId,
+            CancellationToken cancellationToken)
+        {
+            var chunkIds = candidates
+                .Select(doc => TryGetGuidMetadata(doc.Metadata, "id"))
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToHashSet();
+
+            if (chunkIds.Count == 0)
+            {
+                return new List<DocumentModelDto>();
+            }
+
+            var activeChunkIds = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(c => chunkIds.Contains(c.ChunkId) &&
+                    c.DatasetId == datasetId &&
+                    !c.Document.IsDeleted &&
+                    c.Document.Status == "Completed")
+                .Select(c => c.ChunkId)
+                .ToListAsync(cancellationToken);
+
+            var activeSet = activeChunkIds.ToHashSet();
+
+            return candidates
+                .Where(doc =>
+                {
+                    var chunkId = TryGetGuidMetadata(doc.Metadata, "id");
+                    return chunkId.HasValue && activeSet.Contains(chunkId.Value);
+                })
+                .Take(3)
+                .ToList();
+>>>>>>> add-mvp-spec
         }
 
         private static List<Citation> BuildCitations(IReadOnlyList<DocumentModelDto> contextDocs, Guid messageId)
@@ -432,6 +324,13 @@ namespace RagChatbotSystem.Business.Services
             }
 
             return int.TryParse(value.ToString(), out var parsed) ? parsed : null;
+        }
+
+        private static Guid? TryGetGuidMetadata(Dictionary<string, object> metadata, string key)
+        {
+            return metadata.TryGetValue(key, out var value) && Guid.TryParse(value?.ToString(), out var parsed)
+                ? parsed
+                : null;
         }
 
         private static string? GetMetadataString(Dictionary<string, object> metadata, string key)

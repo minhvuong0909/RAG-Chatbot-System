@@ -19,6 +19,13 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
     [RequestSizeLimit(52428800)] // Limit to 50MB
     public class IndexModel : PageModel
     {
+        private static readonly HashSet<string> AllowedFileExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".pdf",
+            ".docx",
+            ".txt"
+        };
+
         private readonly IDatasetService _datasetService;
         private readonly IDocumentService _documentService;
         private readonly IRealtimeNotifier _realtimeNotifier;
@@ -93,6 +100,12 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
             if (file.Length > 52428800)
             {
                 return RedirectToPage("/Documents/Index", new { datasetId, error = "File size exceeds the allowed limit (max 50MB)." });
+            }
+
+            var extension = Path.GetExtension(file.FileName);
+            if (!AllowedFileExtensions.Contains(extension))
+            {
+                return RedirectToPage("/Documents/Index", new { datasetId, error = "Only PDF, DOCX, and TXT files are supported." });
             }
 
             if (!TryGetCurrentUser(out var currentUserId, out var userRole))
@@ -170,23 +183,31 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                     return RedirectToPage("/Documents/Index", new { datasetId, error = "You only have permission to delete documents in your assigned subjects." });
                 }
 
-                var deleted = await _documentService.DeleteDocumentAsync(documentId);
+                var deleted = await _documentService.DeleteDocumentAsync(documentId, currentUserId, HttpContext.RequestAborted);
                 if (deleted)
                 {
                     await _realtimeNotifier.DocumentProgressAsync(datasetId, document with { Status = "Deleted" }, "deleted", 100, HttpContext.RequestAborted);
                 }
 
+                var deletedDocument = deleted
+                    ? await _documentService.GetDocumentAsync(documentId, HttpContext.RequestAborted)
+                    : null;
+
                 return RedirectToPage("/Documents/Index", new
                 {
                     datasetId,
-                    success = deleted ? "Document deleted successfully." : null,
-                    error = deleted ? null : "Delete document failed."
+                    success = deleted
+                        ? string.IsNullOrWhiteSpace(deletedDocument?.ProcessError)
+                            ? "Document hidden from chat successfully."
+                            : $"Document hidden from chat. Warning: {deletedDocument.ProcessError}"
+                        : null,
+                    error = deleted ? null : "Hide document failed."
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to delete document.");
-                return RedirectToPage("/Documents/Index", new { datasetId, error = $"Delete document failed: {ex.Message}" });
+                return RedirectToPage("/Documents/Index", new { datasetId, error = $"Hide document failed: {ex.Message}" });
             }
         }
 

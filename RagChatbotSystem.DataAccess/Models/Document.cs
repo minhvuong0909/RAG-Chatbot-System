@@ -11,10 +11,15 @@ namespace RagChatbotSystem.DataAccess.Models
         public string FilePath { get; set; } = string.Empty;
         public string FileType { get; set; } = string.Empty;
         public long FileSize { get; set; }
+        public string? FileHash { get; set; }
         public string Status { get; set; } = string.Empty;
+        public string? ProcessError { get; set; }
         public Guid UploadedBy { get; set; }
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public Guid? DeletedBy { get; set; }
 
         // Navigation properties
         public virtual Dataset Dataset { get; set; } = null!;
