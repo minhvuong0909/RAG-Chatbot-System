@@ -14,7 +14,7 @@
                 <h1 class="fw-bold m-0" style="color: var(--ink); font-size: 2.2rem; letter-spacing: -0.5px;">Select a Subject Workspace</h1>
                 <p class="text-muted mb-0 mt-1">Connect to a subject knowledge base to start a grounded chat session.</p>
             </div>
-            @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
+            @if (User.IsInRole("Admin"))
             {
                 <a asp-page="/Datasets/Index" class="btn btn-outline-primary d-flex align-items-center gap-2" style="border-radius: 8px; font-weight: 600; padding: 10px 18px; border-color: var(--accent); color: var(--accent); text-decoration: none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -68,27 +68,26 @@
                 @foreach (var ds in Model.Datasets)
                 {
                     <div class="col-md-6 col-lg-4" data-dataset-id="@ds.DatasetId">
-                        <a href="?datasetId=@ds.DatasetId" class="card h-100 border-0 shadow-soft text-decoration-none subject-portal-card" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; display: flex; flex-direction: column; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
-                            <div class="card-body p-4 d-flex flex-column h-100">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h4 class="fw-bold m-0 subject-card-title" style="color: var(--ink); line-height: 1.3;">@ds.Name</h4>
-                                    @if (!ds.IsApproved)
-                                    {
-                                        <span class="badge" style="font-size: 0.75rem; border-radius: 4px; background: var(--warning-soft); color: var(--warning); font-weight: 600;">Pending</span>
-                                    }
-                                </div>
-                                <p class="text-muted small flex-grow-1" style="line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                                    @(string.IsNullOrWhiteSpace(ds.Description) ? "No description provided." : ds.Description)
-                                </p>
-                                <div class="d-flex justify-content-between align-items-center mt-auto pt-3" style="border-top: 1px solid var(--line);">
-                                    <span class="text-muted small d-flex align-items-center gap-1">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                        @ds.DocumentCount document(s)
-                                    </span>
-                                    <span class="small fw-bold enter-workspace-text" style="color: var(--accent); transition: all 0.2s;">
-                                        Enter Workspace &rarr;
-                                    </span>
-                                </div>
+                        <a href="?datasetId=@ds.DatasetId" class="prem-card prem-portal-card text-decoration-none">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h4 class="prem-portal-title">@ds.Name</h4>
+                                @if (!ds.IsApproved)
+                                {
+                                    <span class="badge" style="font-size: 0.75rem; border-radius: 4px; background: var(--warning-soft); color: var(--warning); font-weight: 600;">Pending</span>
+                                }
+                            </div>
+                            <p class="prem-portal-desc">
+                                @(string.IsNullOrWhiteSpace(ds.Description) ? "No description provided." : ds.Description)
+                            </p>
+                            <div class="prem-portal-footer">
+                                <span class="text-muted small d-flex align-items-center gap-1 font-weight-bold">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                    @ds.DocumentCount document(s)
+                                </span>
+                                <span class="prem-btn-enter">
+                                    Enter Workspace
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                </span>
                             </div>
                         </a>
                     </div>

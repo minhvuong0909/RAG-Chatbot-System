@@ -1,59 +1,37 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Presentation.Pages.Admin
 {
-    [Authorize(Roles = "Admin,Teacher")]
+    [Authorize(Roles = "Admin")]
     public class ReportsModel : PageModel
     {
         private readonly IStatisticsService _statisticsService;
-        private readonly IDatasetService _datasetService;
 
-        public ReportsModel(IStatisticsService statisticsService, IDatasetService datasetService)
+        public ReportsModel(IStatisticsService statisticsService)
         {
             _statisticsService = statisticsService;
-            _datasetService = datasetService;
         }
 
         public TokenUsageSummaryDto Summary { get; set; } = null!;
         public List<DailyTokenUsageDto> DailyUsage { get; set; } = new();
         public List<TopDocumentUsageDto> TopDocuments { get; set; } = new();
+        public List<TopSubjectUsageDto> TopSubjects { get; set; } = new();
         public List<UserTokenUsageLeaderboardDto> Leaderboard { get; set; } = new();
-        public string ReportScopeLabel { get; set; } = "All subjects";
 
-        public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
+        public async Task OnGetAsync(CancellationToken cancellationToken)
         {
-            var role = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdValue, out var currentUserId))
-            {
-                return Challenge();
-            }
-
-            IReadOnlyCollection<Guid>? datasetScope = null;
-            if (role == "Teacher")
-            {
-                var assignedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, cancellationToken);
-                datasetScope = assignedDatasets.Select(d => d.DatasetId).ToArray();
-                ReportScopeLabel = datasetScope.Count == 0
-                    ? "Assigned subjects only - no assigned subjects"
-                    : $"Assigned subjects only ({datasetScope.Count})";
-            }
-
-            Summary = await _statisticsService.GetTokenUsageSummaryAsync(datasetScope, cancellationToken);
-            DailyUsage = await _statisticsService.GetDailyTokenUsageAsync(7, datasetScope, cancellationToken);
-            TopDocuments = await _statisticsService.GetTopDocumentsUsageAsync(5, datasetScope, cancellationToken);
-            Leaderboard = await _statisticsService.GetUserLeaderboardAsync(10, datasetScope, cancellationToken);
-            return Page();
+            Summary = await _statisticsService.GetTokenUsageSummaryAsync(cancellationToken: cancellationToken);
+            DailyUsage = await _statisticsService.GetDailyTokenUsageAsync(7, cancellationToken: cancellationToken);
+            TopDocuments = await _statisticsService.GetTopDocumentsUsageAsync(5, cancellationToken: cancellationToken);
+            TopSubjects = await _statisticsService.GetTopSubjectsByQuestionCountAsync(5, cancellationToken: cancellationToken);
+            Leaderboard = await _statisticsService.GetUserLeaderboardAsync(10, cancellationToken: cancellationToken);
         }
     }
 }
