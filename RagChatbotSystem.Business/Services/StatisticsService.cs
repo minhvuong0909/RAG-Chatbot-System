@@ -148,6 +148,68 @@ namespace RagChatbotSystem.Business.Services
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<int> GetActiveStudentCountAsync(IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
+        {
+            return await ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds)
+                .Where(u => u.User.Role == "Student")
+                .Select(u => u.UserId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+        }
+
+        public async Task<List<StudentLearningEngagementDto>> GetStudentEngagementByQuestionCountAsync(int limit = 10, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
+        {
+            return await ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds)
+                .Include(u => u.User)
+                .Where(u => u.User.Role == "Student")
+                .GroupBy(u => new { u.UserId, u.User.FullName, u.User.Email })
+                .Select(g => new StudentLearningEngagementDto
+                {
+                    UserId = g.Key.UserId,
+                    FullName = g.Key.FullName,
+                    Email = g.Key.Email,
+                    TotalQueriesCount = g.Sum(u => u.QueryCount)
+                })
+                .OrderByDescending(u => u.TotalQueriesCount)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<TopSubjectUsageDto>> GetSubjectLearningActivityByQuestionCountAsync(int limit = 5, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
+        {
+            return await ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds)
+                .Where(u => u.User.Role == "Student")
+                .GroupBy(u => new { u.DatasetId, u.Dataset.Name })
+                .Select(g => new TopSubjectUsageDto
+                {
+                    DatasetId = g.Key.DatasetId,
+                    DatasetName = g.Key.Name,
+                    TotalQueriesCount = g.Sum(u => u.QueryCount),
+                    ActiveUsersCount = g.Select(u => u.UserId).Distinct().Count()
+                })
+                .OrderByDescending(s => s.TotalQueriesCount)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<TopSubjectUsageDto>> GetTopSubjectsByQuestionCountAsync(int limit = 5, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
+        {
+            return await ApplyDatasetScope(_tokenUsageRepository.GetQueryable(), datasetIds)
+                .GroupBy(u => new { u.DatasetId, u.Dataset.Name })
+                .Select(g => new TopSubjectUsageDto
+                {
+                    DatasetId = g.Key.DatasetId,
+                    DatasetName = g.Key.Name,
+                    TotalQueriesCount = g.Sum(u => u.QueryCount),
+                    TotalTokensUsed = g.Sum(u => u.TokenCount),
+                    ActiveUsersCount = g.Select(u => u.UserId).Distinct().Count()
+                })
+                .OrderByDescending(s => s.TotalQueriesCount)
+                .ThenByDescending(s => s.TotalTokensUsed)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
+        }
+
         private static IQueryable<UserTokenUsage> ApplyDatasetScope(
             IQueryable<UserTokenUsage> query,
             IReadOnlyCollection<Guid>? datasetIds)

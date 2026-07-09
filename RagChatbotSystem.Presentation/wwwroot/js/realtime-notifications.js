@@ -134,11 +134,16 @@
                 window.location.assign("/");
                 return;
             }
+            updateDatasetListState(list);
         } else if (!existing) {
             const emptyMessage = list.querySelector(".helper-text") || list.querySelector(".col-12");
             if (emptyMessage) emptyMessage.remove();
+            document.querySelector("[data-dataset-empty-state]")?.remove();
 
-            if (list.classList.contains("row")) {
+            if (list.tagName === "TBODY") {
+                list.prepend(createSubjectDocsTableRow(payload));
+                updateDatasetListState(list);
+            } else if (list.classList.contains("row")) {
                 // Subject Portal Grid Cards UI
                 const wrapper = document.createElement("div");
                 wrapper.className = "col-md-6 col-lg-4";
@@ -191,11 +196,90 @@
                 wrapper.appendChild(link);
                 list.prepend(wrapper);
             }
+        } else if (list.tagName === "TBODY") {
+            updateSubjectDocsTableRow(existing, payload);
         }
 
         const count = document.querySelector("[data-dataset-count]");
         if (count) {
-            count.textContent = String(list.querySelectorAll("[data-dataset-id]").length);
+            const total = list.querySelectorAll("[data-dataset-id]").length;
+            count.textContent = `${total} subject(s)`;
         }
+    }
+
+    function createSubjectDocsTableRow(payload) {
+        const datasetId = String(payload.datasetId);
+        const row = document.createElement("tr");
+        row.dataset.datasetId = datasetId;
+        row.innerHTML = `
+            <td>
+                <div class="dataset-name" style="font-weight: 700; color: var(--ink);">${escapeHtml(payload.name || "Subject")}</div>
+                ${payload.description ? `<div class="dataset-description text-muted small text-truncate" style="max-width: 250px;" title="${escapeHtml(payload.description)}">${escapeHtml(payload.description)}</div>` : ""}
+                <div class="dataset-created text-muted small" style="font-size: 0.75rem;">Assigned just now</div>
+            </td>
+            <td>${visibilityBadge(payload.isPublic)}</td>
+            <td>${statusBadge(payload.isApproved)}</td>
+            <td><span class="dataset-document-count" style="font-weight: 800; color: var(--ink-soft);">${payload.documentCount || 0}</span></td>
+            <td style="text-align: right;">
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="/Documents?datasetId=${encodeURIComponent(datasetId)}" class="btn btn-sm" style="border-radius: 6px; font-weight: 700; background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(37,99,235,0.2);">
+                        Manage Docs
+                    </a>
+                    <a href="/?datasetId=${encodeURIComponent(datasetId)}" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-weight: 700; border-color: var(--line); color: var(--ink-soft);">
+                        Test Chat
+                    </a>
+                </div>
+            </td>
+        `;
+        return row;
+    }
+
+    function updateSubjectDocsTableRow(row, payload) {
+        const name = row.querySelector(".dataset-name");
+        if (name && payload.name) name.textContent = payload.name;
+
+        const description = row.querySelector(".dataset-description");
+        if (description && payload.description) {
+            description.textContent = payload.description;
+            description.title = payload.description;
+        }
+
+        const documentCount = row.querySelector(".dataset-document-count");
+        if (documentCount) documentCount.textContent = String(payload.documentCount || 0);
+
+        const visibilityCell = row.children[1];
+        if (visibilityCell) visibilityCell.innerHTML = visibilityBadge(payload.isPublic);
+
+        const statusCell = row.children[2];
+        if (statusCell) statusCell.innerHTML = statusBadge(payload.isApproved);
+    }
+
+    function updateDatasetListState(list) {
+        const total = list.querySelectorAll("[data-dataset-id]").length;
+        const table = document.querySelector("[data-dataset-table]");
+        if (table) table.style.display = total > 0 ? "" : "none";
+
+        if (total === 0 && !document.querySelector("[data-dataset-empty-state]")) {
+            const container = table?.parentElement;
+            if (container) {
+                const empty = document.createElement("div");
+                empty.className = "text-center py-5";
+                empty.dataset.datasetEmptyState = "";
+                empty.innerHTML = '<p class="text-muted">No subjects assigned or created yet.</p>';
+                container.insertBefore(empty, table);
+            }
+        }
+    }
+
+    function visibilityBadge(isPublic) {
+        return isPublic
+            ? '<span class="dataset-visibility badge" style="background: var(--success-soft); color: var(--success); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Public</span>'
+            : '<span class="dataset-visibility badge" style="background: var(--bg-elevated); color: var(--muted); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Private</span>';
+    }
+
+    function statusBadge(isApproved) {
+        return isApproved
+            ? '<span class="dataset-status badge" style="background: var(--info-soft); color: var(--info); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Approved</span>'
+            : '<span class="dataset-status badge" style="background: var(--warning-soft); color: var(--warning); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Pending</span>';
     }
 })();

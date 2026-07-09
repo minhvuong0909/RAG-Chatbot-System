@@ -97,6 +97,11 @@ namespace RagChatbotSystem.Presentation.Pages
                 return RedirectToPage("/Account/ChangePassword");
             }
 
+            if (currentUserRole == "Teacher" && !datasetId.HasValue)
+            {
+                return RedirectToPage("/Datasets/Index");
+            }
+
             SelectedUserId = currentUserId;
             SelectedDatasetId = datasetId;
             SelectedSessionId = sessionId;

@@ -9,26 +9,15 @@
         <div>
             <p class="eyebrow">Administration</p>
             <h1>Statistical Reports</h1>
-            <p class="helper-text">Monitor activity, daily token consumption, document citations, and student engagement. Scope: @Model.ReportScopeLabel.</p>
+            <p class="helper-text">Monitor system-wide AI usage, daily token consumption, document citations, and student engagement.</p>
         </div>
     </header>
 
     <nav class="admin-tabs" aria-label="Admin sections">
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Index">Overview</a>
-            <a asp-page="/Admin/Datasets/Index">Subjects</a>
-        }
-        else
-        {
-            <a asp-page="/Index">Workspace</a>
-            <a asp-page="/Datasets/Index">Subjects</a>
-        }
+        <a asp-page="/Admin/Index">Overview</a>
+        <a asp-page="/Admin/Datasets/Index">Subjects</a>
         <a class="active" asp-page="/Admin/Reports" aria-current="page">Reports</a>
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Settings">Settings</a>
-        }
+        <a asp-page="/Admin/Settings">Settings</a>
     </nav>
 
     <!-- Stats Summary Cards Grid -->
@@ -122,6 +111,51 @@
             </div>
         </section>
     </div>
+
+    <section class="admin-section top-subjects-section" style="margin-top: 2rem;">
+        <div class="section-title">
+            <h2>Top Subjects by Questions</h2>
+            <span>Highest chat activity</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Active Users</th>
+                        <th>Questions</th>
+                        <th class="text-end">Tokens</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.TopSubjects.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">No subject usage has been recorded yet.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var subject in Model.TopSubjects)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@subject.DatasetName</strong>
+                                </td>
+                                <td>@subject.ActiveUsersCount.ToString("N0")</td>
+                                <td>
+                                    <strong>@subject.TotalQueriesCount.ToString("N0")</strong> questions
+                                </td>
+                                <td class="text-end">
+                                    <strong class="token-highlighter">@subject.TotalTokensUsed.ToString("N0")</strong> tokens
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <!-- Leaderboard Grid Section -->
     <section class="admin-section leaderboard-section" style="margin-top: 2rem;">
