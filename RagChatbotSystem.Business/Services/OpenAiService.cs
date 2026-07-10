@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Business.Services
@@ -19,6 +20,9 @@ namespace RagChatbotSystem.Business.Services
         private int _lastPromptTokens;
         private int _lastCompletionTokens;
         private int _lastTotalTokens;
+        private bool _lastWasActualTokenUsage;
+        private bool _lastIsProviderFallback;
+        private string? _lastErrorMessage;
 
         public int LastPromptTokens => _lastPromptTokens;
         public int LastCompletionTokens => _lastCompletionTokens;
@@ -36,6 +40,9 @@ namespace RagChatbotSystem.Business.Services
             _lastPromptTokens = 0;
             _lastCompletionTokens = 0;
             _lastTotalTokens = 0;
+            _lastWasActualTokenUsage = false;
+            _lastIsProviderFallback = false;
+            _lastErrorMessage = null;
 
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
@@ -51,9 +58,11 @@ namespace RagChatbotSystem.Business.Services
                     }
                 }
                 
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = mockAnswer.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(mockAnswer);
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = "OpenAI API key is not configured.";
                 return mockAnswer;
             }
 
@@ -79,9 +88,19 @@ namespace RagChatbotSystem.Business.Services
                 var result = await response.Content.ReadFromJsonAsync<OpenAiResponse>();
                 var content = result?.Choices?[0]?.Message?.Content ?? "Không nhận được phản hồi từ OpenAI.";
 
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = content.Length / 4;
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                if (result?.Usage != null)
+                {
+                    _lastPromptTokens = result.Usage.PromptTokens;
+                    _lastCompletionTokens = result.Usage.CompletionTokens;
+                    _lastTotalTokens = result.Usage.TotalTokens;
+                    _lastWasActualTokenUsage = true;
+                }
+                else
+                {
+                    _lastPromptTokens = EstimateTokens(prompt);
+                    _lastCompletionTokens = EstimateTokens(content);
+                    _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                }
 
                 return content;
             }
@@ -101,11 +120,28 @@ namespace RagChatbotSystem.Business.Services
                     }
                 }
 
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = errorAnswer.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(errorAnswer);
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = ex.Message;
                 return errorAnswer;
             }
+        }
+
+        public async Task<LlmAnswerResult> GenerateAnswerWithUsageAsync(string prompt)
+        {
+            var content = await GenerateAnswerAsync(prompt);
+            return new LlmAnswerResult(
+                content,
+                _model,
+                _lastPromptTokens,
+                _lastCompletionTokens,
+                _lastTotalTokens,
+                _lastWasActualTokenUsage,
+                !_lastIsProviderFallback,
+                _lastIsProviderFallback,
+                _lastErrorMessage);
         }
 
         public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
@@ -113,14 +149,19 @@ namespace RagChatbotSystem.Business.Services
             _lastPromptTokens = 0;
             _lastCompletionTokens = 0;
             _lastTotalTokens = 0;
+            _lastWasActualTokenUsage = false;
+            _lastIsProviderFallback = false;
+            _lastErrorMessage = null;
 
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
                 var mockText = $"[MOCK ANSWER - Please configure OpenAi:ApiKey in appsettings.json]";
                 
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = mockText.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(mockText);
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = "OpenAI API key is not configured.";
 
                 var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var word in words)
@@ -193,16 +234,36 @@ namespace RagChatbotSystem.Business.Services
             {
                 response?.Dispose();
 
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = accumulatedText.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(accumulatedText.ToString());
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
             }
+        }
+
+        private static int EstimateTokens(string value)
+        {
+            return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));
         }
 
         private class OpenAiResponse
         {
             [JsonPropertyName("choices")]
             public Choice[] Choices { get; set; } = Array.Empty<Choice>();
+
+            [JsonPropertyName("usage")]
+            public UsageInfo? Usage { get; set; }
+        }
+
+        private class UsageInfo
+        {
+            [JsonPropertyName("prompt_tokens")]
+            public int PromptTokens { get; set; }
+
+            [JsonPropertyName("completion_tokens")]
+            public int CompletionTokens { get; set; }
+
+            [JsonPropertyName("total_tokens")]
+            public int TotalTokens { get; set; }
         }
 
         private class Choice

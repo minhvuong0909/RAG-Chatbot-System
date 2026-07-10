@@ -41,5 +41,7 @@ namespace RagChatbotSystem.Business.DTOs
     public sealed record SendChatMessageResponse(
         ChatMessageDto UserMessage,
         ChatMessageDto AssistantMessage,
-        IReadOnlyList<CitationDto> Citations);
+        IReadOnlyList<CitationDto> Citations,
+        CreditSpendResultDto? CreditSpend = null,
+        CreditBalanceDto? CreditBalance = null);
 }

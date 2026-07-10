@@ -74,6 +74,39 @@
         </div>
     </div>
 
+    <section class="admin-section" style="margin-bottom: 2rem;">
+        <div class="section-title">
+            <h2>Credit Usage</h2>
+            <span>Student credit consumption</span>
+        </div>
+        <div class="stats-summary-grid">
+            <div class="stats-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Calculated Credits</span>
+                    <span class="stats-card-value">@Model.CreditReport.Summary.TotalCalculatedCredits.ToString("N0")</span>
+                </div>
+            </div>
+            <div class="stats-card highlight-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Charged Credits</span>
+                    <span class="stats-card-value">@Model.CreditReport.Summary.TotalChargedCredits.ToString("N0")</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Free / Paid Used</span>
+                    <span class="stats-card-value">@Model.CreditReport.Summary.FreeCreditsConsumed.ToString("N0") / @Model.CreditReport.Summary.PaidCreditsConsumed.ToString("N0")</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Insufficient / Blocked</span>
+                    <span class="stats-card-value">@Model.CreditReport.Summary.InsufficientBalanceCount.ToString("N0") / @Model.CreditReport.Summary.ZeroBalanceBlockedCount.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Chart and Top Documents Grid -->
     <div class="reports-main-grid">
         <section class="admin-section chart-section">

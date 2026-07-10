@@ -1,0 +1,110 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.CreditsModel
+@{
+    ViewData["Title"] = "Credits";
+}
+
+<section class="admin-page">
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Student Credits</p>
+            <h1>Credits</h1>
+            <p class="helper-text">Credits are consumed after successful AI answers based on token usage. Free credits reset daily and do not roll over.</p>
+        </div>
+        <a asp-page="/Index" class="btn btn-outline-primary">Back to Workspace</a>
+    </header>
+
+    <div class="stats-summary-grid">
+        <div class="stats-card highlight-card">
+            <div class="stats-card-content">
+                <span class="stats-card-label">Total Available</span>
+                <span class="stats-card-value">@Model.Balance.TotalCredits.ToString("N0")</span>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-card-content">
+                <span class="stats-card-label">Free Credits</span>
+                <span class="stats-card-value">@Model.Balance.FreeCredits.ToString("N0")</span>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-card-content">
+                <span class="stats-card-label">Paid Credits</span>
+                <span class="stats-card-value">@Model.Balance.PaidCredits.ToString("N0")</span>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-card-content">
+                <span class="stats-card-label">Daily Free Reset</span>
+                <span class="stats-card-value">@Model.Balance.Settings.DailyFreeCredits.ToString("N0")</span>
+            </div>
+        </div>
+    </div>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Top-up Packages</h2>
+            <span>Manual/admin top-up enabled</span>
+        </div>
+        <p class="helper-text">Real online payment is not enabled yet. Contact an administrator to apply one of these packages to your account.</p>
+        <div class="row g-3">
+            @foreach (var package in Model.Packages)
+            {
+                <div class="col-md-6 col-xl-3">
+                    <div class="stats-card h-100">
+                        <div class="stats-card-content">
+                            <span class="stats-card-label">@package.Name</span>
+                            <span class="stats-card-value">@package.TotalCredits.ToString("N0")</span>
+                            <span class="helper-text">@package.BaseCredits.ToString("N0") base + @package.BonusCredits.ToString("N0") bonus credits</span>
+                            <strong>@package.Price.ToString("N0") @package.Currency</strong>
+                            <span class="helper-text">@package.Description</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="admin-section" style="margin-top: 2rem;">
+        <div class="section-title">
+            <h2>Recent Credit Activity</h2>
+            <span>Latest 25 ledger entries</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle admin-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Calculated</th>
+                        <th>Charged</th>
+                        <th>Free Used</th>
+                        <th>Paid Used</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Ledger.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">No credit activity yet.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var entry in Model.Ledger)
+                        {
+                            <tr>
+                                <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@entry.Type</td>
+                                <td>@entry.CalculatedCredits.ToString("N0")</td>
+                                <td>@entry.ChargedCredits.ToString("N0")</td>
+                                <td>@entry.FreeCreditsUsed.ToString("N0")</td>
+                                <td>@entry.PaidCreditsUsed.ToString("N0")</td>
+                                <td>@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0"))</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>

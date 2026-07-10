@@ -30,6 +30,7 @@ namespace RagChatbotSystem.Presentation.Pages
         private readonly IRealtimeNotifier _realtimeNotifier;
         private readonly ITokenUsageService _tokenUsageService;
         private readonly ISystemSettingService _systemSettingService;
+        private readonly ICreditService _creditService;
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
@@ -42,6 +43,7 @@ namespace RagChatbotSystem.Presentation.Pages
             IRealtimeNotifier realtimeNotifier,
             ITokenUsageService tokenUsageService,
             ISystemSettingService systemSettingService,
+            ICreditService creditService,
             ILogger<IndexModel> logger)
         {
             _userService = userService;
@@ -53,6 +55,7 @@ namespace RagChatbotSystem.Presentation.Pages
             _realtimeNotifier = realtimeNotifier;
             _tokenUsageService = tokenUsageService;
             _systemSettingService = systemSettingService;
+            _creditService = creditService;
             _logger = logger;
         }
 
@@ -74,6 +77,7 @@ namespace RagChatbotSystem.Presentation.Pages
         public string? SuccessMessage { get; set; }
         public int DailyTokensUsed { get; set; }
         public int DailyTokenLimit { get; set; }
+        public CreditBalanceDto? CreditBalance { get; set; }
 
         public async Task<IActionResult> OnGetAsync(
             Guid? datasetId = null,
@@ -110,6 +114,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 {
                     DailyTokensUsed = await _tokenUsageService.GetDailyUsageAsync(currentUserId, HttpContext.RequestAborted);
                     DailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync(HttpContext.RequestAborted);
+                    CreditBalance = await _creditService.GetStudentCreditSummaryAsync(currentUserId, HttpContext.RequestAborted);
                 }
 
                 SelectedUser = await _userService.GetUserAsync(currentUserId, HttpContext.RequestAborted);
@@ -301,10 +306,12 @@ namespace RagChatbotSystem.Presentation.Pages
 
                 int? dailyTokensUsed = null;
                 int? dailyTokenLimit = null;
+                CreditBalanceDto? creditBalance = response.CreditBalance;
                 if (currentUserRole == "Student")
                 {
                     dailyTokensUsed = await _tokenUsageService.GetDailyUsageAsync(currentUserId, HttpContext.RequestAborted);
                     dailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync(HttpContext.RequestAborted);
+                    creditBalance ??= await _creditService.GetStudentCreditSummaryAsync(currentUserId, HttpContext.RequestAborted);
                 }
 
                 return new JsonResult(new
@@ -334,7 +341,23 @@ namespace RagChatbotSystem.Presentation.Pages
                         chunkId = c.ChunkId
                     }),
                     dailyTokensUsed,
-                    dailyTokenLimit
+                    dailyTokenLimit,
+                    creditBalance = creditBalance == null ? null : new
+                    {
+                        freeCredits = creditBalance.FreeCredits,
+                        paidCredits = creditBalance.PaidCredits,
+                        totalCredits = creditBalance.TotalCredits
+                    },
+                    creditSpend = response.CreditSpend == null ? null : new
+                    {
+                        calculatedCredits = response.CreditSpend.CalculatedCredits,
+                        chargedCredits = response.CreditSpend.ChargedCredits,
+                        freeCreditsUsed = response.CreditSpend.FreeCreditsUsed,
+                        paidCreditsUsed = response.CreditSpend.PaidCreditsUsed,
+                        wasInsufficientBalance = response.CreditSpend.WasInsufficientBalance,
+                        wasActualTokenUsage = response.CreditSpend.WasActualTokenUsage,
+                        modelName = response.CreditSpend.ModelName
+                    }
                 });
             }
             catch (Exception ex)

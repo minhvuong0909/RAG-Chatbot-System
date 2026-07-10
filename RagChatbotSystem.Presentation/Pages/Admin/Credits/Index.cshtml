@@ -1,0 +1,184 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.Credits.IndexModel
+@{
+    ViewData["Title"] = "Credit Management";
+}
+
+<section class="admin-page">
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Credit Management</h1>
+            <p class="helper-text">Manage student credit balances, manual top-ups, grants, and ledger history.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Admin sections">
+        <a asp-page="/Admin/Index">Overview</a>
+        <a asp-page="/Admin/Datasets/Index">Subjects</a>
+        <a asp-page="/Admin/Reports">Reports</a>
+        <a class="active" asp-page="/Admin/Credits/Index" aria-current="page">Credits</a>
+        <a asp-page="/Admin/Settings">Settings</a>
+    </nav>
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <section class="admin-section">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">Student</label>
+                <select name="userId" class="form-select">
+                    @foreach (var student in Model.Students)
+                    {
+                        <option value="@student.UserId" selected="@(Model.SelectedUserId == student.UserId)">@student.FullName (@student.Email)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-primary w-100" type="submit">View Balance</button>
+            </div>
+        </form>
+    </section>
+
+    @if (Model.SelectedBalance != null)
+    {
+        <div class="stats-summary-grid">
+            <div class="stats-card highlight-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Total Credits</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.TotalCredits.ToString("N0")</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Free Credits</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.FreeCredits.ToString("N0")</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Paid Credits</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.PaidCredits.ToString("N0")</span>
+                </div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-card-content">
+                    <span class="stats-card-label">Daily Free Reset</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.Settings.DailyFreeCredits.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="reports-main-grid">
+            <section class="admin-section">
+                <div class="section-title">
+                    <h2>Manual Paid Top-up</h2>
+                    <span>Add paid credits through admin workflow</span>
+                </div>
+                <form method="post" asp-page-handler="TopUp" class="row g-3">
+                    <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
+                    <div class="col-md-6">
+                        <label asp-for="Input.PaidCredits" class="form-label">Paid Credits</label>
+                        <input asp-for="Input.PaidCredits" class="form-control" type="number" min="1" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Amount" class="form-label">Amount (VND)</label>
+                        <input asp-for="Input.Amount" class="form-control" type="number" min="0" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Input.Note" class="form-label">Note</label>
+                        <input asp-for="Input.Note" class="form-control" required />
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Top Up Paid Credits</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="admin-section">
+                <div class="section-title">
+                    <h2>Grant / Adjust</h2>
+                    <span>All changes write ledger rows</span>
+                </div>
+                <form method="post" asp-page-handler="GrantFree" class="row g-3 mb-4">
+                    <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
+                    <div class="col-md-6">
+                        <label asp-for="Input.FreeCredits" class="form-label">Free Credits</label>
+                        <input asp-for="Input.FreeCredits" class="form-control" type="number" min="1" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Note" class="form-label">Note</label>
+                        <input asp-for="Input.Note" class="form-control" required />
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-outline-primary">Grant Free Credits</button>
+                    </div>
+                </form>
+
+                <form method="post" asp-page-handler="Adjust" class="row g-3">
+                    <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
+                    <div class="col-md-4">
+                        <label asp-for="Input.FreeCreditsDelta" class="form-label">Free Delta</label>
+                        <input asp-for="Input.FreeCreditsDelta" class="form-control" type="number" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.PaidCreditsDelta" class="form-label">Paid Delta</label>
+                        <input asp-for="Input.PaidCreditsDelta" class="form-control" type="number" />
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Input.Note" class="form-label">Note</label>
+                        <input asp-for="Input.Note" class="form-control" required />
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-outline-danger">Apply Adjustment</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <section class="admin-section" style="margin-top: 2rem;">
+            <div class="section-title">
+                <h2>Credit Ledger</h2>
+                <span>Latest 50 entries</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle admin-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Calculated</th>
+                            <th>Charged</th>
+                            <th>Added</th>
+                            <th>Used</th>
+                            <th>Balance</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.Ledger)
+                        {
+                            <tr>
+                                <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@entry.Type</td>
+                                <td>@entry.CalculatedCredits.ToString("N0")</td>
+                                <td>@entry.ChargedCredits.ToString("N0")</td>
+                                <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0"))</td>
+                                <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0"))</td>
+                                <td>@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0"))</td>
+                                <td>@entry.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</section>

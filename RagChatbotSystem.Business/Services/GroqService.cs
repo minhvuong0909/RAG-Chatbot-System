@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Business.Services
@@ -20,6 +21,9 @@ namespace RagChatbotSystem.Business.Services
         private int _lastPromptTokens;
         private int _lastCompletionTokens;
         private int _lastTotalTokens;
+        private bool _lastWasActualTokenUsage;
+        private bool _lastIsProviderFallback;
+        private string? _lastErrorMessage;
 
         public int LastPromptTokens => _lastPromptTokens;
         public int LastCompletionTokens => _lastCompletionTokens;
@@ -39,13 +43,18 @@ namespace RagChatbotSystem.Business.Services
             _lastPromptTokens = 0;
             _lastCompletionTokens = 0;
             _lastTotalTokens = 0;
+            _lastWasActualTokenUsage = false;
+            _lastIsProviderFallback = false;
+            _lastErrorMessage = null;
 
             if (!_hasApiKey)
             {
                 var mockAnswer = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = mockAnswer.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(mockAnswer);
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = "Groq API key is not configured.";
                 return mockAnswer;
             }
 
@@ -74,11 +83,12 @@ namespace RagChatbotSystem.Business.Services
                     _lastPromptTokens = result.Usage.PromptTokens;
                     _lastCompletionTokens = result.Usage.CompletionTokens;
                     _lastTotalTokens = result.Usage.TotalTokens;
+                    _lastWasActualTokenUsage = true;
                 }
                 else
                 {
-                    _lastPromptTokens = prompt.Length / 4;
-                    _lastCompletionTokens = content.Length / 4;
+                    _lastPromptTokens = EstimateTokens(prompt);
+                    _lastCompletionTokens = EstimateTokens(content);
                     _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 }
 
@@ -89,11 +99,28 @@ namespace RagChatbotSystem.Business.Services
                 _logger.LogError(ex, "Groq API call failed.");
                 
                 var fallbackAnswer = ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = fallbackAnswer.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(fallbackAnswer);
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = ex.Message;
                 return fallbackAnswer;
             }
+        }
+
+        public async Task<LlmAnswerResult> GenerateAnswerWithUsageAsync(string prompt)
+        {
+            var content = await GenerateAnswerAsync(prompt);
+            return new LlmAnswerResult(
+                content,
+                _model,
+                _lastPromptTokens,
+                _lastCompletionTokens,
+                _lastTotalTokens,
+                _lastWasActualTokenUsage,
+                !_lastIsProviderFallback,
+                _lastIsProviderFallback,
+                _lastErrorMessage);
         }
 
         public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
@@ -101,13 +128,18 @@ namespace RagChatbotSystem.Business.Services
             _lastPromptTokens = 0;
             _lastCompletionTokens = 0;
             _lastTotalTokens = 0;
+            _lastWasActualTokenUsage = false;
+            _lastIsProviderFallback = false;
+            _lastErrorMessage = null;
 
             if (!_hasApiKey)
             {
                 var mockText = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
-                _lastPromptTokens = prompt.Length / 4;
-                _lastCompletionTokens = mockText.Length / 4;
+                _lastPromptTokens = EstimateTokens(prompt);
+                _lastCompletionTokens = EstimateTokens(mockText);
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = "Groq API key is not configured.";
 
                 var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var word in words)
@@ -170,6 +202,7 @@ namespace RagChatbotSystem.Business.Services
                             _lastPromptTokens = chunk.Usage.PromptTokens;
                             _lastCompletionTokens = chunk.Usage.CompletionTokens;
                             _lastTotalTokens = chunk.Usage.TotalTokens;
+                            _lastWasActualTokenUsage = true;
                         }
 
                         var text = chunk?.Choices?[0]?.Delta?.Content;
@@ -184,8 +217,8 @@ namespace RagChatbotSystem.Business.Services
                 // Fallback if Usage wasn't provided in the stream
                 if (_lastTotalTokens == 0)
                 {
-                    _lastPromptTokens = prompt.Length / 4;
-                    _lastCompletionTokens = accumulatedText.Length / 4;
+                    _lastPromptTokens = EstimateTokens(prompt);
+                    _lastCompletionTokens = EstimateTokens(accumulatedText.ToString());
                     _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 }
             }
@@ -255,6 +288,11 @@ namespace RagChatbotSystem.Business.Services
             }
 
             return responseBuilder.ToString();
+        }
+
+        private static int EstimateTokens(string value)
+        {
+            return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));
         }
 
         // Các class để deserialize phản hồi từ Groq API

@@ -85,6 +85,8 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IQuestionSuggestionService, QuestionSuggestionService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
             builder.Services.AddScoped<ITokenUsageService, TokenUsageService>();
+            builder.Services.AddScoped<ICreditService, CreditService>();
+            builder.Services.AddScoped<ICreditPurchaseService, CreditPurchaseService>();
             builder.Services.AddScoped<IStatisticsService, StatisticsService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();

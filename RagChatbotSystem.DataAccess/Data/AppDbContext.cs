@@ -26,6 +26,11 @@ namespace RagChatbotSystem.DataAccess.Data
         public DbSet<TeacherSubjectAssignment> TeacherSubjectAssignments { get; set; } = null!;
         public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
         public DbSet<UserTokenUsage> UserTokenUsages { get; set; } = null!;
+        public DbSet<CreditWallet> CreditWallets { get; set; } = null!;
+        public DbSet<CreditLedger> CreditLedgers { get; set; } = null!;
+        public DbSet<CreditPackage> CreditPackages { get; set; } = null!;
+        public DbSet<CreditPurchase> CreditPurchases { get; set; } = null!;
+        public DbSet<CreditBlockedAttempt> CreditBlockedAttempts { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -206,12 +211,22 @@ namespace RagChatbotSystem.DataAccess.Data
             modelBuilder.Entity<SystemSetting>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.DailyFreeCredits).IsRequired().HasDefaultValue(60);
+                entity.Property(e => e.CreditTokenUnit).IsRequired().HasDefaultValue(1000);
+                entity.Property(e => e.CreditOutputTokenWeight).IsRequired().HasDefaultValue(4);
+                entity.Property(e => e.EnableCreditSystem).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.ExamSeasonDailyFreeCredits).IsRequired().HasDefaultValue(100);
                 entity.HasData(new SystemSetting
                 {
                     Id = 1,
                     ChunkSize = 500,
                     ChunkOverlap = 100,
                     DailyTokenLimit = 50000,
+                    DailyFreeCredits = 60,
+                    CreditTokenUnit = 1000,
+                    CreditOutputTokenWeight = 4,
+                    EnableCreditSystem = true,
+                    ExamSeasonDailyFreeCredits = 100,
                     UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 });
             });
@@ -258,6 +273,220 @@ namespace RagChatbotSystem.DataAccess.Data
                     .WithMany(d => d.Citations)
                     .HasForeignKey(c => c.DocumentId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CreditWallet>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.FreeCredits).IsRequired().HasDefaultValue(0);
+                entity.Property(e => e.PaidCredits).IsRequired().HasDefaultValue(0);
+                entity.Property(e => e.LastFreeCreditResetDate).IsRequired();
+                entity.Property(e => e.Version).IsConcurrencyToken();
+                entity.HasIndex(e => e.UserId).IsUnique();
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_CreditWallet_FreeCredits_NonNegative", "\"FreeCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditWallet_PaidCredits_NonNegative", "\"PaidCredits\" >= 0");
+                });
+
+                entity.HasOne(w => w.User)
+                    .WithMany()
+                    .HasForeignKey(w => w.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CreditPackage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Price).HasColumnType("numeric(18,2)");
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_CreditPackage_BaseCredits_Positive", "\"BaseCredits\" > 0");
+                    t.HasCheckConstraint("CK_CreditPackage_BonusCredits_NonNegative", "\"BonusCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditPackage_TotalCredits_Positive", "\"TotalCredits\" > 0");
+                    t.HasCheckConstraint("CK_CreditPackage_Price_NonNegative", "\"Price\" >= 0");
+                });
+
+                entity.HasData(
+                    new CreditPackage
+                    {
+                        Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                        Name = "Study Lite",
+                        Description = "Small top-up for regular study.",
+                        BaseCredits = 300,
+                        BonusCredits = 0,
+                        TotalCredits = 300,
+                        Price = 10000m,
+                        Currency = "VND",
+                        IsActive = true,
+                        DisplayOrder = 1,
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new CreditPackage
+                    {
+                        Id = new Guid("10000000-0000-0000-0000-000000000002"),
+                        Name = "Study Plus",
+                        Description = "Better value for active learners.",
+                        BaseCredits = 700,
+                        BonusCredits = 100,
+                        TotalCredits = 800,
+                        Price = 25000m,
+                        Currency = "VND",
+                        IsActive = true,
+                        DisplayOrder = 2,
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new CreditPackage
+                    {
+                        Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                        Name = "Exam Boost",
+                        Description = "Recommended for quiz/PE/final preparation.",
+                        BaseCredits = 1700,
+                        BonusCredits = 300,
+                        TotalCredits = 2000,
+                        Price = 59000m,
+                        Currency = "VND",
+                        IsActive = true,
+                        DisplayOrder = 3,
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    },
+                    new CreditPackage
+                    {
+                        Id = new Guid("10000000-0000-0000-0000-000000000004"),
+                        Name = "Final Sprint",
+                        Description = "Best value for intensive exam preparation.",
+                        BaseCredits = 4000,
+                        BonusCredits = 1000,
+                        TotalCredits = 5000,
+                        Price = 129000m,
+                        Currency = "VND",
+                        IsActive = true,
+                        DisplayOrder = 4,
+                        CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                        UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    });
+            });
+
+            modelBuilder.Entity<CreditPurchase>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).HasConversion<string>().IsRequired().HasMaxLength(30);
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.PaymentProvider).HasMaxLength(80);
+                entity.Property(e => e.ProviderReference).HasMaxLength(200);
+                entity.Property(e => e.Amount).HasColumnType("numeric(18,2)");
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+                entity.HasIndex(e => new { e.Status, e.CreatedAt });
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_CreditPurchase_BaseCredits_NonNegative", "\"BaseCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditPurchase_BonusCredits_NonNegative", "\"BonusCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditPurchase_TotalCredits_NonNegative", "\"TotalCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditPurchase_Amount_NonNegative", "\"Amount\" >= 0");
+                });
+
+                entity.HasOne(p => p.User)
+                    .WithMany()
+                    .HasForeignKey(p => p.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Package)
+                    .WithMany(pkg => pkg.Purchases)
+                    .HasForeignKey(p => p.PackageId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(p => p.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(p => p.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CreditLedger>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Type).HasConversion<string>().IsRequired().HasMaxLength(30);
+                entity.Property(e => e.ModelName).HasMaxLength(120);
+                entity.Property(e => e.Note).HasMaxLength(1000);
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+                entity.HasIndex(e => new { e.DatasetId, e.CreatedAt });
+                entity.HasIndex(e => new { e.ModelName, e.CreatedAt });
+                entity.HasIndex(e => new { e.Type, e.CreatedAt });
+                entity.HasIndex(e => e.ChatMessageId);
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_CreditLedger_CalculatedCredits_NonNegative", "\"CalculatedCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_ChargedCredits_NonNegative", "\"ChargedCredits\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_FreeCreditsUsed_NonNegative", "\"FreeCreditsUsed\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_PaidCreditsUsed_NonNegative", "\"PaidCreditsUsed\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_FreeCreditsAdded_NonNegative", "\"FreeCreditsAdded\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_PaidCreditsAdded_NonNegative", "\"PaidCreditsAdded\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_BalanceBeforeFree_NonNegative", "\"BalanceBeforeFree\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_BalanceBeforePaid_NonNegative", "\"BalanceBeforePaid\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_BalanceAfterFree_NonNegative", "\"BalanceAfterFree\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_BalanceAfterPaid_NonNegative", "\"BalanceAfterPaid\" >= 0");
+                    t.HasCheckConstraint("CK_CreditLedger_Tokens_NonNegative", "\"InputTokens\" >= 0 AND \"OutputTokens\" >= 0 AND \"TotalTokens\" >= 0");
+                });
+
+                entity.HasOne(l => l.User)
+                    .WithMany()
+                    .HasForeignKey(l => l.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(l => l.Dataset)
+                    .WithMany()
+                    .HasForeignKey(l => l.DatasetId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(l => l.ChatSession)
+                    .WithMany()
+                    .HasForeignKey(l => l.ChatSessionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(l => l.ChatMessage)
+                    .WithMany()
+                    .HasForeignKey(l => l.ChatMessageId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(l => l.RelatedPackage)
+                    .WithMany(p => p.LedgerEntries)
+                    .HasForeignKey(l => l.RelatedPackageId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(l => l.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(l => l.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CreditBlockedAttempt>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Reason).HasConversion<string>().IsRequired().HasMaxLength(40);
+                entity.Property(e => e.MessagePreview).HasMaxLength(500);
+                entity.Property(e => e.Note).HasMaxLength(1000);
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+                entity.HasIndex(e => new { e.Reason, e.CreatedAt });
+
+                entity.HasOne(b => b.User)
+                    .WithMany()
+                    .HasForeignKey(b => b.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(b => b.Dataset)
+                    .WithMany()
+                    .HasForeignKey(b => b.DatasetId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(b => b.ChatSession)
+                    .WithMany()
+                    .HasForeignKey(b => b.ChatSessionId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

@@ -16,6 +16,8 @@ namespace RagChatbotSystem.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<UserTokenUsage> _tokenUsageRepository;
         private readonly IGenericRepository<Citation> _citationRepository;
+        private readonly IGenericRepository<CreditLedger> _creditLedgerRepository;
+        private readonly IGenericRepository<CreditBlockedAttempt> _blockedAttemptRepository;
         private static readonly TimeZoneInfo VietnamTz = ResolveVietnamTimeZone();
 
         public StatisticsService(IUnitOfWork unitOfWork)
@@ -23,6 +25,8 @@ namespace RagChatbotSystem.Business.Services
             _unitOfWork = unitOfWork;
             _tokenUsageRepository = _unitOfWork.Repository<UserTokenUsage>();
             _citationRepository = _unitOfWork.Repository<Citation>();
+            _creditLedgerRepository = _unitOfWork.Repository<CreditLedger>();
+            _blockedAttemptRepository = _unitOfWork.Repository<CreditBlockedAttempt>();
         }
 
         private static TimeZoneInfo ResolveVietnamTimeZone()
@@ -148,12 +152,119 @@ namespace RagChatbotSystem.Business.Services
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<CreditReportDto> GetCreditReportAsync(int days = 7, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default)
+        {
+            var cutoffDate = GetTodayInVietnam().AddDays(-days + 1);
+            var creditQuery = ApplyDatasetScope(_creditLedgerRepository.GetQueryable(), datasetIds)
+                .Where(l => l.Type == CreditLedgerType.SPEND);
+
+            var blockedQuery = _blockedAttemptRepository.GetQueryable()
+                .Where(b => b.Reason == CreditBlockedReason.ZERO_BALANCE);
+            if (datasetIds != null)
+            {
+                blockedQuery = blockedQuery.Where(b => b.DatasetId.HasValue && datasetIds.Contains(b.DatasetId.Value));
+            }
+
+            var summary = new CreditUsageSummaryDto
+            {
+                TotalCalculatedCredits = await creditQuery.SumAsync(l => l.CalculatedCredits, cancellationToken),
+                TotalChargedCredits = await creditQuery.SumAsync(l => l.ChargedCredits, cancellationToken),
+                FreeCreditsConsumed = await creditQuery.SumAsync(l => l.FreeCreditsUsed, cancellationToken),
+                PaidCreditsConsumed = await creditQuery.SumAsync(l => l.PaidCreditsUsed, cancellationToken),
+                InsufficientBalanceCount = await creditQuery.CountAsync(l => l.WasInsufficientBalance, cancellationToken),
+                ZeroBalanceBlockedCount = await blockedQuery.CountAsync(cancellationToken)
+            };
+
+            var rawDaily = await creditQuery
+                .Where(l => l.CreatedAt >= cutoffDate)
+                .GroupBy(l => l.CreatedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    CalculatedCredits = g.Sum(l => l.CalculatedCredits),
+                    ChargedCredits = g.Sum(l => l.ChargedCredits),
+                    FreeCreditsUsed = g.Sum(l => l.FreeCreditsUsed),
+                    PaidCreditsUsed = g.Sum(l => l.PaidCreditsUsed)
+                })
+                .OrderBy(g => g.Date)
+                .ToListAsync(cancellationToken);
+
+            var daily = new List<DailyCreditUsageDto>();
+            for (var i = 0; i < days; i++)
+            {
+                var targetDate = cutoffDate.AddDays(i);
+                var match = rawDaily.FirstOrDefault(d => d.Date.Date == targetDate.Date);
+                daily.Add(new DailyCreditUsageDto
+                {
+                    Date = targetDate,
+                    FormattedDate = targetDate.ToString("dd/MM"),
+                    CalculatedCredits = match?.CalculatedCredits ?? 0,
+                    ChargedCredits = match?.ChargedCredits ?? 0,
+                    FreeCreditsUsed = match?.FreeCreditsUsed ?? 0,
+                    PaidCreditsUsed = match?.PaidCreditsUsed ?? 0
+                });
+            }
+
+            var topStudents = await creditQuery
+                .Include(l => l.User)
+                .GroupBy(l => new { l.UserId, l.User.FullName, l.User.Email })
+                .Select(g => new CreditLeaderboardDto
+                {
+                    UserId = g.Key.UserId,
+                    FullName = g.Key.FullName,
+                    Email = g.Key.Email,
+                    ChargedCredits = g.Sum(l => l.ChargedCredits),
+                    CalculatedCredits = g.Sum(l => l.CalculatedCredits)
+                })
+                .OrderByDescending(u => u.ChargedCredits)
+                .Take(10)
+                .ToListAsync(cancellationToken);
+
+            var topDatasets = await creditQuery
+                .Where(l => l.DatasetId.HasValue)
+                .Include(l => l.Dataset)
+                .GroupBy(l => new { DatasetId = l.DatasetId!.Value, DatasetName = l.Dataset!.Name })
+                .Select(g => new DatasetCreditUsageDto
+                {
+                    DatasetId = g.Key.DatasetId,
+                    DatasetName = g.Key.DatasetName,
+                    ChargedCredits = g.Sum(l => l.ChargedCredits),
+                    CalculatedCredits = g.Sum(l => l.CalculatedCredits)
+                })
+                .OrderByDescending(d => d.ChargedCredits)
+                .Take(10)
+                .ToListAsync(cancellationToken);
+
+            var topModels = await creditQuery
+                .GroupBy(l => l.ModelName ?? "Unknown")
+                .Select(g => new ModelCreditUsageDto
+                {
+                    ModelName = g.Key,
+                    ChargedCredits = g.Sum(l => l.ChargedCredits),
+                    CalculatedCredits = g.Sum(l => l.CalculatedCredits)
+                })
+                .OrderByDescending(m => m.ChargedCredits)
+                .Take(10)
+                .ToListAsync(cancellationToken);
+
+            return new CreditReportDto(summary, daily, topStudents, topDatasets, topModels);
+        }
+
         private static IQueryable<UserTokenUsage> ApplyDatasetScope(
             IQueryable<UserTokenUsage> query,
             IReadOnlyCollection<Guid>? datasetIds)
         {
             return datasetIds != null
                 ? query.Where(u => datasetIds.Contains(u.DatasetId))
+                : query;
+        }
+
+        private static IQueryable<CreditLedger> ApplyDatasetScope(
+            IQueryable<CreditLedger> query,
+            IReadOnlyCollection<Guid>? datasetIds)
+        {
+            return datasetIds != null
+                ? query.Where(l => l.DatasetId.HasValue && datasetIds.Contains(l.DatasetId.Value))
                 : query;
         }
     }

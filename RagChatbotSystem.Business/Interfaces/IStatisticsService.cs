@@ -12,5 +12,6 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<List<DailyTokenUsageDto>> GetDailyTokenUsageAsync(int days = 7, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
         Task<List<TopDocumentUsageDto>> GetTopDocumentsUsageAsync(int limit = 5, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
         Task<List<UserTokenUsageLeaderboardDto>> GetUserLeaderboardAsync(int limit = 10, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
+        Task<CreditReportDto> GetCreditReportAsync(int days = 7, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
     }
 }

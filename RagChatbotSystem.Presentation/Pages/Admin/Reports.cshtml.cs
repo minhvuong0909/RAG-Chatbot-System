@@ -28,6 +28,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
         public List<DailyTokenUsageDto> DailyUsage { get; set; } = new();
         public List<TopDocumentUsageDto> TopDocuments { get; set; } = new();
         public List<UserTokenUsageLeaderboardDto> Leaderboard { get; set; } = new();
+        public CreditReportDto CreditReport { get; set; } = null!;
         public string ReportScopeLabel { get; set; } = "All subjects";
 
         public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
@@ -53,6 +54,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             DailyUsage = await _statisticsService.GetDailyTokenUsageAsync(7, datasetScope, cancellationToken);
             TopDocuments = await _statisticsService.GetTopDocumentsUsageAsync(5, datasetScope, cancellationToken);
             Leaderboard = await _statisticsService.GetUserLeaderboardAsync(10, datasetScope, cancellationToken);
+            CreditReport = await _statisticsService.GetCreditReportAsync(7, datasetScope, cancellationToken);
             return Page();
         }
     }
