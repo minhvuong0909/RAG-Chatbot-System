@@ -26,6 +26,15 @@ namespace RagChatbotSystem.Business.DTOs
         public int CitationCount { get; set; }
     }
 
+    public class TopSubjectUsageDto
+    {
+        public Guid DatasetId { get; set; }
+        public string DatasetName { get; set; } = string.Empty;
+        public int TotalQueriesCount { get; set; }
+        public int TotalTokensUsed { get; set; }
+        public int ActiveUsersCount { get; set; }
+    }
+
     public class UserTokenUsageLeaderboardDto
     {
         public Guid UserId { get; set; }
@@ -33,6 +42,14 @@ namespace RagChatbotSystem.Business.DTOs
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public int TotalTokensUsed { get; set; }
+        public int TotalQueriesCount { get; set; }
+    }
+
+    public class StudentLearningEngagementDto
+    {
+        public Guid UserId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public int TotalQueriesCount { get; set; }
     }
 }
