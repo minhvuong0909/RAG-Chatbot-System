@@ -1,0 +1,42 @@
+- generic [active] [ref=f6e1]:
+  - banner [ref=f6e2]:
+    - navigation [ref=f6e3]:
+      - generic [ref=f6e4]:
+        - link "R RAG Chatbot" [ref=f6e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f6e6]: R
+          - generic [ref=f6e7]: RAG Chatbot
+        - generic [ref=f6e8]:
+          - list
+          - link "Đăng nhập" [ref=f6e10] [cursor=pointer]:
+            - /url: /Account/Login
+  - main [ref=f6e12]:
+    - generic [ref=f6e14]:
+      - generic [ref=f6e15]:
+        - generic [ref=f6e16]: R
+        - heading "Đăng nhập" [level=1] [ref=f6e17]
+        - paragraph [ref=f6e18]: Đăng nhập để sử dụng không gian học tập với RAG AI.
+      - generic [ref=f6e19]:
+        - generic [ref=f6e20]:
+          - generic [ref=f6e21]: TÊN ĐĂNG NHẬP HOẶC EMAIL
+          - textbox "TÊN ĐĂNG NHẬP HOẶC EMAIL" [ref=f6e22]:
+            - /placeholder: Nhập tên đăng nhập hoặc Email
+        - generic [ref=f6e23]:
+          - generic [ref=f6e24]: MẬT KHẨU
+          - textbox "MẬT KHẨU" [ref=f6e25]:
+            - /placeholder: Nhập mật khẩu
+        - button "Đăng nhập" [ref=f6e27] [cursor=pointer]
+        - generic [ref=f6e28]: Tài khoản được quản trị viên cung cấp qua Email.
+  - contentinfo [ref=f6e29]:
+    - generic [ref=f6e30]:
+      - generic [ref=f6e31]:
+        - generic [ref=f6e32]: R
+        - generic [ref=f6e33]: © 2026 RAG Chatbot System
+      - generic [ref=f6e34]:
+        - link "Tài liệu" [ref=f6e35] [cursor=pointer]:
+          - /url: "#"
+        - link "Bảo mật" [ref=f6e36] [cursor=pointer]:
+          - /url: "#"
+        - link "Điều khoản" [ref=f6e37] [cursor=pointer]:
+          - /url: "#"
+        - generic [ref=f6e38]: Hệ thống đang hoạt động

@@ -12,5 +12,9 @@ namespace RagChatbotSystem.Business.Interfaces
         int LastPromptTokens { get; }
         int LastCompletionTokens { get; }
         int LastTotalTokens { get; }
+        bool LastWasActualTokenUsage { get; }
+        bool LastIsProviderFallback { get; }
+        string? LastErrorMessage { get; }
+        string ModelName { get; }
     }
 }

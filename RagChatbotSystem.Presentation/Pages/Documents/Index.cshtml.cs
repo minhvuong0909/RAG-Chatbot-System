@@ -79,7 +79,7 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading document workspace.");
-                ErrorMessage = $"System error: {ex.Message}";
+                ErrorMessage = "Không thể tải danh sách tài liệu. Vui lòng thử lại sau.";
             }
 
             return Page();
@@ -94,18 +94,18 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
 
             if (file == null || file.Length == 0)
             {
-                return RedirectToPage("/Documents/Index", new { datasetId, error = "Please select a file to upload." });
+                return RedirectToPage("/Documents/Index", new { datasetId, error = "Vui lòng chọn tệp để tải lên." });
             }
 
             if (file.Length > 52428800)
             {
-                return RedirectToPage("/Documents/Index", new { datasetId, error = "File size exceeds the allowed limit (max 50MB)." });
+                return RedirectToPage("/Documents/Index", new { datasetId, error = "Dung lượng tệp vượt quá giới hạn 50 MB." });
             }
 
             var extension = Path.GetExtension(file.FileName);
             if (!AllowedFileExtensions.Contains(extension))
             {
-                return RedirectToPage("/Documents/Index", new { datasetId, error = "Only PDF, DOCX, and TXT files are supported." });
+                return RedirectToPage("/Documents/Index", new { datasetId, error = "Chỉ hỗ trợ tệp PDF, DOCX và TXT." });
             }
 
             if (!TryGetCurrentUser(out var currentUserId, out var userRole))
@@ -123,7 +123,7 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
 
                 if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, datasetId, HttpContext.RequestAborted))
                 {
-                    return RedirectToPage("/Documents/Index", new { datasetId, error = "You only have permission to upload documents to assigned subjects." });
+                    return RedirectToPage("/Documents/Index", new { datasetId, error = "Bạn chỉ có thể tải tài liệu lên các môn học được phân công." });
                 }
 
                 DocumentDto? uploadedDocument = null;
@@ -145,7 +145,7 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                     var processedDoc = await _documentService.ProcessUploadedDocumentAsync(doc.DocumentId, HttpContext.RequestAborted);
                     await _realtimeNotifier.DocumentProgressAsync(datasetId, processedDoc, "completed", 100, HttpContext.RequestAborted);
 
-                    return RedirectToPage("/Documents/Index", new { datasetId, success = $"Document '{file.FileName}' uploaded and processed successfully." });
+                    return RedirectToPage("/Documents/Index", new { datasetId, success = $"Đã tải lên và xử lý tài liệu \"{file.FileName}\"." });
                 }
                 catch (Exception ex)
                 {
@@ -155,13 +155,16 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                     }
 
                     _logger.LogError(ex, "Failed to upload and process document.");
-                    return RedirectToPage("/Documents/Index", new { datasetId, error = $"Document upload failed: {ex.Message}" });
+                    var errorMessage = ex.Message.Contains("file name already exists", StringComparison.OrdinalIgnoreCase)
+                        ? "Tài liệu có cùng tên tệp đã tồn tại. Vui lòng xác nhận thay thế tài liệu hiện tại trước khi tải lên."
+                        : "Không thể tải lên và xử lý tài liệu. Vui lòng thử lại hoặc chọn tệp khác.";
+                    return RedirectToPage("/Documents/Index", new { datasetId, error = errorMessage });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed authorization check before upload.");
-                return RedirectToPage("/Documents/Index", new { datasetId, error = $"System error: {ex.Message}" });
+                return RedirectToPage("/Documents/Index", new { datasetId, error = "Không thể kiểm tra quyền tải tài liệu. Vui lòng thử lại sau." });
             }
         }
 
@@ -182,12 +185,12 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                 var document = await _documentService.GetDocumentAsync(documentId, HttpContext.RequestAborted);
                 if (document == null)
                 {
-                    return RedirectToPage("/Documents/Index", new { datasetId, error = "Document was not found." });
+                    return RedirectToPage("/Documents/Index", new { datasetId, error = "Không tìm thấy tài liệu." });
                 }
 
                 if (!await _datasetService.CanManageDatasetAsync(currentUserId, userRole, document.DatasetId, HttpContext.RequestAborted))
                 {
-                    return RedirectToPage("/Documents/Index", new { datasetId, error = "You only have permission to delete documents in your assigned subjects." });
+                    return RedirectToPage("/Documents/Index", new { datasetId, error = "Bạn chỉ có thể xóa tài liệu trong các môn học được phân công." });
                 }
 
                 var deleted = await _documentService.DeleteDocumentAsync(documentId, currentUserId, HttpContext.RequestAborted);
@@ -196,25 +199,17 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                     await _realtimeNotifier.DocumentProgressAsync(datasetId, document with { Status = "Deleted" }, "deleted", 100, HttpContext.RequestAborted);
                 }
 
-                var deletedDocument = deleted
-                    ? await _documentService.GetDocumentAsync(documentId, HttpContext.RequestAborted)
-                    : null;
-
                 return RedirectToPage("/Documents/Index", new
                 {
                     datasetId,
-                    success = deleted
-                        ? string.IsNullOrWhiteSpace(deletedDocument?.ProcessError)
-                            ? "Document hidden from chat successfully."
-                            : $"Document hidden from chat. Warning: {deletedDocument.ProcessError}"
-                        : null,
-                    error = deleted ? null : "Hide document failed."
+                    success = deleted ? $"Đã xóa tài liệu \"{document.FileName}\" khỏi danh sách sử dụng của chatbot." : null,
+                    error = deleted ? null : "Không thể xóa tài liệu. Vui lòng thử lại."
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to delete document.");
-                return RedirectToPage("/Documents/Index", new { datasetId, error = $"Hide document failed: {ex.Message}" });
+                return RedirectToPage("/Documents/Index", new { datasetId, error = "Không thể xóa tài liệu. Vui lòng thử lại sau." });
             }
         }
 

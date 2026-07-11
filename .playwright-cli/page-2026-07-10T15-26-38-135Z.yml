@@ -1,0 +1,166 @@
+- generic [active] [ref=f14e1]:
+  - banner [ref=f14e2]:
+    - navigation [ref=f14e3]:
+      - generic [ref=f14e4]:
+        - link "R RAG Chatbot" [ref=f14e5] [cursor=pointer]:
+          - /url: /Admin
+          - generic [ref=f14e6]: R
+          - generic [ref=f14e7]: RAG Chatbot
+        - generic [ref=f14e8]:
+          - list [ref=f14e9]:
+            - listitem [ref=f14e10]:
+              - link "Quản trị" [ref=f14e11] [cursor=pointer]:
+                - /url: /Admin
+          - generic [ref=f14e12]:
+            - generic [ref=f14e15]:
+              - generic [ref=f14e16]: Vuong Dev Admin
+              - generic [ref=f14e17]: Quản trị viên
+            - button "Đăng xuất" [ref=f14e19] [cursor=pointer]
+  - main [ref=f14e21]:
+    - generic [ref=f14e22]:
+      - generic [ref=f14e24]:
+        - paragraph [ref=f14e25]: QUẢN TRỊ
+        - heading "Quản lý Credit" [level=1] [ref=f14e26]
+        - paragraph [ref=f14e27]: Theo dõi số dư sinh viên và ghi nhận nạp, tặng hoặc điều chỉnh Credit thủ công.
+      - navigation "Khu vực quản trị" [ref=f14e28]:
+        - link "Tổng quan" [ref=f14e29] [cursor=pointer]:
+          - /url: /Admin
+        - link "Môn học" [ref=f14e30] [cursor=pointer]:
+          - /url: /Admin/Datasets
+        - link "Báo cáo" [ref=f14e31] [cursor=pointer]:
+          - /url: /Admin/Reports
+        - link "Credit" [ref=f14e32] [cursor=pointer]:
+          - /url: /Admin/Credits
+        - link "Cài đặt" [ref=f14e33] [cursor=pointer]:
+          - /url: /Admin/Settings
+      - generic [ref=f14e34]:
+        - generic [ref=f14e36]:
+          - paragraph [ref=f14e37]: SINH VIÊN
+          - heading "Chọn sinh viên" [level=2] [ref=f14e38]
+          - paragraph [ref=f14e39]: Tìm theo họ tên hoặc email, sau đó xem và điều chỉnh số dư.
+        - generic [ref=f14e40]:
+          - generic [ref=f14e41]:
+            - generic [ref=f14e42]: Tìm sinh viên
+            - searchbox "Tìm sinh viên" [ref=f14e43]
+          - generic [ref=f14e44]:
+            - generic [ref=f14e45]: Sinh viên
+            - combobox "Sinh viên" [ref=f14e46]:
+              - option "Demo Student (student@example.com)" [selected]
+          - button "Xem số dư" [ref=f14e47] [cursor=pointer]
+      - region "Số dư Credit của sinh viên đã chọn" [ref=f14e48]:
+        - article [ref=f14e49]:
+          - generic [ref=f14e50]:
+            - generic [ref=f14e51]: Tổng số dư
+            - generic [ref=f14e52]: "60"
+            - generic [ref=f14e53]: Credit hiện có thể sử dụng
+        - article [ref=f14e54]:
+          - generic [ref=f14e55]:
+            - generic [ref=f14e56]: Credit miễn phí
+            - generic [ref=f14e57]: "60"
+            - generic [ref=f14e58]: Được ưu tiên sử dụng trước
+        - article [ref=f14e59]:
+          - generic [ref=f14e60]:
+            - generic [ref=f14e61]: Credit đã mua
+            - generic [ref=f14e62]: "0"
+            - generic [ref=f14e63]: Được ghi nhận từ nạp thủ công
+        - article [ref=f14e64]:
+          - generic [ref=f14e65]:
+            - generic [ref=f14e66]: Credit miễn phí mỗi ngày
+            - generic [ref=f14e67]: "60"
+            - generic [ref=f14e68]: Đặt lại theo ngày Việt Nam
+      - generic [ref=f14e69]:
+        - article [ref=f14e70]:
+          - generic [ref=f14e72]:
+            - heading "Nạp Credit đã mua" [level=2] [ref=f14e73]
+            - generic [ref=f14e74]: Ghi nhận nạp thủ công, không xử lý thanh toán trực tuyến.
+          - generic [ref=f14e75]:
+            - generic [ref=f14e76]:
+              - generic [ref=f14e77]: Credit đã mua
+              - spinbutton "Credit đã mua" [ref=f14e78]: "0"
+            - generic [ref=f14e79]:
+              - generic [ref=f14e80]: Số tiền (VND)
+              - spinbutton "Số tiền (VND)" [ref=f14e81]: "0"
+            - generic [ref=f14e82]:
+              - generic [ref=f14e83]: Lý do điều chỉnh
+              - textbox "Lý do điều chỉnh Lý do điều chỉnh Lý do điều chỉnh" [ref=f14e84]
+            - button "Cộng Credit đã mua" [ref=f14e86] [cursor=pointer]
+        - article [ref=f14e87]:
+          - generic [ref=f14e89]:
+            - heading "Tặng Credit miễn phí" [level=2] [ref=f14e90]
+            - generic [ref=f14e91]: Thao tác này luôn được ghi vào lịch sử giao dịch.
+          - generic [ref=f14e92]:
+            - generic [ref=f14e93]:
+              - generic [ref=f14e94]: Credit miễn phí
+              - spinbutton "Credit miễn phí" [ref=f14e95]: "0"
+            - generic [ref=f14e96]:
+              - generic [ref=f14e97]: Lý do điều chỉnh
+              - textbox [ref=f14e98]
+            - button "Tặng Credit miễn phí" [ref=f14e100] [cursor=pointer]
+        - article [ref=f14e101]:
+          - generic [ref=f14e103]:
+            - heading "Điều chỉnh số dư" [level=2] [ref=f14e104]
+            - generic [ref=f14e105]: Nhập số âm để giảm Credit. Hệ thống yêu cầu xác nhận trước khi giảm.
+          - generic [ref=f14e106]:
+            - generic [ref=f14e107]:
+              - generic [ref=f14e108]: Điều chỉnh Credit miễn phí
+              - spinbutton "Điều chỉnh Credit miễn phí" [ref=f14e109]: "0"
+            - generic [ref=f14e110]:
+              - generic [ref=f14e111]: Điều chỉnh Credit đã mua
+              - spinbutton "Điều chỉnh Credit đã mua" [ref=f14e112]: "0"
+            - generic [ref=f14e113]:
+              - generic [ref=f14e114]: Lý do điều chỉnh
+              - textbox [ref=f14e115]
+            - button "Áp dụng điều chỉnh" [ref=f14e117] [cursor=pointer]
+      - generic [ref=f14e118]:
+        - generic [ref=f14e120]:
+          - paragraph [ref=f14e121]: GIAO DỊCH
+          - heading "Lịch sử giao dịch" [level=2] [ref=f14e122]
+          - paragraph [ref=f14e123]: Hiển thị 50 giao dịch Credit gần nhất của sinh viên đã chọn.
+        - generic "Bảng lịch sử giao dịch Credit" [ref=f14e124]:
+          - table [ref=f14e125]:
+            - rowgroup [ref=f14e126]:
+              - row [ref=f14e127]:
+                - columnheader "Thời gian" [ref=f14e128]
+                - columnheader "Loại giao dịch" [ref=f14e129]
+                - columnheader "Đã cộng" [ref=f14e130]
+                - columnheader "Đã dùng" [ref=f14e131]
+                - columnheader "Trước / Sau" [ref=f14e132]
+                - columnheader "Ghi chú" [ref=f14e133]
+            - rowgroup [ref=f14e134]:
+              - row [ref=f14e135]:
+                - cell "10/07/2026 21:41" [ref=f14e136]
+                - cell "Điều chỉnh" [ref=f14e137]
+                - cell "0" [ref=f14e139]
+                - cell "0" [ref=f14e140]
+                - cell [ref=f14e141]:
+                  - strong [ref=f14e142]: 60 → 60
+                - cell "Kiểm tra xác nhận giảm credit" [ref=f14e143]
+              - row [ref=f14e144]:
+                - cell "10/07/2026 09:59" [ref=f14e145]
+                - cell "Đặt lại Credit hằng ngày" [ref=f14e146]
+                - cell "60" [ref=f14e148]
+                - cell "0" [ref=f14e149]
+                - cell [ref=f14e150]:
+                  - strong [ref=f14e151]: 0 → 60
+                - cell "Credit miễn phí được đặt lại hằng ngày." [ref=f14e152]
+      - generic [ref=f14e153]:
+        - generic [ref=f14e155]:
+          - paragraph [ref=f14e156]: Nạp Credit
+          - heading "Lịch sử nạp Credit" [level=2] [ref=f14e157]
+          - paragraph [ref=f14e158]: Thể hiện gói Credit, trạng thái giao dịch và người thực hiện.
+        - generic [ref=f14e159]:
+          - strong [ref=f14e160]: Chưa có lịch sử nạp Credit
+          - paragraph [ref=f14e161]: Các lần nạp Credit thủ công sẽ xuất hiện sau khi quản trị viên ghi nhận.
+  - contentinfo [ref=f14e162]:
+    - generic [ref=f14e163]:
+      - generic [ref=f14e164]:
+        - generic [ref=f14e165]: R
+        - generic [ref=f14e166]: © 2026 RAG Chatbot System
+      - generic [ref=f14e167]:
+        - link "Tài liệu" [ref=f14e168] [cursor=pointer]:
+          - /url: "#"
+        - link "Bảo mật" [ref=f14e169] [cursor=pointer]:
+          - /url: "#"
+        - link "Điều khoản" [ref=f14e170] [cursor=pointer]:
+          - /url: "#"
+        - generic [ref=f14e171]: Hệ thống đang hoạt động

@@ -16,6 +16,8 @@ namespace RagChatbotSystem.Business.Services
 {
     public class ChatService : IChatService
     {
+        private const string FriendlyAiUnavailableMessage = "Hiện chưa thể tạo câu trả lời từ AI. Vui lòng thử lại sau hoặc liên hệ quản trị viên.";
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<ChatSession> _sessionRepository;
         private readonly IGenericRepository<ChatMessage> _messageRepository;
@@ -172,22 +174,70 @@ namespace RagChatbotSystem.Business.Services
             var assistantMessageId = Guid.NewGuid();
             var accumulatedText = new StringBuilder();
             LlmAnswerResult? llmResult = null;
+            var streamedAnyChunk = false;
+            var streamedChunkCount = 0;
 
             if (!isDocumentScopedQuestion)
             {
                 accumulatedText.Append(BuildOutOfScopeAnswer());
+                await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, accumulatedText.ToString(), cancellationToken);
+                streamedAnyChunk = true;
                 contextDocs.Clear();
             }
             else
             {
                 try
                 {
-                    llmResult = await _llmService.GenerateAnswerWithUsageAsync(prompt);
-                    accumulatedText.Append(llmResult.Content);
+                    await foreach (var chunk in _llmService.GenerateAnswerStreamAsync(prompt).WithCancellation(cancellationToken))
+                    {
+                        if (string.IsNullOrEmpty(chunk))
+                        {
+                            continue;
+                        }
+
+                        accumulatedText.Append(chunk);
+                        streamedAnyChunk = true;
+                        streamedChunkCount++;
+                        await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, chunk, cancellationToken);
+                    }
+
+                    var streamedContent = accumulatedText.ToString();
+                    var streamCompletedWithoutContent = string.IsNullOrWhiteSpace(streamedContent);
+                    llmResult = new LlmAnswerResult(
+                        streamedContent,
+                        _llmService.ModelName,
+                        _llmService.LastPromptTokens,
+                        _llmService.LastCompletionTokens,
+                        _llmService.LastTotalTokens,
+                        _llmService.LastWasActualTokenUsage,
+                        !_llmService.LastIsProviderFallback && !streamCompletedWithoutContent,
+                        _llmService.LastIsProviderFallback || streamCompletedWithoutContent,
+                        streamCompletedWithoutContent ? "LLM stream completed without content." : _llmService.LastErrorMessage);
+
+                    _logger.LogInformation(
+                        "LLM stream completed. Provider={Provider}, Model={Model}, IsSuccess={IsSuccess}, IsProviderFallback={IsProviderFallback}, Error={Error}, ContentLength={ContentLength}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, TotalTokens={TotalTokens}, WasActualTokenUsage={WasActualTokenUsage}, RetrievedChunks={RetrievedChunks}, StreamedChunks={StreamedChunks}",
+                        _llmService.GetType().Name,
+                        llmResult.ModelName,
+                        llmResult.IsSuccess,
+                        llmResult.IsProviderFallback,
+                        llmResult.ErrorMessage,
+                        llmResult.Content.Length,
+                        llmResult.InputTokens,
+                        llmResult.OutputTokens,
+                        llmResult.TotalTokens,
+                        llmResult.WasActualTokenUsage,
+                        contextDocs.Count,
+                        streamedChunkCount);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "LLM generation failed.");
+                    await _realtimeService.SendChatFailedAsync(
+                        sessionId,
+                        assistantMessageId,
+                        FriendlyAiUnavailableMessage,
+                        cancellationToken);
+
                     if (isStudent)
                     {
                         await _creditService.LogBlockedAttemptAsync(
@@ -200,8 +250,42 @@ namespace RagChatbotSystem.Business.Services
                             cancellationToken: cancellationToken);
                     }
 
-                    throw new InvalidOperationException("Khong the tao cau tra loi tu AI luc nay. Vui long thu lai sau.");
+                    throw new InvalidOperationException(FriendlyAiUnavailableMessage, ex);
                 }
+            }
+
+            if (isDocumentScopedQuestion && llmResult != null && (!llmResult.IsSuccess || llmResult.IsProviderFallback))
+            {
+                _logger.LogWarning(
+                    "LLM provider did not return a chargeable answer. Provider={Provider}, Model={Model}, IsSuccess={IsSuccess}, IsProviderFallback={IsProviderFallback}, Error={Error}, ContentLength={ContentLength}, RetrievedChunks={RetrievedChunks}, StreamedChunks={StreamedChunks}",
+                    _llmService.GetType().Name,
+                    llmResult.ModelName,
+                    llmResult.IsSuccess,
+                    llmResult.IsProviderFallback,
+                    llmResult.ErrorMessage,
+                    llmResult.Content.Length,
+                    contextDocs.Count,
+                    streamedChunkCount);
+
+                await _realtimeService.SendChatFailedAsync(
+                    sessionId,
+                    assistantMessageId,
+                    FriendlyAiUnavailableMessage,
+                    cancellationToken);
+
+                if (isStudent)
+                {
+                    await _creditService.LogBlockedAttemptAsync(
+                        session.UserId,
+                        CreditBlockedReason.PROVIDER_ERROR,
+                        session.DatasetId,
+                        sessionId,
+                        userQuestion,
+                        note: llmResult.ErrorMessage ?? "Provider did not return a valid answer.",
+                        cancellationToken: cancellationToken);
+                }
+
+                throw new InvalidOperationException(FriendlyAiUnavailableMessage);
             }
 
             var finalContent = accumulatedText.ToString();
@@ -227,55 +311,72 @@ namespace RagChatbotSystem.Business.Services
             var citations = BuildCitations(contextDocs, assistantMessage.MessageId);
             CreditSpendResultDto? creditSpend = null;
 
-            await using (var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken))
+            try
             {
-                await _messageRepository.AddAsync(assistantMessage, cancellationToken);
-
-                if (citations.Count > 0)
+                await using (var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken))
                 {
-                    await _citationRepository.AddRangeAsync(citations, cancellationToken);
-                }
+                    await _messageRepository.AddAsync(assistantMessage, cancellationToken);
 
-                session.UpdatedAt = DateTime.UtcNow;
-                _sessionRepository.Update(session);
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-                if (isDocumentScopedQuestion && llmResult != null && llmResult.TotalTokens > 0)
-                {
-                    await _tokenUsageService.RecordUsageAsync(session.UserId, session.DatasetId, llmResult.TotalTokens, cancellationToken);
-                }
-
-                if (isStudent && creditSystemEnabled && isDocumentScopedQuestion && llmResult != null)
-                {
-                    if (llmResult.IsSuccess && !llmResult.IsProviderFallback)
+                    if (citations.Count > 0)
                     {
-                        creditSpend = await _creditService.SpendForChatAnswerAsync(
-                            session.UserId,
-                            session.DatasetId,
-                            sessionId,
-                            assistantMessage.MessageId,
-                            llmResult.InputTokens,
-                            llmResult.OutputTokens,
-                            llmResult.TotalTokens,
-                            llmResult.ModelName,
-                            llmResult.WasActualTokenUsage,
-                            cancellationToken);
-                        creditBalance = await _creditService.GetStudentCreditSummaryAsync(session.UserId, cancellationToken);
+                        await _citationRepository.AddRangeAsync(citations, cancellationToken);
                     }
-                    else
+
+                    session.UpdatedAt = DateTime.UtcNow;
+                    _sessionRepository.Update(session);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    if (isDocumentScopedQuestion && llmResult != null && llmResult.IsSuccess && !llmResult.IsProviderFallback && llmResult.TotalTokens > 0)
                     {
-                        await _creditService.LogBlockedAttemptAsync(
-                            session.UserId,
-                            CreditBlockedReason.PROVIDER_ERROR,
-                            session.DatasetId,
-                            sessionId,
-                            userQuestion,
-                            note: llmResult.ErrorMessage ?? "Provider fallback answer was not charged.",
-                            cancellationToken: cancellationToken);
+                        await _tokenUsageService.RecordUsageAsync(session.UserId, session.DatasetId, llmResult.TotalTokens, cancellationToken);
                     }
+
+                    if (isStudent && creditSystemEnabled && isDocumentScopedQuestion && llmResult != null)
+                    {
+                        if (llmResult.IsSuccess && !llmResult.IsProviderFallback)
+                        {
+                            creditSpend = await _creditService.SpendForChatAnswerAsync(
+                                session.UserId,
+                                session.DatasetId,
+                                sessionId,
+                                assistantMessage.MessageId,
+                                llmResult.InputTokens,
+                                llmResult.OutputTokens,
+                                llmResult.TotalTokens,
+                                llmResult.ModelName,
+                                llmResult.WasActualTokenUsage,
+                                cancellationToken);
+                            creditBalance = await _creditService.GetStudentCreditSummaryAsync(session.UserId, cancellationToken);
+                        }
+                        else
+                        {
+                            await _creditService.LogBlockedAttemptAsync(
+                                session.UserId,
+                                CreditBlockedReason.PROVIDER_ERROR,
+                                session.DatasetId,
+                                sessionId,
+                                userQuestion,
+                                note: llmResult.ErrorMessage ?? "Provider fallback answer was not charged.",
+                                cancellationToken: cancellationToken);
+                        }
+                    }
+
+                    await transaction.CommitAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist streamed chat answer.");
+                if (streamedAnyChunk)
+                {
+                    await _realtimeService.SendChatFailedAsync(
+                        sessionId,
+                        assistantMessageId,
+                        "The answer was not saved, so it was not charged. Please try again.",
+                        cancellationToken);
                 }
 
-                await transaction.CommitAsync(cancellationToken);
+                throw;
             }
 
             // Fetch loaded citations for DTO formatting (e.g. includes Document name)
@@ -288,8 +389,7 @@ namespace RagChatbotSystem.Business.Services
             var citationDtos = savedCitations.Select(ToDto).ToList();
 
             // Push completion payload via SignalR
-            await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, finalContent, cancellationToken);
-            await _realtimeService.SendChatCompleteAsync(sessionId, assistantMessageDto, citationDtos, cancellationToken);
+            await _realtimeService.SendChatCompleteAsync(sessionId, assistantMessageDto, citationDtos, creditSpend, creditBalance, cancellationToken);
 
             return new SendChatMessageResponse(
                 ToDto(userMessage),

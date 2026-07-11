@@ -26,13 +26,13 @@ public class CreditChatFlowTests
             service.SendChatMessageAsync(ids.SessionId, "What is dependency injection?"));
 
         rag.Verify(r => r.RetrieveAsync(It.IsAny<RetrieveRequestDto>()), Times.Never);
-        llm.Verify(l => l.GenerateAnswerWithUsageAsync(It.IsAny<string>()), Times.Never);
+        llm.Verify(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()), Times.Never);
         Assert.Single(context.CreditBlockedAttempts.Where(a => a.Reason == CreditBlockedReason.ZERO_BALANCE));
         Assert.Empty(context.CreditLedgers.Where(l => l.Type == CreditLedgerType.SPEND));
     }
 
     [Fact]
-    public async Task SendChatMessageAsync_ProviderFallbackDoesNotDeductCredits()
+    public async Task SendChatMessageAsync_ProviderFallbackFailsWithoutPersistenceOrUsage()
     {
         await using var context = CreateContext();
         var ids = SeedChatReadyStudent(context, freeCredits: 60, paidCredits: 0);
@@ -57,21 +57,68 @@ public class CreditChatFlowTests
                 }
             });
         var llm = new Mock<ILlmService>();
-        llm.Setup(l => l.GenerateAnswerWithUsageAsync(It.IsAny<string>()))
-            .ReturnsAsync(LlmAnswerResult.Fallback(
-                "Provider fallback answer",
-                "test-model",
-                100,
-                20,
-                "provider failed"));
-        var service = CreateChatService(context, rag.Object, llm.Object);
+        SetupLlmStream(llm, new[] { "Provider ", "fallback answer" }, isProviderFallback: true, errorMessage: "provider failed");
+        var realtime = new Mock<IRealtimeService>();
+        realtime.Setup(r => r.SendChatChunkAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        realtime.Setup(r => r.SendChatFailedAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var service = CreateChatService(context, rag.Object, llm.Object, realtime.Object);
 
-        await service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222");
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222"));
 
+        Assert.Contains("Hiện chưa thể tạo câu trả lời từ AI", exception.Message);
         var wallet = await context.CreditWallets.SingleAsync(w => w.UserId == ids.UserId);
         Assert.Equal(60, wallet.FreeCredits);
         Assert.Empty(context.CreditLedgers.Where(l => l.Type == CreditLedgerType.SPEND));
         Assert.Single(context.CreditBlockedAttempts.Where(a => a.Reason == CreditBlockedReason.PROVIDER_ERROR));
+        Assert.Empty(context.ChatMessages.Where(m => m.Role == "Assistant"));
+        Assert.Empty(context.Citations);
+        Assert.Empty(context.UserTokenUsages);
+        realtime.Verify(r => r.SendChatFailedAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        realtime.Verify(r => r.SendChatCompleteAsync(
+            ids.SessionId,
+            It.IsAny<ChatMessageDto>(),
+            It.IsAny<IReadOnlyList<CitationDto>>(),
+            It.IsAny<CreditSpendResultDto?>(),
+            It.IsAny<CreditBalanceDto?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SendChatMessageAsync_ProviderErrorSendsFailureWithoutFakeChunkOrUsage()
+    {
+        await using var context = CreateContext();
+        var ids = SeedChatReadyStudent(context, freeCredits: 60, paidCredits: 0);
+        var rag = CreateSuccessfulRag(ids);
+        var llm = new Mock<ILlmService>();
+        llm.Setup(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()))
+            .Returns(new ThrowingAsyncEnumerable("Groq API 401 Unauthorized"));
+        llm.SetupGet(l => l.ModelName).Returns("llama-test");
+        var realtime = new Mock<IRealtimeService>();
+        realtime.Setup(r => r.SendChatFailedAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var service = CreateChatService(context, rag.Object, llm.Object, realtime.Object);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222"));
+
+        Assert.Contains("Hiện chưa thể tạo câu trả lời từ AI", exception.Message);
+        realtime.Verify(r => r.SendChatChunkAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        realtime.Verify(r => r.SendChatFailedAsync(ids.SessionId, It.IsAny<Guid>(), It.Is<string>(message => message.Contains("Hiện chưa thể tạo câu trả lời từ AI")), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Empty(context.ChatMessages.Where(m => m.Role == "Assistant"));
+        Assert.Empty(context.Citations);
+        Assert.Empty(context.CreditLedgers.Where(l => l.Type == CreditLedgerType.SPEND));
+        Assert.Empty(context.UserTokenUsages);
+        Assert.Single(context.CreditBlockedAttempts.Where(a => a.Reason == CreditBlockedReason.PROVIDER_ERROR));
+        realtime.Verify(r => r.SendChatCompleteAsync(
+            ids.SessionId,
+            It.IsAny<ChatMessageDto>(),
+            It.IsAny<IReadOnlyList<CitationDto>>(),
+            It.IsAny<CreditSpendResultDto?>(),
+            It.IsAny<CreditBalanceDto?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -82,22 +129,12 @@ public class CreditChatFlowTests
         var ids = SeedChatReadyStudent(context, freeCredits: 0, paidCredits: 0);
         var rag = CreateSuccessfulRag(ids);
         var llm = new Mock<ILlmService>();
-        llm.Setup(l => l.GenerateAnswerWithUsageAsync(It.IsAny<string>()))
-            .ReturnsAsync(new LlmAnswerResult(
-                "Dependency injection answer",
-                "test-model",
-                100,
-                20,
-                120,
-                true,
-                true,
-                false,
-                null));
+        SetupLlmStream(llm, new[] { "Dependency ", "injection answer" });
         var service = CreateChatService(context, rag.Object, llm.Object);
 
         await service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222");
 
-        llm.Verify(l => l.GenerateAnswerWithUsageAsync(It.IsAny<string>()), Times.Once);
+        llm.Verify(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()), Times.Once);
         var wallet = await context.CreditWallets.SingleAsync(w => w.UserId == ids.UserId);
         Assert.Equal(0, wallet.FreeCredits);
         Assert.Equal(0, wallet.PaidCredits);
@@ -129,7 +166,7 @@ public class CreditChatFlowTests
             service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222"));
 
         rag.Verify(r => r.RetrieveAsync(It.IsAny<RetrieveRequestDto>()), Times.Never);
-        llm.Verify(l => l.GenerateAnswerWithUsageAsync(It.IsAny<string>()), Times.Never);
+        llm.Verify(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()), Times.Never);
         var wallet = await context.CreditWallets.SingleAsync(w => w.UserId == ids.UserId);
         Assert.Equal(60, wallet.FreeCredits);
         Assert.Equal(10, wallet.PaidCredits);
@@ -138,32 +175,29 @@ public class CreditChatFlowTests
     }
 
     [Fact]
-    public async Task SendChatMessageAsync_SendsRealtimeOnlyAfterAssistantIsPersisted()
+    public async Task SendChatMessageAsync_StreamsChunksBeforeCompletionAndCompletesAfterPersistence()
     {
         await using var context = CreateContext();
         var ids = SeedChatReadyStudent(context, freeCredits: 60, paidCredits: 0);
         var rag = CreateSuccessfulRag(ids);
         var llm = new Mock<ILlmService>();
-        llm.Setup(l => l.GenerateAnswerWithUsageAsync(It.IsAny<string>()))
-            .ReturnsAsync(new LlmAnswerResult(
-                "Dependency injection answer",
-                "test-model",
-                100,
-                20,
-                120,
-                true,
-                true,
-                false,
-                null));
+        SetupLlmStream(llm, new[] { "Dependency ", "injection answer" });
         var realtime = new Mock<IRealtimeService>();
+        var chunkWasSentBeforePersistence = false;
         realtime.Setup(r => r.SendChatChunkAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Callback<Guid, Guid, string, CancellationToken>((_, messageId, _, _) =>
             {
-                Assert.True(context.ChatMessages.Any(m => m.MessageId == messageId && m.Role == "Assistant"));
+                chunkWasSentBeforePersistence = !context.ChatMessages.Any(m => m.MessageId == messageId && m.Role == "Assistant");
             })
             .Returns(Task.CompletedTask);
-        realtime.Setup(r => r.SendChatCompleteAsync(ids.SessionId, It.IsAny<ChatMessageDto>(), It.IsAny<IReadOnlyList<CitationDto>>(), It.IsAny<CancellationToken>()))
-            .Callback<Guid, ChatMessageDto, IReadOnlyList<CitationDto>, CancellationToken>((_, message, _, _) =>
+        realtime.Setup(r => r.SendChatCompleteAsync(
+                ids.SessionId,
+                It.IsAny<ChatMessageDto>(),
+                It.IsAny<IReadOnlyList<CitationDto>>(),
+                It.IsAny<CreditSpendResultDto?>(),
+                It.IsAny<CreditBalanceDto?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Guid, ChatMessageDto, IReadOnlyList<CitationDto>, CreditSpendResultDto?, CreditBalanceDto?, CancellationToken>((_, message, _, _, _, _) =>
             {
                 Assert.True(context.ChatMessages.Any(m => m.MessageId == message.MessageId && m.Role == "Assistant"));
             })
@@ -172,8 +206,37 @@ public class CreditChatFlowTests
 
         await service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222");
 
-        realtime.Verify(r => r.SendChatChunkAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
-        realtime.Verify(r => r.SendChatCompleteAsync(ids.SessionId, It.IsAny<ChatMessageDto>(), It.IsAny<IReadOnlyList<CitationDto>>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True(chunkWasSentBeforePersistence);
+        realtime.Verify(r => r.SendChatChunkAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        realtime.Verify(r => r.SendChatCompleteAsync(
+            ids.SessionId,
+            It.IsAny<ChatMessageDto>(),
+            It.IsAny<IReadOnlyList<CitationDto>>(),
+            It.IsAny<CreditSpendResultDto?>(),
+            It.IsAny<CreditBalanceDto?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendChatMessageAsync_PersistenceFailureAfterStreaming_SendsFailureAndDoesNotSpend()
+    {
+        await using var context = CreateFailingContext();
+        var ids = SeedChatReadyStudent(context, freeCredits: 60, paidCredits: 0);
+        var rag = CreateSuccessfulRag(ids);
+        var llm = new Mock<ILlmService>();
+        SetupLlmStream(llm, new[] { "Dependency ", "injection answer" });
+        var realtime = new Mock<IRealtimeService>();
+        realtime.Setup(r => r.SendChatChunkAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => context.FailSaves = true)
+            .Returns(Task.CompletedTask);
+        realtime.Setup(r => r.SendChatFailedAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var service = CreateChatService(context, rag.Object, llm.Object, realtime.Object);
+
+        await Assert.ThrowsAnyAsync<Exception>(() => service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222"));
+
+        realtime.Verify(r => r.SendChatFailedAsync(ids.SessionId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Empty(context.CreditLedgers.Where(l => l.Type == CreditLedgerType.SPEND));
     }
 
     private static ChatService CreateChatService(AppDbContext context, IRagApiClient rag, ILlmService llm, IRealtimeService? realtime = null)
@@ -198,6 +261,77 @@ public class CreditChatFlowTests
         var context = new TestAppDbContext(options);
         context.Database.EnsureCreated();
         return context;
+    }
+
+    private static FailingSaveAppDbContext CreateFailingContext()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        var context = new FailingSaveAppDbContext(options);
+        context.Database.EnsureCreated();
+        return context;
+    }
+
+    private static void SetupLlmStream(
+        Mock<ILlmService> llm,
+        IReadOnlyList<string> chunks,
+        bool isProviderFallback = false,
+        string? errorMessage = null)
+    {
+        llm.Setup(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()))
+            .Returns(StreamChunks(chunks));
+        llm.SetupGet(l => l.LastPromptTokens).Returns(100);
+        llm.SetupGet(l => l.LastCompletionTokens).Returns(20);
+        llm.SetupGet(l => l.LastTotalTokens).Returns(120);
+        llm.SetupGet(l => l.LastWasActualTokenUsage).Returns(!isProviderFallback);
+        llm.SetupGet(l => l.LastIsProviderFallback).Returns(isProviderFallback);
+        llm.SetupGet(l => l.LastErrorMessage).Returns(errorMessage);
+        llm.SetupGet(l => l.ModelName).Returns("test-model");
+    }
+
+    private static async IAsyncEnumerable<string> StreamChunks(IReadOnlyList<string> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            await Task.Yield();
+            yield return chunk;
+        }
+    }
+
+    private sealed class ThrowingAsyncEnumerable : IAsyncEnumerable<string>
+    {
+        private readonly string _message;
+
+        public ThrowingAsyncEnumerable(string message)
+        {
+            _message = message;
+        }
+
+        public IAsyncEnumerator<string> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            return new ThrowingAsyncEnumerator(_message);
+        }
+    }
+
+    private sealed class ThrowingAsyncEnumerator : IAsyncEnumerator<string>
+    {
+        private readonly string _message;
+
+        public ThrowingAsyncEnumerator(string message)
+        {
+            _message = message;
+        }
+
+        public string Current => string.Empty;
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        public ValueTask<bool> MoveNextAsync()
+        {
+            throw new InvalidOperationException(_message);
+        }
     }
 
     private static Mock<IRagApiClient> CreateSuccessfulRag(ChatSeedIds ids)
@@ -311,7 +445,7 @@ public class CreditChatFlowTests
 
     private sealed record ChatSeedIds(Guid UserId, Guid DatasetId, Guid SessionId, Guid DocumentId, Guid ChunkId);
 
-    private sealed class TestAppDbContext : AppDbContext
+    private class TestAppDbContext : AppDbContext
     {
         public TestAppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
@@ -322,6 +456,26 @@ public class CreditChatFlowTests
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<VectorRecord>().Ignore(v => v.Embedding);
+        }
+    }
+
+    private sealed class FailingSaveAppDbContext : TestAppDbContext
+    {
+        public bool FailSaves { get; set; }
+
+        public FailingSaveAppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
+        {
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            if (FailSaves)
+            {
+                throw new InvalidOperationException("Simulated persistence failure.");
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

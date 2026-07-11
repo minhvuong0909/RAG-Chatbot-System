@@ -26,6 +26,7 @@ namespace RagChatbotSystem.Presentation.Pages
         public CreditBalanceDto Balance { get; private set; } = null!;
         public IReadOnlyList<CreditPackageDto> Packages { get; private set; } = Array.Empty<CreditPackageDto>();
         public IReadOnlyList<CreditLedgerDto> Ledger { get; private set; } = Array.Empty<CreditLedgerDto>();
+        public IReadOnlyList<CreditPurchaseDto> Purchases { get; private set; } = Array.Empty<CreditPurchaseDto>();
 
         public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
         {
@@ -37,6 +38,7 @@ namespace RagChatbotSystem.Presentation.Pages
             Balance = await _creditService.GetStudentCreditSummaryAsync(userId, cancellationToken);
             Packages = await _purchaseService.GetActivePackagesAsync(cancellationToken);
             Ledger = await _creditService.GetLedgerAsync(userId, 25, cancellationToken);
+            Purchases = await _purchaseService.GetPurchasesAsync(userId, 25, cancellationToken);
             return Page();
         }
     }

@@ -1,0 +1,191 @@
+- generic [active] [ref=f2e1]:
+  - banner [ref=f2e2]:
+    - navigation [ref=f2e3]:
+      - generic [ref=f2e4]:
+        - link "R RAG Chatbot" [ref=f2e5] [cursor=pointer]:
+          - /url: /Admin
+          - generic [ref=f2e6]: R
+          - generic [ref=f2e7]: RAG Chatbot
+        - generic [ref=f2e8]:
+          - list [ref=f2e9]:
+            - listitem [ref=f2e10]:
+              - link "Quản trị" [ref=f2e11] [cursor=pointer]:
+                - /url: /Admin
+          - generic [ref=f2e12]:
+            - generic [ref=f2e15]:
+              - generic [ref=f2e16]: Vuong Dev Admin
+              - generic [ref=f2e17]: Quản trị viên
+            - button "Đăng xuất" [ref=f2e19] [cursor=pointer]
+  - main [ref=f2e21]:
+    - generic [ref=f2e22]:
+      - generic [ref=f2e24]:
+        - paragraph [ref=f2e25]: Quản trị
+        - heading "Tổng quan quản trị" [level=1] [ref=f2e26]
+        - paragraph [ref=f2e27]: Quản lý người dùng, phân công giảng viên và truy cập môn học.
+      - navigation "Khu vực quản trị" [ref=f2e28]:
+        - link "Tổng quan" [ref=f2e29] [cursor=pointer]:
+          - /url: /Admin
+        - link "Môn học" [ref=f2e30] [cursor=pointer]:
+          - /url: /Admin/Datasets
+        - link "Báo cáo" [ref=f2e31] [cursor=pointer]:
+          - /url: /Admin/Reports
+        - link "Cài đặt" [ref=f2e32] [cursor=pointer]:
+          - /url: /Admin/Settings
+      - generic "System summary" [ref=f2e33]:
+        - generic [ref=f2e34]:
+          - strong [ref=f2e35]: "4"
+          - generic [ref=f2e36]: Người dùng
+        - generic [ref=f2e37]:
+          - strong [ref=f2e38]: "1"
+          - generic [ref=f2e39]: Giảng viên đang hoạt động
+        - generic [ref=f2e40]:
+          - strong [ref=f2e41]: "2"
+          - generic [ref=f2e42]: Phân công
+        - generic [ref=f2e43]:
+          - strong [ref=f2e44]: "0"
+          - generic [ref=f2e45]: Môn học chưa phân công
+      - region "Lối tắt quản trị" [ref=f2e46]:
+        - link "Môn học Quản lý môn học và phân quyền." [ref=f2e47] [cursor=pointer]:
+          - /url: /Admin/Datasets
+          - strong [ref=f2e48]: Môn học
+          - generic [ref=f2e49]: Quản lý môn học và phân quyền.
+        - link "Tài liệu Chọn môn học để quản lý tài liệu." [ref=f2e50] [cursor=pointer]:
+          - /url: /Datasets
+          - strong [ref=f2e51]: Tài liệu
+          - generic [ref=f2e52]: Chọn môn học để quản lý tài liệu.
+        - link "Credit Điều chỉnh số dư và xem giao dịch." [ref=f2e53] [cursor=pointer]:
+          - /url: /Admin/Credits
+          - strong [ref=f2e54]: Credit
+          - generic [ref=f2e55]: Điều chỉnh số dư và xem giao dịch.
+        - link "Báo cáo Theo dõi lượt hỏi, Token và Credit." [ref=f2e56] [cursor=pointer]:
+          - /url: /Admin/Reports
+          - strong [ref=f2e57]: Báo cáo
+          - generic [ref=f2e58]: Theo dõi lượt hỏi, Token và Credit.
+        - link "Cài đặt Thiết lập RAG và giới hạn Token." [ref=f2e59] [cursor=pointer]:
+          - /url: /Admin/Settings
+          - strong [ref=f2e60]: Cài đặt
+          - generic [ref=f2e61]: Thiết lập RAG và giới hạn Token.
+      - generic [ref=f2e62]:
+        - heading "Quản lý tài khoản" [level=2] [ref=f2e64]
+        - generic [ref=f2e65]:
+          - generic [ref=f2e66]:
+            - generic [ref=f2e67]:
+              - heading "Import sinh viên" [level=3] [ref=f2e68]
+              - paragraph [ref=f2e69]: Tệp XLSX cần có cột Email; cột họ tên là tùy chọn.
+            - generic [ref=f2e70]:
+              - generic [ref=f2e71]: Tải file Excel lên
+              - button "Tải file Excel lên" [ref=f2e72]
+            - button "Import và gửi Email tài khoản" [ref=f2e73] [cursor=pointer]
+          - generic [ref=f2e74]:
+            - generic [ref=f2e75]:
+              - heading "Tạo giảng viên" [level=3] [ref=f2e76]
+              - paragraph [ref=f2e77]: Tạo tài khoản và phân công các môn học ban đầu.
+            - generic [ref=f2e78]:
+              - generic [ref=f2e79]:
+                - generic [ref=f2e80]: Họ và tên
+                - textbox "Họ và tên" [ref=f2e81]
+              - generic [ref=f2e82]:
+                - generic [ref=f2e83]: Email
+                - textbox "Email" [ref=f2e84]
+            - generic [ref=f2e85]:
+              - generic [ref=f2e86]: Môn học ban đầu
+              - listbox "Môn học ban đầu" [ref=f2e87]
+            - button "Tạo giảng viên" [disabled] [ref=f2e88]
+      - generic [ref=f2e89]:
+        - generic [ref=f2e90]:
+          - heading "Phân công giảng viên" [level=2] [ref=f2e91]
+          - generic [ref=f2e92]: "2"
+        - generic [ref=f2e93]:
+          - generic [ref=f2e94]:
+            - generic [ref=f2e95]: Giảng viên
+            - combobox "Giảng viên" [ref=f2e96]:
+              - option "Chọn giảng viên" [selected]
+              - option "Nguyen Pham Nhat Anh (nhattep25@gmail.com)"
+          - generic [ref=f2e97]:
+            - generic [ref=f2e98]: Môn học chưa phân công
+            - combobox "Môn học chưa phân công" [ref=f2e99]:
+              - option "Chọn môn học" [selected]
+          - button "Phân công" [disabled] [ref=f2e100]
+        - table [ref=f2e102]:
+          - rowgroup [ref=f2e103]:
+            - row [ref=f2e104]:
+              - columnheader "Giảng viên" [ref=f2e105]
+              - columnheader "Môn học" [ref=f2e106]
+              - columnheader "Thời gian phân công" [ref=f2e107]
+              - columnheader "Thao tác" [ref=f2e108]
+          - rowgroup [ref=f2e109]:
+            - row [ref=f2e110]:
+              - cell "Nguyen Pham Nhat Anh nhattep25@gmail.com" [ref=f2e111]:
+                - strong [ref=f2e112]: Nguyen Pham Nhat Anh
+                - generic [ref=f2e113]: nhattep25@gmail.com
+              - cell "PRN222" [ref=f2e114]
+              - cell "7/10/2026 9:57 AM" [ref=f2e115]
+              - cell [ref=f2e116]:
+                - button "Gỡ phân công" [ref=f2e118] [cursor=pointer]
+            - row [ref=f2e119]:
+              - cell "Nguyen Pham Nhat Anh nhattep25@gmail.com" [ref=f2e120]:
+                - strong [ref=f2e121]: Nguyen Pham Nhat Anh
+                - generic [ref=f2e122]: nhattep25@gmail.com
+              - cell "SWD391" [ref=f2e123]
+              - cell "6/29/2026 5:56 PM" [ref=f2e124]
+              - cell [ref=f2e125]:
+                - button "Gỡ phân công" [ref=f2e127] [cursor=pointer]
+      - generic [ref=f2e128]:
+        - generic [ref=f2e129]:
+          - heading "Người dùng hệ thống" [level=2] [ref=f2e130]
+          - generic [ref=f2e131]: "4"
+        - table [ref=f2e133]:
+          - rowgroup [ref=f2e134]:
+            - row [ref=f2e135]:
+              - columnheader "Người dùng" [ref=f2e136]
+              - columnheader "Vai trò" [ref=f2e137]
+              - columnheader "Thời gian tạo" [ref=f2e138]
+              - columnheader "Trạng thái" [ref=f2e139]
+              - columnheader "Thao tác" [ref=f2e140]
+          - rowgroup [ref=f2e141]:
+            - row [ref=f2e142]:
+              - cell "Demo Student student@example.com" [ref=f2e143]:
+                - strong [ref=f2e144]: Demo Student
+                - generic [ref=f2e145]: student@example.com
+              - cell "Sinh viên" [ref=f2e146]
+              - cell "7/10/2026 9:34 AM" [ref=f2e148]
+              - cell "Đang hoạt động" [ref=f2e149]
+              - cell [ref=f2e151]
+            - row [ref=f2e152]:
+              - cell "Nguyen Pham Nhat Anh nhattep25@gmail.com" [ref=f2e153]:
+                - strong [ref=f2e154]: Nguyen Pham Nhat Anh
+                - generic [ref=f2e155]: nhattep25@gmail.com
+              - cell "Giảng viên" [ref=f2e156]
+              - cell "6/6/2026 8:26 AM" [ref=f2e158]
+              - cell "Đang hoạt động" [ref=f2e159]
+              - cell [ref=f2e161]:
+                - button "Ngừng hoạt động" [ref=f2e163] [cursor=pointer]
+            - row [ref=f2e164]:
+              - cell "System Admin anhnguyenphamnhat@gmail.com" [ref=f2e165]:
+                - strong [ref=f2e166]: System Admin
+                - generic [ref=f2e167]: anhnguyenphamnhat@gmail.com
+              - cell "Quản trị viên" [ref=f2e168]
+              - cell "6/4/2026 11:07 AM" [ref=f2e170]
+              - cell "Đang hoạt động" [ref=f2e171]
+              - cell [ref=f2e173]
+            - row [ref=f2e174]:
+              - cell "Vuong Dev Admin admin@vuongdev.top" [ref=f2e175]:
+                - strong [ref=f2e176]: Vuong Dev Admin
+                - generic [ref=f2e177]: admin@vuongdev.top
+              - cell "Quản trị viên" [ref=f2e178]
+              - cell "6/5/2026 11:16 PM" [ref=f2e180]
+              - cell "Đang hoạt động" [ref=f2e181]
+              - cell [ref=f2e183]
+  - contentinfo [ref=f2e184]:
+    - generic [ref=f2e185]:
+      - generic [ref=f2e186]:
+        - generic [ref=f2e187]: R
+        - generic [ref=f2e188]: © 2026 RAG Chatbot System
+      - generic [ref=f2e189]:
+        - link "Tài liệu" [ref=f2e190] [cursor=pointer]:
+          - /url: "#"
+        - link "Bảo mật" [ref=f2e191] [cursor=pointer]:
+          - /url: "#"
+        - link "Điều khoản" [ref=f2e192] [cursor=pointer]:
+          - /url: "#"
+        - generic [ref=f2e193]: Hệ thống đang hoạt động

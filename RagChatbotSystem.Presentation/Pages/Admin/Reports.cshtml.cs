@@ -29,7 +29,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
         public List<TopDocumentUsageDto> TopDocuments { get; set; } = new();
         public List<UserTokenUsageLeaderboardDto> Leaderboard { get; set; } = new();
         public CreditReportDto CreditReport { get; set; } = null!;
-        public string ReportScopeLabel { get; set; } = "All subjects";
+        public string ReportScopeLabel { get; set; } = "Tất cả môn học";
 
         public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
         {
@@ -46,8 +46,8 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
                 var assignedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, cancellationToken);
                 datasetScope = assignedDatasets.Select(d => d.DatasetId).ToArray();
                 ReportScopeLabel = datasetScope.Count == 0
-                    ? "Assigned subjects only - no assigned subjects"
-                    : $"Assigned subjects only ({datasetScope.Count})";
+                    ? "Chỉ các môn học được phân công - chưa có môn học được phân công"
+                    : $"Chỉ các môn học được phân công ({datasetScope.Count})";
             }
 
             Summary = await _statisticsService.GetTokenUsageSummaryAsync(datasetScope, cancellationToken);

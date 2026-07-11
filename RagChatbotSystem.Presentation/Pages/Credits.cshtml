@@ -1,110 +1,265 @@
 @page
+@using System.Globalization
+@using RagChatbotSystem.Business.DTOs
+@using RagChatbotSystem.DataAccess.Models
 @model RagChatbotSystem.Presentation.Pages.CreditsModel
 @{
-    ViewData["Title"] = "Credits";
+    ViewData["Title"] = "Số dư Credit";
+    var vietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    var packagesById = Model.Packages.ToDictionary(package => package.Id);
+
+    string FormatCurrency(decimal amount, string currency) =>
+        string.Equals(currency, "VND", StringComparison.OrdinalIgnoreCase)
+            ? $"{amount.ToString("N0", vietnameseCulture)} ₫"
+            : $"{amount.ToString("N0", vietnameseCulture)} {currency}";
+
+    string LedgerTypeLabel(CreditLedgerType type) => type switch
+    {
+        CreditLedgerType.DAILY_RESET => "Đặt lại Credit hằng ngày",
+        CreditLedgerType.FREE_GRANT => "Tặng Credit miễn phí",
+        CreditLedgerType.PURCHASE => "Nạp Credit",
+        CreditLedgerType.ADMIN_GRANT => "Quản trị viên cấp Credit",
+        CreditLedgerType.ADJUSTMENT => "Điều chỉnh",
+        CreditLedgerType.SPEND => "Sử dụng",
+        CreditLedgerType.REFUND => "Hoàn Credit",
+        CreditLedgerType.EXPIRED => "Hết hạn",
+        _ => type.ToString()
+    };
+
+    string PurchaseStatusLabel(CreditPurchaseStatus status) => status switch
+    {
+        CreditPurchaseStatus.PENDING => "Đang chờ",
+        CreditPurchaseStatus.COMPLETED => "Hoàn tất",
+        CreditPurchaseStatus.FAILED => "Thất bại",
+        CreditPurchaseStatus.CANCELLED => "Đã hủy",
+        CreditPurchaseStatus.REFUNDED => "Đã hoàn",
+        _ => status.ToString()
+    };
+
+    string PackageLabel(CreditPurchaseDto purchase) =>
+        purchase.PackageId.HasValue && packagesById.TryGetValue(purchase.PackageId.Value, out var package)
+            ? PackageDisplayName(package)
+            : "Nạp Credit thủ công";
+
+    string PackageDisplayName(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói học cơ bản",
+        "Study Plus" => "Gói học nâng cao",
+        "Exam Boost" => "Gói ôn thi",
+        "Final Sprint" => "Gói nước rút",
+        _ => package.Name
+    };
+
+    string PackageDescription(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói nhỏ cho nhu cầu học tập thường xuyên.",
+        "Study Plus" => "Giá trị tốt hơn cho nhu cầu học tập thường xuyên.",
+        "Exam Boost" => "Phù hợp cho ôn tập kiểm tra hoặc thi cuối kỳ.",
+        "Final Sprint" => "Giá trị tốt cho giai đoạn ôn thi nước rút.",
+        _ => package.Description
+    };
+
+    string LedgerNote(CreditLedgerDto entry) =>
+        entry.Type == CreditLedgerType.DAILY_RESET && string.Equals(entry.Note, "Initial daily free credit reset.", StringComparison.Ordinal)
+            ? "Credit miễn phí được đặt lại hằng ngày."
+            : entry.Note ?? "-";
 }
 
-<section class="admin-page">
-    <header class="admin-page-header">
+<section class="admin-page credit-page">
+    <header class="admin-page-heading">
         <div>
-            <p class="eyebrow">Student Credits</p>
-            <h1>Credits</h1>
-            <p class="helper-text">Credits are consumed after successful AI answers based on token usage. Free credits reset daily and do not roll over.</p>
+            <p class="eyebrow">Credit</p>
+            <h1>Số dư Credit</h1>
+            <p>Credit chỉ được trừ sau khi AI trả lời thành công. Credit miễn phí được đặt lại mỗi ngày và không cộng dồn.</p>
         </div>
-        <a asp-page="/Index" class="btn btn-outline-primary">Back to Workspace</a>
+        <a class="button-link button-link-secondary" asp-page="/Index">Quay lại không gian học tập</a>
     </header>
 
-    <div class="stats-summary-grid">
-        <div class="stats-card highlight-card">
-            <div class="stats-card-content">
-                <span class="stats-card-label">Total Available</span>
-                <span class="stats-card-value">@Model.Balance.TotalCredits.ToString("N0")</span>
-            </div>
-        </div>
-        <div class="stats-card">
-            <div class="stats-card-content">
-                <span class="stats-card-label">Free Credits</span>
-                <span class="stats-card-value">@Model.Balance.FreeCredits.ToString("N0")</span>
-            </div>
-        </div>
-        <div class="stats-card">
-            <div class="stats-card-content">
-                <span class="stats-card-label">Paid Credits</span>
-                <span class="stats-card-value">@Model.Balance.PaidCredits.ToString("N0")</span>
-            </div>
-        </div>
-        <div class="stats-card">
-            <div class="stats-card-content">
-                <span class="stats-card-label">Daily Free Reset</span>
-                <span class="stats-card-value">@Model.Balance.Settings.DailyFreeCredits.ToString("N0")</span>
-            </div>
-        </div>
-    </div>
-
-    <section class="admin-section">
-        <div class="section-title">
-            <h2>Top-up Packages</h2>
-            <span>Manual/admin top-up enabled</span>
-        </div>
-        <p class="helper-text">Real online payment is not enabled yet. Contact an administrator to apply one of these packages to your account.</p>
-        <div class="row g-3">
-            @foreach (var package in Model.Packages)
-            {
-                <div class="col-md-6 col-xl-3">
-                    <div class="stats-card h-100">
-                        <div class="stats-card-content">
-                            <span class="stats-card-label">@package.Name</span>
-                            <span class="stats-card-value">@package.TotalCredits.ToString("N0")</span>
-                            <span class="helper-text">@package.BaseCredits.ToString("N0") base + @package.BonusCredits.ToString("N0") bonus credits</span>
-                            <strong>@package.Price.ToString("N0") @package.Currency</strong>
-                            <span class="helper-text">@package.Description</span>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
+    <section class="credit-balance-grid" aria-label="Tóm tắt số dư Credit">
+        <article class="stats-card credit-total-card">
+            <span>Tổng số dư</span>
+            <strong>@Model.Balance.TotalCredits.ToString("N0", vietnameseCulture)</strong>
+            <small>Credit có thể sử dụng</small>
+        </article>
+        <article class="stats-card credit-free-card">
+            <span>Credit miễn phí</span>
+            <strong>@Model.Balance.FreeCredits.ToString("N0", vietnameseCulture)</strong>
+            <small>Được dùng trước khi dùng Credit đã mua</small>
+        </article>
+        <article class="stats-card credit-paid-card">
+            <span>Credit đã mua</span>
+            <strong>@Model.Balance.PaidCredits.ToString("N0", vietnameseCulture)</strong>
+            <small>Duy trì cho đến khi được sử dụng hoặc điều chỉnh</small>
+        </article>
+        <article class="stats-card credit-reset-card">
+            <span>Credit miễn phí mỗi ngày</span>
+            <strong>@Model.Balance.Settings.DailyFreeCredits.ToString("N0", vietnameseCulture)</strong>
+            <small>Đặt lại theo ngày Việt Nam</small>
+        </article>
     </section>
 
-    <section class="admin-section" style="margin-top: 2rem;">
-        <div class="section-title">
-            <h2>Recent Credit Activity</h2>
-            <span>Latest 25 ledger entries</span>
+    <section class="admin-section credit-package-section">
+        <div class="admin-section-heading">
+            <div>
+                <p class="eyebrow">Nạp Credit</p>
+            <h2>Các gói Credit</h2>
+            <p>Hiện tại Credit được nạp thông qua quản trị viên.</p>
+            </div>
+            <span class="credit-notice">Chưa hỗ trợ thanh toán trực tuyến</span>
         </div>
-        <div class="table-responsive">
-            <table class="table align-middle admin-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Calculated</th>
-                        <th>Charged</th>
-                        <th>Free Used</th>
-                        <th>Paid Used</th>
-                        <th>Balance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.Ledger.Count == 0)
-                    {
-                        <tr><td colspan="7" class="text-center text-muted py-4">No credit activity yet.</td></tr>
-                    }
-                    else
-                    {
-                        foreach (var entry in Model.Ledger)
+
+        <div class="credit-package-grid">
+            @foreach (var package in Model.Packages)
+            {
+                <article class="credit-package-card">
+                    <div class="credit-package-heading">
+                        <div>
+                            <h3 title="@PackageDisplayName(package)">@PackageDisplayName(package)</h3>
+                            @if (!string.IsNullOrWhiteSpace(PackageDescription(package)))
+                            {
+                                <p title="@PackageDescription(package)">@PackageDescription(package)</p>
+                            }
+                        </div>
+                        @if (package.IsActive)
+                        {
+                            <span class="credit-status credit-status-active">Đang áp dụng</span>
+                        }
+                    </div>
+                    <dl class="credit-package-summary">
+                        <div><dt>Cơ bản</dt><dd>@package.BaseCredits.ToString("N0", vietnameseCulture)</dd></div>
+                        <div><dt>Tặng thêm</dt><dd>@package.BonusCredits.ToString("N0", vietnameseCulture)</dd></div>
+                        <div><dt>Tổng cộng</dt><dd>@package.TotalCredits.ToString("N0", vietnameseCulture)</dd></div>
+                    </dl>
+                    <strong class="credit-package-price">@FormatCurrency(package.Price, package.Currency)</strong>
+                </article>
+            }
+        </div>
+        <p class="credit-admin-contact">Liên hệ quản trị viên để nạp Credit theo gói phù hợp.</p>
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section-heading">
+            <div>
+                <p class="eyebrow">Nạp Credit</p>
+                <h2>Lịch sử nạp Credit</h2>
+                <p>Các lần nạp Credit và trạng thái xử lý gần đây.</p>
+            </div>
+        </div>
+        @if (Model.Purchases.Any())
+        {
+            <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử nạp Credit">
+                <table class="admin-table credit-table">
+                    <thead>
+                        <tr><th>Thời gian</th><th>Gói Credit</th><th>Cơ bản</th><th>Tặng thêm</th><th>Tổng cộng</th><th>Giá</th><th>Trạng thái</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var purchase in Model.Purchases)
+                        {
+                            <tr>
+                                <td>@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td title="@PackageLabel(purchase)">@PackageLabel(purchase)</td>
+                                <td>@purchase.BaseCredits.ToString("N0", vietnameseCulture)</td>
+                                <td>@purchase.BonusCredits.ToString("N0", vietnameseCulture)</td>
+                                <td><strong>@purchase.TotalCredits.ToString("N0", vietnameseCulture)</strong></td>
+                                <td>@FormatCurrency(purchase.Amount, purchase.Currency)</td>
+                                <td><span class="credit-status">@PurchaseStatusLabel(purchase.Status)</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="credit-empty-state">
+                <strong>Chưa có lịch sử nạp Credit</strong>
+                <p>Thông tin nạp Credit sẽ xuất hiện tại đây sau khi được quản trị viên xử lý.</p>
+            </div>
+        }
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section-heading">
+            <div>
+                <p class="eyebrow">GIAO DỊCH</p>
+                <h2>Lịch sử giao dịch</h2>
+                <p>Hiển thị 25 giao dịch Credit gần nhất.</p>
+            </div>
+        </div>
+        @if (Model.Ledger.Any())
+        {
+            <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử giao dịch Credit">
+                <table class="admin-table credit-table">
+                    <thead>
+                        <tr><th>Thời gian</th><th>Loại giao dịch</th><th>Đã cộng</th><th>Đã dùng</th><th>Số dư sau</th><th>Ghi chú</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.Ledger)
                         {
                             <tr>
                                 <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@entry.Type</td>
-                                <td>@entry.CalculatedCredits.ToString("N0")</td>
-                                <td>@entry.ChargedCredits.ToString("N0")</td>
-                                <td>@entry.FreeCreditsUsed.ToString("N0")</td>
-                                <td>@entry.PaidCreditsUsed.ToString("N0")</td>
-                                <td>@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0"))</td>
+                                <td><span class="credit-status">@LedgerTypeLabel(entry.Type)</span></td>
+                                <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture))</td>
+                                <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture))</td>
+                                <td><strong>@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</strong></td>
+                                <td class="credit-note" title="@LedgerNote(entry)">@LedgerNote(entry)</td>
                             </tr>
                         }
-                    }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="credit-empty-state">
+                <strong>Chưa có giao dịch Credit</strong>
+                <p>Các lần đặt lại, nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
+            </div>
+        }
     </section>
 </section>
+
+@section Scripts {
+    <style>
+        .credit-page { gap: 1.35rem; }
+        .credit-balance-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); gap: 1rem; }
+        .credit-balance-grid .stats-card { display: flex; min-width: 0; min-height: 138px; flex-direction: column; gap: .35rem; border: 1px solid #dbe4ee; border-top: 3px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 1rem; }
+        .credit-balance-grid .stats-card > span { color: #475569; font-size: .88rem; font-weight: 600; }
+        .credit-balance-grid .stats-card strong { color: #0f172a; font-size: 1.8rem; line-height: 1.1; }
+        .credit-balance-grid .stats-card small { color: #64748b; font-size: .82rem; line-height: 1.35; }
+        .credit-total-card { border-top-color: #0f766e !important; }
+        .credit-free-card { border-top-color: #2563eb !important; }
+        .credit-paid-card { border-top-color: #c2410c !important; }
+        .credit-reset-card { border-top-color: #64748b !important; }
+        .credit-notice, .credit-status { display: inline-flex; width: fit-content; align-items: center; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #334155; font-size: .78rem; font-weight: 700; line-height: 1.2; padding: .32rem .6rem; white-space: nowrap; }
+        .credit-status-active { border-color: #99f6e4; background: #f0fdfa; color: #0f766e; }
+        .credit-package-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .credit-package-card { min-width: 0; border: 1px solid #dbe4ee; border-radius: 8px; background: #fff; padding: 1rem; }
+        .credit-package-heading { display: block; min-height: 88px; }
+        .credit-package-heading h3, .credit-package-heading p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .credit-package-heading h3 { margin: 0; font-size: 1rem; }
+        .credit-package-heading p { margin: .3rem 0 0; color: #64748b; font-size: .88rem; }
+        .credit-package-heading .credit-status { margin-top: .7rem; }
+        .credit-package-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin: 1.15rem 0 .9rem; }
+        .credit-package-summary div { min-width: 0; }
+        .credit-package-summary dt { color: #64748b; font-size: .76rem; }
+        .credit-package-summary dd { margin: .2rem 0 0; color: #0f172a; font-weight: 700; font-size: .95rem; }
+        .credit-package-price { color: #0f766e; font-size: 1.05rem; }
+        .credit-admin-contact { margin: 1rem 0 0; color: #475569; font-size: .92rem; }
+        .credit-table-shell { max-height: 430px; overflow: auto; border: 1px solid #dbe4ee; border-radius: 8px; }
+        .credit-table { min-width: 760px; margin: 0; }
+        .credit-table th { position: sticky; top: 0; z-index: 1; background: #f8fafc; }
+        .credit-table td { white-space: nowrap; }
+        .credit-note { max-width: 270px; overflow: hidden; text-overflow: ellipsis; }
+        .credit-empty-state { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1.25rem; color: #475569; text-align: center; }
+        .credit-empty-state strong { color: #0f172a; }
+        .credit-empty-state p { margin: .35rem 0 0; }
+        @@media (max-width: 980px) { .credit-balance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @@media (max-width: 560px) {
+            .credit-balance-grid { grid-template-columns: 1fr; }
+            .credit-package-grid { grid-template-columns: 1fr; }
+            .credit-package-summary { gap: .35rem; }
+            .credit-table-shell { margin-inline: -.15rem; }
+        }
+    </style>
+}

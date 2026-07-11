@@ -255,7 +255,8 @@ public class DocumentWorkflowTests
     private sealed class FakeRealtimeService : IRealtimeService
     {
         public Task SendChatChunkAsync(Guid sessionId, Guid messageId, string chunk, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public Task SendChatCompleteAsync(Guid sessionId, ChatMessageDto assistantMessage, IReadOnlyList<CitationDto> citations, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SendChatCompleteAsync(Guid sessionId, ChatMessageDto assistantMessage, IReadOnlyList<CitationDto> citations, CreditSpendResultDto? creditSpend = null, CreditBalanceDto? creditBalance = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SendChatFailedAsync(Guid sessionId, Guid messageId, string errorMessage, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SendDocumentProgressAsync(Guid datasetId, Guid documentId, string status, int progressPercentage, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SendNotificationAsync(Guid userId, string message, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task TriggerUiUpdateAsync(string entityType, Guid entityId, CancellationToken cancellationToken = default) => Task.CompletedTask;

@@ -1,0 +1,170 @@
+- generic [active] [ref=f16e1]:
+  - banner [ref=f16e2]:
+    - navigation [ref=f16e3]:
+      - generic [ref=f16e4]:
+        - link "R RAG Chatbot" [ref=f16e5] [cursor=pointer]:
+          - /url: /Admin
+          - generic [ref=f16e6]: R
+          - generic [ref=f16e7]: RAG Chatbot
+        - generic [ref=f16e8]:
+          - list [ref=f16e9]:
+            - listitem [ref=f16e10]:
+              - link "Quản trị" [ref=f16e11] [cursor=pointer]:
+                - /url: /Admin
+          - generic [ref=f16e12]:
+            - generic [ref=f16e15]:
+              - generic [ref=f16e16]: Vuong Dev Admin
+              - generic [ref=f16e17]: Quản trị viên
+            - button "Đăng xuất" [ref=f16e19] [cursor=pointer]
+  - main [ref=f16e21]:
+    - generic [ref=f16e22]:
+      - generic [ref=f16e24]:
+        - paragraph [ref=f16e25]: Administration
+        - heading "Admin Dashboard" [level=1] [ref=f16e26]
+        - paragraph [ref=f16e27]: Manage accounts, teacher assignments, and subject access.
+      - navigation "Admin sections" [ref=f16e28]:
+        - link "Overview" [ref=f16e29] [cursor=pointer]:
+          - /url: /Admin
+        - link "Subjects" [ref=f16e30] [cursor=pointer]:
+          - /url: /Admin/Datasets
+        - link "Reports" [ref=f16e31] [cursor=pointer]:
+          - /url: /Admin/Reports
+        - link "Settings" [ref=f16e32] [cursor=pointer]:
+          - /url: /Admin/Settings
+      - generic "System summary" [ref=f16e33]:
+        - generic [ref=f16e34]:
+          - strong [ref=f16e35]: "4"
+          - generic [ref=f16e36]: Users
+        - generic [ref=f16e37]:
+          - strong [ref=f16e38]: "1"
+          - generic [ref=f16e39]: Active teachers
+        - generic [ref=f16e40]:
+          - strong [ref=f16e41]: "2"
+          - generic [ref=f16e42]: Assignments
+        - generic [ref=f16e43]:
+          - strong [ref=f16e44]: "0"
+          - generic [ref=f16e45]: Unassigned subjects
+      - generic [ref=f16e46]:
+        - heading "Account provisioning" [level=2] [ref=f16e48]
+        - generic [ref=f16e49]:
+          - generic [ref=f16e50]:
+            - generic [ref=f16e51]:
+              - heading "Import students" [level=3] [ref=f16e52]
+              - paragraph [ref=f16e53]: XLSX with an Email column; FullName is optional.
+            - generic [ref=f16e54]:
+              - generic [ref=f16e55]: Student file
+              - button "Student file" [ref=f16e56]
+            - button "Import and email accounts" [ref=f16e57] [cursor=pointer]
+          - generic [ref=f16e58]:
+            - generic [ref=f16e59]:
+              - heading "Create teacher" [level=3] [ref=f16e60]
+              - paragraph [ref=f16e61]: Create an account and assign its initial subjects.
+            - generic [ref=f16e62]:
+              - generic [ref=f16e63]:
+                - generic [ref=f16e64]: Full name
+                - textbox "Full name" [ref=f16e65]
+              - generic [ref=f16e66]:
+                - generic [ref=f16e67]: Email
+                - textbox "Email" [ref=f16e68]
+            - generic [ref=f16e69]:
+              - generic [ref=f16e70]: Initial subjects
+              - listbox "Initial subjects" [ref=f16e71]
+            - button "Create teacher" [disabled] [ref=f16e72]
+      - generic [ref=f16e73]:
+        - generic [ref=f16e74]:
+          - heading "Teacher assignments" [level=2] [ref=f16e75]
+          - generic [ref=f16e76]: "2"
+        - generic [ref=f16e77]:
+          - generic [ref=f16e78]:
+            - generic [ref=f16e79]: Teacher
+            - combobox "Teacher" [ref=f16e80]:
+              - option "Select teacher" [selected]
+              - option "Nguyen Pham Nhat Anh (nhattep25@gmail.com)"
+          - generic [ref=f16e81]:
+            - generic [ref=f16e82]: Unassigned subject
+            - combobox "Unassigned subject" [ref=f16e83]:
+              - option "Select subject" [selected]
+          - button "Assign" [disabled] [ref=f16e84]
+        - table [ref=f16e86]:
+          - rowgroup [ref=f16e87]:
+            - row [ref=f16e88]:
+              - columnheader "Teacher" [ref=f16e89]
+              - columnheader "Subject" [ref=f16e90]
+              - columnheader "Assigned" [ref=f16e91]
+              - columnheader "Action" [ref=f16e92]
+          - rowgroup [ref=f16e93]:
+            - row [ref=f16e94]:
+              - cell "Nguyen Pham Nhat Anh nhattep25@gmail.com" [ref=f16e95]:
+                - strong [ref=f16e96]: Nguyen Pham Nhat Anh
+                - generic [ref=f16e97]: nhattep25@gmail.com
+              - cell "PRN222" [ref=f16e98]
+              - cell "7/10/2026 9:57 AM" [ref=f16e99]
+              - cell [ref=f16e100]:
+                - button "Unassign" [ref=f16e102] [cursor=pointer]
+            - row [ref=f16e103]:
+              - cell "Nguyen Pham Nhat Anh nhattep25@gmail.com" [ref=f16e104]:
+                - strong [ref=f16e105]: Nguyen Pham Nhat Anh
+                - generic [ref=f16e106]: nhattep25@gmail.com
+              - cell "SWD391" [ref=f16e107]
+              - cell "6/29/2026 5:56 PM" [ref=f16e108]
+              - cell [ref=f16e109]:
+                - button "Unassign" [ref=f16e111] [cursor=pointer]
+      - generic [ref=f16e112]:
+        - generic [ref=f16e113]:
+          - heading "System users" [level=2] [ref=f16e114]
+          - generic [ref=f16e115]: "4"
+        - table [ref=f16e117]:
+          - rowgroup [ref=f16e118]:
+            - row [ref=f16e119]:
+              - columnheader "User" [ref=f16e120]
+              - columnheader "Role" [ref=f16e121]
+              - columnheader "Created" [ref=f16e122]
+              - columnheader "Status" [ref=f16e123]
+              - columnheader "Action" [ref=f16e124]
+          - rowgroup [ref=f16e125]:
+            - row [ref=f16e126]:
+              - cell "Demo Student student@example.com" [ref=f16e127]:
+                - strong [ref=f16e128]: Demo Student
+                - generic [ref=f16e129]: student@example.com
+              - cell "Student" [ref=f16e130]
+              - cell "7/10/2026 9:34 AM" [ref=f16e132]
+              - cell "Active" [ref=f16e133]
+              - cell [ref=f16e135]
+            - row [ref=f16e136]:
+              - cell "Nguyen Pham Nhat Anh nhattep25@gmail.com" [ref=f16e137]:
+                - strong [ref=f16e138]: Nguyen Pham Nhat Anh
+                - generic [ref=f16e139]: nhattep25@gmail.com
+              - cell "Teacher" [ref=f16e140]
+              - cell "6/6/2026 8:26 AM" [ref=f16e142]
+              - cell "Active" [ref=f16e143]
+              - cell [ref=f16e145]:
+                - button "Deactivate" [ref=f16e147] [cursor=pointer]
+            - row [ref=f16e148]:
+              - cell "System Admin anhnguyenphamnhat@gmail.com" [ref=f16e149]:
+                - strong [ref=f16e150]: System Admin
+                - generic [ref=f16e151]: anhnguyenphamnhat@gmail.com
+              - cell "Admin" [ref=f16e152]
+              - cell "6/4/2026 11:07 AM" [ref=f16e154]
+              - cell "Active" [ref=f16e155]
+              - cell [ref=f16e157]
+            - row [ref=f16e158]:
+              - cell "Vuong Dev Admin admin@vuongdev.top" [ref=f16e159]:
+                - strong [ref=f16e160]: Vuong Dev Admin
+                - generic [ref=f16e161]: admin@vuongdev.top
+              - cell "Admin" [ref=f16e162]
+              - cell "6/5/2026 11:16 PM" [ref=f16e164]
+              - cell "Active" [ref=f16e165]
+              - cell [ref=f16e167]
+  - contentinfo [ref=f16e168]:
+    - generic [ref=f16e169]:
+      - generic [ref=f16e170]:
+        - generic [ref=f16e171]: R
+        - generic [ref=f16e172]: © 2026 RAG Chatbot System
+      - generic [ref=f16e173]:
+        - link "Tài liệu" [ref=f16e174] [cursor=pointer]:
+          - /url: "#"
+        - link "Bảo mật" [ref=f16e175] [cursor=pointer]:
+          - /url: "#"
+        - link "Điều khoản" [ref=f16e176] [cursor=pointer]:
+          - /url: "#"
+        - generic [ref=f16e177]: Hệ thống đang hoạt động

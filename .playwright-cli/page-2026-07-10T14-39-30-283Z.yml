@@ -1,0 +1,157 @@
+- generic [active] [ref=f8e1]:
+  - banner [ref=f8e2]:
+    - navigation [ref=f8e3]:
+      - generic [ref=f8e4]:
+        - link "R RAG Chatbot" [ref=f8e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f8e6]: R
+          - generic [ref=f8e7]: RAG Chatbot
+        - button "Mở hoặc đóng điều hướng" [ref=f8e8] [cursor=pointer]
+  - main [ref=f8e11]:
+    - generic [ref=f8e12]:
+      - generic [ref=f8e13]:
+        - generic [ref=f8e14]:
+          - paragraph [ref=f8e15]: CREDIT
+          - heading "Số dư credit" [level=1] [ref=f8e16]
+          - paragraph [ref=f8e17]: Credit chỉ được trừ sau khi AI trả lời thành công. Credit miễn phí được đặt lại mỗi ngày và không cộng dồn.
+        - link "Quay lại không gian học tập" [ref=f8e18] [cursor=pointer]:
+          - /url: /
+      - region "Tóm tắt số dư credit" [ref=f8e19]:
+        - article [ref=f8e20]:
+          - generic [ref=f8e21]: Tổng số dư
+          - strong [ref=f8e22]: "60"
+          - generic [ref=f8e23]: Credit có thể sử dụng
+        - article [ref=f8e24]:
+          - generic [ref=f8e25]: Credit miễn phí
+          - strong [ref=f8e26]: "60"
+          - generic [ref=f8e27]: Được dùng trước khi dùng credit đã mua
+        - article [ref=f8e28]:
+          - generic [ref=f8e29]: Credit đã mua
+          - strong [ref=f8e30]: "0"
+          - generic [ref=f8e31]: Duy trì cho đến khi được sử dụng hoặc điều chỉnh
+        - article [ref=f8e32]:
+          - generic [ref=f8e33]: Credit miễn phí mỗi ngày
+          - strong [ref=f8e34]: "60"
+          - generic [ref=f8e35]: Đặt lại theo ngày Việt Nam
+      - generic [ref=f8e36]:
+        - generic [ref=f8e37]:
+          - generic [ref=f8e38]:
+            - paragraph [ref=f8e39]: NẠP CREDIT
+            - heading "Các gói credit" [level=2] [ref=f8e40]
+            - paragraph [ref=f8e41]: Hiện tại credit được nạp thông qua quản trị viên.
+          - generic [ref=f8e42]: Chưa hỗ trợ thanh toán trực tuyến
+        - generic [ref=f8e43]:
+          - article [ref=f8e44]:
+            - generic [ref=f8e45]:
+              - generic [ref=f8e46]:
+                - heading "Gói học cơ bản" [level=3] [ref=f8e47]
+                - paragraph [ref=f8e48]: Gói nhỏ cho nhu cầu học tập thường xuyên.
+              - generic [ref=f8e49]: Đang áp dụng
+            - generic [ref=f8e50]:
+              - generic [ref=f8e51]:
+                - term [ref=f8e52]: Cơ bản
+                - definition [ref=f8e53]: "300"
+              - generic [ref=f8e54]:
+                - term [ref=f8e55]: Tặng thêm
+                - definition [ref=f8e56]: "0"
+              - generic [ref=f8e57]:
+                - term [ref=f8e58]: Tổng cộng
+                - definition [ref=f8e59]: "300"
+            - strong [ref=f8e60]: 10.000 ₫
+          - article [ref=f8e61]:
+            - generic [ref=f8e62]:
+              - generic [ref=f8e63]:
+                - heading "Gói học nâng cao" [level=3] [ref=f8e64]
+                - paragraph [ref=f8e65]: Giá trị tốt hơn cho nhu cầu học tập thường xuyên.
+              - generic [ref=f8e66]: Đang áp dụng
+            - generic [ref=f8e67]:
+              - generic [ref=f8e68]:
+                - term [ref=f8e69]: Cơ bản
+                - definition [ref=f8e70]: "700"
+              - generic [ref=f8e71]:
+                - term [ref=f8e72]: Tặng thêm
+                - definition [ref=f8e73]: "100"
+              - generic [ref=f8e74]:
+                - term [ref=f8e75]: Tổng cộng
+                - definition [ref=f8e76]: "800"
+            - strong [ref=f8e77]: 25.000 ₫
+          - article [ref=f8e78]:
+            - generic [ref=f8e79]:
+              - generic [ref=f8e80]:
+                - heading "Gói ôn thi" [level=3] [ref=f8e81]
+                - paragraph [ref=f8e82]: Phù hợp cho ôn tập kiểm tra hoặc thi cuối kỳ.
+              - generic [ref=f8e83]: Đang áp dụng
+            - generic [ref=f8e84]:
+              - generic [ref=f8e85]:
+                - term [ref=f8e86]: Cơ bản
+                - definition [ref=f8e87]: "1.700"
+              - generic [ref=f8e88]:
+                - term [ref=f8e89]: Tặng thêm
+                - definition [ref=f8e90]: "300"
+              - generic [ref=f8e91]:
+                - term [ref=f8e92]: Tổng cộng
+                - definition [ref=f8e93]: "2.000"
+            - strong [ref=f8e94]: 59.000 ₫
+          - article [ref=f8e95]:
+            - generic [ref=f8e96]:
+              - generic [ref=f8e97]:
+                - heading "Gói nước rút" [level=3] [ref=f8e98]
+                - paragraph [ref=f8e99]: Giá trị tốt cho giai đoạn ôn thi nước rút.
+              - generic [ref=f8e100]: Đang áp dụng
+            - generic [ref=f8e101]:
+              - generic [ref=f8e102]:
+                - term [ref=f8e103]: Cơ bản
+                - definition [ref=f8e104]: "4.000"
+              - generic [ref=f8e105]:
+                - term [ref=f8e106]: Tặng thêm
+                - definition [ref=f8e107]: "1.000"
+              - generic [ref=f8e108]:
+                - term [ref=f8e109]: Tổng cộng
+                - definition [ref=f8e110]: "5.000"
+            - strong [ref=f8e111]: 129.000 ₫
+        - paragraph [ref=f8e112]: Liên hệ quản trị viên để nạp credit theo gói phù hợp.
+      - generic [ref=f8e113]:
+        - generic [ref=f8e115]:
+          - paragraph [ref=f8e116]: NẠP CREDIT
+          - heading "Lịch sử nạp credit" [level=2] [ref=f8e117]
+          - paragraph [ref=f8e118]: Các lần nạp và trạng thái xử lý gần đây.
+        - generic [ref=f8e119]:
+          - strong [ref=f8e120]: Chưa có lịch sử nạp credit
+          - paragraph [ref=f8e121]: Thông tin nạp credit sẽ xuất hiện tại đây sau khi được quản trị viên xử lý.
+      - generic [ref=f8e122]:
+        - generic [ref=f8e124]:
+          - paragraph [ref=f8e125]: GIAO DỊCH
+          - heading "Lịch sử giao dịch" [level=2] [ref=f8e126]
+          - paragraph [ref=f8e127]: Hiển thị 25 giao dịch credit gần nhất.
+        - generic "Bảng lịch sử giao dịch credit" [ref=f8e128]:
+          - table [ref=f8e129]:
+            - rowgroup [ref=f8e130]:
+              - row [ref=f8e131]:
+                - columnheader "Thời gian" [ref=f8e132]
+                - columnheader "Loại giao dịch" [ref=f8e133]
+                - columnheader "Đã cộng" [ref=f8e134]
+                - columnheader "Đã dùng" [ref=f8e135]
+                - columnheader "Số dư sau" [ref=f8e136]
+                - columnheader "Ghi chú" [ref=f8e137]
+            - rowgroup [ref=f8e138]:
+              - row [ref=f8e139]:
+                - cell "10/07/2026 09:59" [ref=f8e140]
+                - cell "Đặt lại credit hằng ngày" [ref=f8e141]
+                - cell "60" [ref=f8e143]
+                - cell "0" [ref=f8e144]
+                - cell [ref=f8e145]:
+                  - strong [ref=f8e146]: "60"
+                - cell "Credit miễn phí được đặt lại hằng ngày." [ref=f8e147]
+  - contentinfo [ref=f8e148]:
+    - generic [ref=f8e149]:
+      - generic [ref=f8e150]:
+        - generic [ref=f8e151]: R
+        - generic [ref=f8e152]: © 2026 RAG Chatbot System
+      - generic [ref=f8e153]:
+        - link "Tài liệu" [ref=f8e154] [cursor=pointer]:
+          - /url: "#"
+        - link "Bảo mật" [ref=f8e155] [cursor=pointer]:
+          - /url: "#"
+        - link "Điều khoản" [ref=f8e156] [cursor=pointer]:
+          - /url: "#"
+        - generic [ref=f8e157]: Hệ thống đang hoạt động

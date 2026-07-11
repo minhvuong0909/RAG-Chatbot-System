@@ -1,184 +1,382 @@
 @page
+@using System.Globalization
+@using RagChatbotSystem.Business.DTOs
+@using RagChatbotSystem.DataAccess.Models
 @model RagChatbotSystem.Presentation.Pages.Admin.Credits.IndexModel
 @{
-    ViewData["Title"] = "Credit Management";
+    ViewData["Title"] = "Quản lý Credit";
+    var vietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    var packagesById = Model.Packages.ToDictionary(package => package.Id);
+
+    string FormatCurrency(decimal amount, string currency) =>
+        string.Equals(currency, "VND", StringComparison.OrdinalIgnoreCase)
+            ? $"{amount.ToString("N0", vietnameseCulture)} ₫"
+            : $"{amount.ToString("N0", vietnameseCulture)} {currency}";
+
+    string LedgerTypeLabel(CreditLedgerType type) => type switch
+    {
+        CreditLedgerType.DAILY_RESET => "Đặt lại Credit hằng ngày",
+        CreditLedgerType.FREE_GRANT => "Tặng Credit miễn phí",
+        CreditLedgerType.PURCHASE => "Nạp Credit",
+        CreditLedgerType.ADMIN_GRANT => "Quản trị viên cấp Credit",
+        CreditLedgerType.ADJUSTMENT => "Điều chỉnh",
+        CreditLedgerType.SPEND => "Sử dụng",
+        CreditLedgerType.REFUND => "Hoàn Credit",
+        CreditLedgerType.EXPIRED => "Hết hạn",
+        _ => type.ToString()
+    };
+
+    string PurchaseStatusLabel(CreditPurchaseStatus status) => status switch
+    {
+        CreditPurchaseStatus.PENDING => "Đang chờ",
+        CreditPurchaseStatus.COMPLETED => "Hoàn tất",
+        CreditPurchaseStatus.FAILED => "Thất bại",
+        CreditPurchaseStatus.CANCELLED => "Đã hủy",
+        CreditPurchaseStatus.REFUNDED => "Đã hoàn",
+        _ => status.ToString()
+    };
+
+    string PackageLabel(CreditPurchaseDto purchase) =>
+        purchase.PackageId.HasValue && packagesById.TryGetValue(purchase.PackageId.Value, out var package)
+            ? PackageDisplayName(package)
+            : "Nạp Credit thủ công";
+
+    string PackageDisplayName(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói học cơ bản",
+        "Study Plus" => "Gói học nâng cao",
+        "Exam Boost" => "Gói ôn thi",
+        "Final Sprint" => "Gói nước rút",
+        _ => package.Name
+    };
+
+    string UserLabel(Guid? userId) =>
+        userId.HasValue && Model.UserNames.TryGetValue(userId.Value, out var userName)
+            ? userName
+            : "Hệ thống";
+
+    int TotalBalanceBefore(CreditLedgerDto entry) =>
+        entry.BalanceAfterFree + entry.BalanceAfterPaid
+        - entry.FreeCreditsAdded - entry.PaidCreditsAdded
+        + entry.FreeCreditsUsed + entry.PaidCreditsUsed;
+
+    string LedgerNote(CreditLedgerDto entry) =>
+        entry.Type == CreditLedgerType.DAILY_RESET && string.Equals(entry.Note, "Initial daily free credit reset.", StringComparison.Ordinal)
+            ? "Credit miễn phí được đặt lại hằng ngày."
+            : entry.Note ?? "-";
 }
 
-<section class="admin-page">
+<section class="admin-page credit-admin-page">
     <header class="admin-page-header">
         <div>
-            <p class="eyebrow">Administration</p>
-            <h1>Credit Management</h1>
-            <p class="helper-text">Manage student credit balances, manual top-ups, grants, and ledger history.</p>
+            <p class="eyebrow">QUẢN TRỊ</p>
+            <h1>Quản lý Credit</h1>
+            <p class="helper-text">Theo dõi số dư sinh viên và ghi nhận nạp, tặng hoặc điều chỉnh Credit thủ công.</p>
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Admin sections">
-        <a asp-page="/Admin/Index">Overview</a>
-        <a asp-page="/Admin/Datasets/Index">Subjects</a>
-        <a asp-page="/Admin/Reports">Reports</a>
-        <a class="active" asp-page="/Admin/Credits/Index" aria-current="page">Credits</a>
-        <a asp-page="/Admin/Settings">Settings</a>
+    <nav class="admin-tabs" aria-label="Khu vực quản trị">
+        <a asp-page="/Admin/Index">Tổng quan</a>
+        <a asp-page="/Admin/Datasets/Index">Môn học</a>
+        <a asp-page="/Admin/Reports">Báo cáo</a>
+        <a class="active" asp-page="/Admin/Credits/Index" aria-current="page">Credit</a>
+        <a asp-page="/Admin/Settings">Cài đặt</a>
     </nav>
 
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
     {
-        <div class="alert alert-success">@Model.SuccessMessage</div>
+        <div class="alert alert-success" role="status">@Model.SuccessMessage</div>
     }
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
     }
 
     <section class="admin-section">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-8">
-                <label class="form-label">Student</label>
-                <select name="userId" class="form-select">
-                    @foreach (var student in Model.Students)
-                    {
-                        <option value="@student.UserId" selected="@(Model.SelectedUserId == student.UserId)">@student.FullName (@student.Email)</option>
-                    }
-                </select>
+        <div class="admin-section-heading">
+            <div>
+                <p class="eyebrow">SINH VIÊN</p>
+                <h2>Chọn sinh viên</h2>
+                <p>Tìm theo họ tên hoặc email, sau đó xem và điều chỉnh số dư.</p>
             </div>
-            <div class="col-md-4">
-                <button class="btn btn-primary w-100" type="submit">View Balance</button>
+        </div>
+        @if (Model.Students.Any())
+        {
+            <form method="get" class="credit-student-selector">
+                <div>
+                    <label for="studentSearch" class="form-label">Tìm sinh viên</label>
+                    <input id="studentSearch" class="form-control" type="search" placeholder="Nhập họ tên hoặc email" autocomplete="off" />
+                </div>
+                <div>
+                    <label for="studentSelect" class="form-label">Sinh viên</label>
+                    <select id="studentSelect" name="userId" class="form-select">
+                        @foreach (var student in Model.Students)
+                        {
+                            <option value="@student.UserId" selected="@(Model.SelectedUserId == student.UserId)">@student.FullName (@student.Email)</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn-primary" type="submit">Xem số dư</button>
+            </form>
+        }
+        else
+        {
+            <div class="credit-empty-state">
+                <strong>Chưa có sinh viên để quản lý</strong>
+                <p>Danh sách sinh viên sẽ xuất hiện tại đây khi tài khoản sinh viên được tạo.</p>
             </div>
-        </form>
+        }
     </section>
 
     @if (Model.SelectedBalance != null)
     {
-        <div class="stats-summary-grid">
-            <div class="stats-card highlight-card">
+        <section class="credit-admin-balance" aria-label="Số dư Credit của sinh viên đã chọn">
+            <article class="stats-card highlight-card">
                 <div class="stats-card-content">
-                    <span class="stats-card-label">Total Credits</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.TotalCredits.ToString("N0")</span>
+                    <span class="stats-card-label">Tổng số dư</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.TotalCredits.ToString("N0", vietnameseCulture)</span>
+                    <small>Credit hiện có thể sử dụng</small>
                 </div>
-            </div>
-            <div class="stats-card">
+            </article>
+            <article class="stats-card">
                 <div class="stats-card-content">
-                    <span class="stats-card-label">Free Credits</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.FreeCredits.ToString("N0")</span>
+                    <span class="stats-card-label">Credit miễn phí</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.FreeCredits.ToString("N0", vietnameseCulture)</span>
+                    <small>Được ưu tiên sử dụng trước</small>
                 </div>
-            </div>
-            <div class="stats-card">
+            </article>
+            <article class="stats-card">
                 <div class="stats-card-content">
-                    <span class="stats-card-label">Paid Credits</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.PaidCredits.ToString("N0")</span>
+                    <span class="stats-card-label">Credit đã mua</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.PaidCredits.ToString("N0", vietnameseCulture)</span>
+                    <small>Được ghi nhận từ nạp thủ công</small>
                 </div>
-            </div>
-            <div class="stats-card">
+            </article>
+            <article class="stats-card">
                 <div class="stats-card-content">
-                    <span class="stats-card-label">Daily Free Reset</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.Settings.DailyFreeCredits.ToString("N0")</span>
+                    <span class="stats-card-label">Credit miễn phí mỗi ngày</span>
+                    <span class="stats-card-value">@Model.SelectedBalance.Settings.DailyFreeCredits.ToString("N0", vietnameseCulture)</span>
+                    <small>Đặt lại theo ngày Việt Nam</small>
                 </div>
-            </div>
-        </div>
+            </article>
+        </section>
 
-        <div class="reports-main-grid">
-            <section class="admin-section">
+        <section class="credit-action-grid">
+            <article class="admin-section credit-action-panel">
                 <div class="section-title">
-                    <h2>Manual Paid Top-up</h2>
-                    <span>Add paid credits through admin workflow</span>
+                    <div>
+                        <h2>Nạp Credit đã mua</h2>
+                        <span>Ghi nhận nạp thủ công, không xử lý thanh toán trực tuyến.</span>
+                    </div>
                 </div>
                 <form method="post" asp-page-handler="TopUp" class="row g-3">
                     <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
                     <div class="col-md-6">
-                        <label asp-for="Input.PaidCredits" class="form-label">Paid Credits</label>
+                        <label asp-for="Input.PaidCredits" class="form-label">Credit đã mua</label>
                         <input asp-for="Input.PaidCredits" class="form-control" type="number" min="1" />
                     </div>
                     <div class="col-md-6">
-                        <label asp-for="Input.Amount" class="form-label">Amount (VND)</label>
+                        <label asp-for="Input.Amount" class="form-label">Số tiền (VND)</label>
                         <input asp-for="Input.Amount" class="form-control" type="number" min="0" />
                     </div>
                     <div class="col-12">
-                        <label asp-for="Input.Note" class="form-label">Note</label>
-                        <input asp-for="Input.Note" class="form-control" required />
+                        <label asp-for="Input.Note" class="form-label">Lý do điều chỉnh</label>
+                        <input asp-for="Input.Note" class="form-control" required maxlength="500" />
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Top Up Paid Credits</button>
+                        <button type="submit" class="btn btn-primary">Cộng Credit đã mua</button>
                     </div>
                 </form>
-            </section>
+            </article>
 
-            <section class="admin-section">
+            <article class="admin-section credit-action-panel">
                 <div class="section-title">
-                    <h2>Grant / Adjust</h2>
-                    <span>All changes write ledger rows</span>
+                    <div>
+                        <h2>Tặng Credit miễn phí</h2>
+                        <span>Thao tác này luôn được ghi vào lịch sử giao dịch.</span>
+                    </div>
                 </div>
-                <form method="post" asp-page-handler="GrantFree" class="row g-3 mb-4">
+                <form method="post" asp-page-handler="GrantFree" class="row g-3">
                     <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
                     <div class="col-md-6">
-                        <label asp-for="Input.FreeCredits" class="form-label">Free Credits</label>
+                        <label asp-for="Input.FreeCredits" class="form-label">Credit miễn phí</label>
                         <input asp-for="Input.FreeCredits" class="form-control" type="number" min="1" />
                     </div>
                     <div class="col-md-6">
-                        <label asp-for="Input.Note" class="form-label">Note</label>
-                        <input asp-for="Input.Note" class="form-control" required />
+                        <label asp-for="Input.Note" class="form-label">Lý do điều chỉnh</label>
+                        <input asp-for="Input.Note" class="form-control" required maxlength="500" />
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-outline-primary">Grant Free Credits</button>
+                        <button type="submit" class="btn btn-outline-primary">Tặng Credit miễn phí</button>
                     </div>
                 </form>
+            </article>
 
-                <form method="post" asp-page-handler="Adjust" class="row g-3">
+            <article class="admin-section credit-action-panel credit-adjustment-panel">
+                <div class="section-title">
+                    <div>
+                        <h2>Điều chỉnh số dư</h2>
+                        <span>Nhập số âm để giảm Credit. Hệ thống yêu cầu xác nhận trước khi giảm.</span>
+                    </div>
+                </div>
+                <form method="post" asp-page-handler="Adjust" class="row g-3" data-credit-adjustment-form>
                     <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
                     <div class="col-md-4">
-                        <label asp-for="Input.FreeCreditsDelta" class="form-label">Free Delta</label>
+                        <label asp-for="Input.FreeCreditsDelta" class="form-label">Điều chỉnh Credit miễn phí</label>
                         <input asp-for="Input.FreeCreditsDelta" class="form-control" type="number" />
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="Input.PaidCreditsDelta" class="form-label">Paid Delta</label>
+                        <label asp-for="Input.PaidCreditsDelta" class="form-label">Điều chỉnh Credit đã mua</label>
                         <input asp-for="Input.PaidCreditsDelta" class="form-control" type="number" />
                     </div>
                     <div class="col-md-4">
-                        <label asp-for="Input.Note" class="form-label">Note</label>
-                        <input asp-for="Input.Note" class="form-control" required />
+                        <label asp-for="Input.Note" class="form-label">Lý do điều chỉnh</label>
+                        <input asp-for="Input.Note" class="form-control" required maxlength="500" />
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-outline-danger">Apply Adjustment</button>
+                        <button type="submit" class="btn btn-outline-danger">Áp dụng điều chỉnh</button>
                     </div>
                 </form>
-            </section>
-        </div>
+            </article>
+        </section>
 
-        <section class="admin-section" style="margin-top: 2rem;">
-            <div class="section-title">
-                <h2>Credit Ledger</h2>
-                <span>Latest 50 entries</span>
+        <section class="admin-section">
+            <div class="admin-section-heading">
+                <div>
+                    <p class="eyebrow">GIAO DỊCH</p>
+                    <h2>Lịch sử giao dịch</h2>
+                    <p>Hiển thị 50 giao dịch Credit gần nhất của sinh viên đã chọn.</p>
+                </div>
             </div>
-            <div class="table-responsive">
-                <table class="table align-middle admin-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Calculated</th>
-                            <th>Charged</th>
-                            <th>Added</th>
-                            <th>Used</th>
-                            <th>Balance</th>
-                            <th>Note</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var entry in Model.Ledger)
-                        {
-                            <tr>
-                                <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@entry.Type</td>
-                                <td>@entry.CalculatedCredits.ToString("N0")</td>
-                                <td>@entry.ChargedCredits.ToString("N0")</td>
-                                <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0"))</td>
-                                <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0"))</td>
-                                <td>@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0"))</td>
-                                <td>@entry.Note</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            @if (Model.Ledger.Any())
+            {
+                <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử giao dịch Credit">
+                    <table class="table align-middle admin-table credit-table">
+                        <thead>
+                            <tr><th>Thời gian</th><th>Loại giao dịch</th><th>Đã cộng</th><th>Đã dùng</th><th>Trước / Sau</th><th>Ghi chú</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in Model.Ledger)
+                            {
+                                <tr>
+                                    <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td><span class="credit-status">@LedgerTypeLabel(entry.Type)</span></td>
+                                    <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture))</td>
+                                    <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture))</td>
+                                    <td><strong>@TotalBalanceBefore(entry).ToString("N0", vietnameseCulture) → @((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</strong></td>
+                                    <td class="credit-note" title="@LedgerNote(entry)">@LedgerNote(entry)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="credit-empty-state">
+                    <strong>Chưa có giao dịch Credit</strong>
+                    <p>Các lần đặt lại, nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
+                </div>
+            }
+        </section>
+
+        <section class="admin-section">
+            <div class="admin-section-heading">
+                <div>
+                    <p class="eyebrow">Nạp Credit</p>
+                    <h2>Lịch sử nạp Credit</h2>
+                    <p>Thể hiện gói Credit, trạng thái giao dịch và người thực hiện.</p>
+                </div>
             </div>
+            @if (Model.Purchases.Any())
+            {
+                <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử nạp Credit">
+                    <table class="table align-middle admin-table credit-table">
+                        <thead>
+                            <tr><th>Thời gian</th><th>Gói Credit</th><th>Tổng cộng</th><th>Giá</th><th>Trạng thái giao dịch</th><th>Người thực hiện</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var purchase in Model.Purchases)
+                            {
+                                <tr>
+                                    <td>@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td title="@PackageLabel(purchase)">@PackageLabel(purchase)</td>
+                                    <td><strong>@purchase.TotalCredits.ToString("N0", vietnameseCulture)</strong></td>
+                                    <td>@FormatCurrency(purchase.Amount, purchase.Currency)</td>
+                                    <td><span class="credit-status">@PurchaseStatusLabel(purchase.Status)</span></td>
+                                    <td title="@UserLabel(purchase.CreatedByUserId)">@UserLabel(purchase.CreatedByUserId)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="credit-empty-state">
+                    <strong>Chưa có lịch sử nạp Credit</strong>
+                    <p>Các lần nạp Credit thủ công sẽ xuất hiện sau khi quản trị viên ghi nhận.</p>
+                </div>
+            }
         </section>
     }
 </section>
+
+@section Scripts {
+    <style>
+        .credit-admin-page { gap: 1.35rem; }
+        .credit-student-selector { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(280px, 1.3fr) auto; align-items: end; gap: .9rem; }
+        .credit-student-selector .btn { min-width: 130px; }
+        .credit-admin-balance { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); gap: 1rem; }
+        .credit-admin-balance .stats-card { display: flex; min-width: 0; min-height: 138px; flex-direction: column; justify-content: center; border: 1px solid #dbe4ee; border-top: 3px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 1rem; }
+        .credit-admin-balance .highlight-card { border-top-color: #0f766e; }
+        .credit-admin-balance .stats-card-content { display: flex; flex-direction: column; gap: .35rem; }
+        .credit-admin-balance .stats-card-label { color: #475569; font-size: .88rem; font-weight: 600; }
+        .credit-admin-balance .stats-card-value { color: #0f172a; font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
+        .credit-admin-balance .stats-card small { color: #64748b; font-size: .82rem; line-height: 1.35; }
+        .credit-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+        .credit-action-panel { margin: 0; min-width: 0; }
+        .credit-action-panel .section-title { display: block; }
+        .credit-action-panel .section-title span { display: block; min-width: 0; min-height: 0; margin-top: .3rem; padding: 0; border: 0; border-radius: 0; background: transparent; color: #64748b; font-size: .88rem; line-height: 1.4; }
+        .credit-adjustment-panel { grid-column: 1 / -1; }
+        .credit-table-shell { max-height: 430px; overflow: auto; border: 1px solid #dbe4ee; border-radius: 8px; }
+        .credit-table { min-width: 800px; margin: 0; }
+        .credit-table th { position: sticky; top: 0; z-index: 1; background: #f8fafc; }
+        .credit-table td { white-space: nowrap; }
+        .credit-note { max-width: 290px; overflow: hidden; text-overflow: ellipsis; }
+        .credit-status { display: inline-flex; align-items: center; width: fit-content; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #334155; font-size: .78rem; font-weight: 700; line-height: 1.2; padding: .32rem .6rem; white-space: nowrap; }
+        .credit-empty-state { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1.25rem; color: #475569; text-align: center; }
+        .credit-empty-state strong { color: #0f172a; }
+        .credit-empty-state p { margin: .35rem 0 0; }
+        @@media (max-width: 980px) { .credit-admin-balance { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @@media (max-width: 700px) {
+            .credit-student-selector, .credit-action-grid, .credit-admin-balance { grid-template-columns: 1fr; }
+            .credit-student-selector .btn { width: 100%; }
+            .credit-adjustment-panel { grid-column: auto; }
+            .credit-table-shell { margin-inline: -.15rem; }
+        }
+    </style>
+    <script>
+        (() => {
+            const searchInput = document.getElementById('studentSearch');
+            const studentSelect = document.getElementById('studentSelect');
+
+            searchInput?.addEventListener('input', () => {
+                const query = searchInput.value.trim().toLocaleLowerCase('vi-VN');
+                Array.from(studentSelect.options).forEach((option) => {
+                    option.hidden = query.length > 0 && !option.text.toLocaleLowerCase('vi-VN').includes(query);
+                });
+            });
+
+            document.querySelectorAll('[data-credit-adjustment-form]').forEach((form) => {
+                form.addEventListener('submit', (event) => {
+                    const freeDelta = Number(form.querySelector('[name="Input.FreeCreditsDelta"]')?.value || 0);
+                    const paidDelta = Number(form.querySelector('[name="Input.PaidCreditsDelta"]')?.value || 0);
+                    if ((freeDelta < 0 || paidDelta < 0) && !window.confirm('Bạn đang giảm Credit của sinh viên. Bạn có muốn tiếp tục?')) {
+                        event.preventDefault();
+                    }
+                });
+            });
+        })();
+    </script>
+}

@@ -31,6 +31,8 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
         public CreditBalanceDto? SelectedBalance { get; private set; }
         public IReadOnlyList<CreditLedgerDto> Ledger { get; private set; } = Array.Empty<CreditLedgerDto>();
         public IReadOnlyList<CreditPackageDto> Packages { get; private set; } = Array.Empty<CreditPackageDto>();
+        public IReadOnlyList<CreditPurchaseDto> Purchases { get; private set; } = Array.Empty<CreditPurchaseDto>();
+        public IReadOnlyDictionary<Guid, string> UserNames { get; private set; } = new Dictionary<Guid, string>();
         public Guid? SelectedUserId { get; private set; }
 
         [BindProperty]
@@ -57,11 +59,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
             try
             {
                 await _purchaseService.CreateManualTopUpAsync(Input.UserId, Input.PaidCredits, Input.Amount, "VND", adminId, Input.Note, cancellationToken);
-                SuccessMessage = "Paid credits topped up successfully.";
+                SuccessMessage = "Đã cộng Credit đã mua cho sinh viên.";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể cộng Credit đã mua. Vui lòng kiểm tra thông tin và thử lại.";
             }
 
             return RedirectToPage(new { userId = Input.UserId });
@@ -77,11 +79,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
             try
             {
                 await _creditService.GrantFreeCreditsAsync(Input.UserId, Input.FreeCredits, adminId, Input.Note, cancellationToken);
-                SuccessMessage = "Free credits granted successfully.";
+                SuccessMessage = "Đã tặng Credit miễn phí cho sinh viên.";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể tặng Credit miễn phí. Vui lòng kiểm tra thông tin và thử lại.";
             }
 
             return RedirectToPage(new { userId = Input.UserId });
@@ -97,11 +99,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
             try
             {
                 await _creditService.AdjustCreditsAsync(Input.UserId, Input.FreeCreditsDelta, Input.PaidCreditsDelta, adminId, Input.Note, cancellationToken);
-                SuccessMessage = "Credits adjusted successfully.";
+                SuccessMessage = "Đã điều chỉnh số dư Credit.";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể điều chỉnh số dư Credit. Vui lòng kiểm tra thông tin và thử lại.";
             }
 
             return RedirectToPage(new { userId = Input.UserId });
@@ -109,7 +111,9 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
 
         private async Task LoadAsync(Guid? userId, CancellationToken cancellationToken)
         {
-            Students = (await _userService.GetUsersAsync(cancellationToken))
+            var users = await _userService.GetUsersAsync(cancellationToken);
+            UserNames = users.ToDictionary(user => user.UserId, user => user.FullName);
+            Students = users
                 .Where(u => string.Equals(u.Role, "Student", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(u => u.FullName)
                 .ToList();
@@ -120,6 +124,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
             {
                 SelectedBalance = await _creditService.GetStudentCreditSummaryAsync(SelectedUserId.Value, cancellationToken);
                 Ledger = await _creditService.GetLedgerAsync(SelectedUserId.Value, 50, cancellationToken);
+                Purchases = await _purchaseService.GetPurchasesAsync(SelectedUserId.Value, 50, cancellationToken);
                 Input.UserId = SelectedUserId.Value;
             }
         }

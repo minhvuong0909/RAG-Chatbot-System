@@ -27,6 +27,10 @@ namespace RagChatbotSystem.Business.Services
         public int LastPromptTokens => _lastPromptTokens;
         public int LastCompletionTokens => _lastCompletionTokens;
         public int LastTotalTokens => _lastTotalTokens;
+        public bool LastWasActualTokenUsage => _lastWasActualTokenUsage;
+        public bool LastIsProviderFallback => _lastIsProviderFallback;
+        public string? LastErrorMessage => _lastErrorMessage;
+        public string ModelName => _model;
 
         public OpenAiService(HttpClient httpClient, IConfiguration configuration)
         {
@@ -46,24 +50,9 @@ namespace RagChatbotSystem.Business.Services
 
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
-                string mockAnswer = "[MOCK ANSWER - Please configure OpenAi:ApiKey in appsettings.json]";
-                if (prompt.Contains("Ngữ cảnh:") && prompt.Contains("Câu hỏi:"))
-                {
-                    var contextStart = prompt.IndexOf("Ngữ cảnh:\n") + 10;
-                    var contextEnd = prompt.IndexOf("\n\nCâu hỏi:");
-                    if (contextEnd > contextStart)
-                    {
-                        var context = prompt.Substring(contextStart, contextEnd - contextStart);
-                        mockAnswer = $"[MOCK ANSWER - Please configure OpenAi:ApiKey in appsettings.json]:\n\n{context.Trim()}";
-                    }
-                }
-                
-                _lastPromptTokens = EstimateTokens(prompt);
-                _lastCompletionTokens = EstimateTokens(mockAnswer);
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 _lastIsProviderFallback = true;
                 _lastErrorMessage = "OpenAI API key is not configured.";
-                return mockAnswer;
+                throw new InvalidOperationException(_lastErrorMessage);
             }
 
             try
@@ -86,7 +75,7 @@ namespace RagChatbotSystem.Business.Services
                 response.EnsureSuccessStatusCode();
 
                 var result = await response.Content.ReadFromJsonAsync<OpenAiResponse>();
-                var content = result?.Choices?[0]?.Message?.Content ?? "Không nhận được phản hồi từ OpenAI.";
+                var content = result?.Choices?[0]?.Message?.Content ?? string.Empty;
 
                 if (result?.Usage != null)
                 {
@@ -107,28 +96,11 @@ namespace RagChatbotSystem.Business.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error calling OpenAI API: {ex.Message}");
-                
-                string errorAnswer = $"Lỗi khi kết nối với OpenAI: {ex.Message}";
-                if (prompt.Contains("Ngữ cảnh:") && prompt.Contains("Câu hỏi:"))
-                {
-                    var contextStart = prompt.IndexOf("Ngữ cảnh:\n") + 10;
-                    var contextEnd = prompt.IndexOf("\n\nCâu hỏi:");
-                    if (contextEnd > contextStart)
-                    {
-                        var context = prompt.Substring(contextStart, contextEnd - contextStart);
-                        errorAnswer = $"[LƯU Ý: Lỗi kết nối OpenAI API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]:\n\n{context.Trim()}";
-                    }
-                }
-
-                _lastPromptTokens = EstimateTokens(prompt);
-                _lastCompletionTokens = EstimateTokens(errorAnswer);
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 _lastIsProviderFallback = true;
                 _lastErrorMessage = ex.Message;
-                return errorAnswer;
+                throw new InvalidOperationException("OpenAI API call failed.", ex);
             }
         }
-
         public async Task<LlmAnswerResult> GenerateAnswerWithUsageAsync(string prompt)
         {
             var content = await GenerateAnswerAsync(prompt);
@@ -155,21 +127,9 @@ namespace RagChatbotSystem.Business.Services
 
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
-                var mockText = $"[MOCK ANSWER - Please configure OpenAi:ApiKey in appsettings.json]";
-                
-                _lastPromptTokens = EstimateTokens(prompt);
-                _lastCompletionTokens = EstimateTokens(mockText);
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 _lastIsProviderFallback = true;
                 _lastErrorMessage = "OpenAI API key is not configured.";
-
-                var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var word in words)
-                {
-                    yield return word + " ";
-                    await Task.Delay(30);
-                }
-                yield break;
+                throw new InvalidOperationException(_lastErrorMessage);
             }
 
             HttpResponseMessage? response = null;
@@ -193,8 +153,18 @@ namespace RagChatbotSystem.Business.Services
                 requestMessage.Content = JsonContent.Create(payload);
                 response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error streaming OpenAI API: {ex.Message}");
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = ex.Message;
+                throw new InvalidOperationException("OpenAI streaming API call failed.", ex);
+            }
 
-                using var stream = await response.Content.ReadAsStreamAsync();
+            try
+            {
+                using var stream = await response!.Content.ReadAsStreamAsync();
                 using var reader = new System.IO.StreamReader(stream);
 
                 while (!reader.EndOfStream)
@@ -218,7 +188,7 @@ namespace RagChatbotSystem.Business.Services
                         }
                         catch
                         {
-                            // Ignore malformed json in stream
+                            // Ignore json deserialization issues on stream progress
                         }
 
                         var text = chunk?.Choices?[0]?.Delta?.Content;
@@ -239,7 +209,6 @@ namespace RagChatbotSystem.Business.Services
                 _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
             }
         }
-
         private static int EstimateTokens(string value)
         {
             return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));

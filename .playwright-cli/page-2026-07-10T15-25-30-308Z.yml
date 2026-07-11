@@ -1,0 +1,154 @@
+- generic [active] [ref=f10e1]:
+  - banner [ref=f10e2]:
+    - navigation [ref=f10e3]:
+      - generic [ref=f10e4]:
+        - link "R RAG Chatbot" [ref=f10e5] [cursor=pointer]:
+          - /url: /Admin
+          - generic [ref=f10e6]: R
+          - generic [ref=f10e7]: RAG Chatbot
+        - button "Mở hoặc đóng điều hướng" [ref=f10e8] [cursor=pointer]
+  - main [ref=f10e11]:
+    - generic [ref=f10e12]:
+      - generic [ref=f10e14]:
+        - paragraph [ref=f10e15]: QUẢN TRỊ
+        - heading "Báo cáo" [level=1] [ref=f10e16]
+        - paragraph [ref=f10e17]: "Theo dõi lượt hỏi, Token kỹ thuật, Credit thực tế và mức sử dụng theo từng đối tượng. Phạm vi: Tất cả môn học."
+      - navigation "Khu vực báo cáo" [ref=f10e18]:
+        - link "Tổng quan" [ref=f10e19] [cursor=pointer]:
+          - /url: /Admin
+        - link "Môn học" [ref=f10e20] [cursor=pointer]:
+          - /url: /Admin/Datasets
+        - link "Báo cáo" [ref=f10e21] [cursor=pointer]:
+          - /url: /Admin/Reports
+        - link "Cài đặt" [ref=f10e22] [cursor=pointer]:
+          - /url: /Admin/Settings
+      - region [ref=f10e23]:
+        - generic [ref=f10e25]:
+          - paragraph [ref=f10e26]: TỔNG QUAN
+          - heading "Hoạt động hệ thống" [level=2] [ref=f10e27]
+          - paragraph [ref=f10e28]: Lượt hỏi và người dùng là chỉ số vận hành; Token được trình bày riêng như số liệu kỹ thuật.
+        - generic [ref=f10e29]:
+          - article [ref=f10e30]:
+            - generic [ref=f10e31]: Tổng lượt hỏi
+            - strong [ref=f10e32]: "1"
+            - generic [ref=f10e33]: Lượt truy vấn đã được ghi nhận
+          - article [ref=f10e34]:
+            - generic [ref=f10e35]: Người dùng hoạt động
+            - strong [ref=f10e36]: "1"
+            - generic [ref=f10e37]: Người dùng có phát sinh lượt hỏi
+          - article [ref=f10e38]:
+            - generic [ref=f10e39]: Tổng Token
+            - strong [ref=f10e40]: "663"
+            - generic [ref=f10e41]: Chỉ số kỹ thuật của hệ thống AI
+          - article [ref=f10e42]:
+            - generic [ref=f10e43]: Token hôm nay
+            - strong [ref=f10e44]: "663"
+            - generic [ref=f10e45]: Sử dụng trong ngày Việt Nam hiện tại
+      - region [ref=f10e46]:
+        - generic [ref=f10e48]:
+          - paragraph [ref=f10e49]: CHỈ SỐ KỸ THUẬT
+          - heading "Mức sử dụng Token" [level=2] [ref=f10e50]
+          - paragraph [ref=f10e51]: Xu hướng Token và lượt hỏi trong 7 ngày gần nhất.
+        - img "Biểu đồ mức sử dụng Token và lượt hỏi" [ref=f10e53]
+      - region [ref=f10e54]:
+        - generic [ref=f10e56]:
+          - paragraph [ref=f10e57]: CHỈ SỐ NGHIỆP VỤ
+          - heading "Mức sử dụng Credit" [level=2] [ref=f10e58]
+          - paragraph [ref=f10e59]: Credit là chỉ số nghiệp vụ; số thực trừ chỉ phát sinh sau câu trả lời AI hợp lệ được lưu thành công.
+        - generic [ref=f10e60]:
+          - article [ref=f10e61]:
+            - generic [ref=f10e62]: Credit tính toán
+            - strong [ref=f10e63]: "0"
+            - generic [ref=f10e64]: Chi phí ước tính từ lượt trả lời
+          - article [ref=f10e65]:
+            - generic [ref=f10e66]: Credit thực trừ
+            - strong [ref=f10e67]: "0"
+            - generic [ref=f10e68]: Đã trừ khỏi ví sau khi hoàn tất
+          - article [ref=f10e69]:
+            - generic [ref=f10e70]: Credit miễn phí đã dùng
+            - strong [ref=f10e71]: "0"
+            - generic [ref=f10e72]: Phần Credit miễn phí đã tiêu thụ
+          - article [ref=f10e73]:
+            - generic [ref=f10e74]: Credit đã mua đã dùng
+            - strong [ref=f10e75]: "0"
+            - generic [ref=f10e76]: Phần Credit đã mua đã tiêu thụ
+      - region [ref=f10e77]:
+        - generic [ref=f10e79]:
+          - paragraph [ref=f10e80]: THEO DÕI SỰ CỐ
+          - heading "Lỗi và lượt bị chặn" [level=2] [ref=f10e81]
+          - paragraph [ref=f10e82]: Các yêu cầu không đủ số dư hoặc bị chặn trước khi tạo câu trả lời.
+        - generic [ref=f10e83]:
+          - article [ref=f10e84]:
+            - generic [ref=f10e85]: Không đủ số dư
+            - strong [ref=f10e86]: "0"
+            - generic [ref=f10e87]: Lượt phát sinh yêu cầu nhưng không đủ Credit
+          - article [ref=f10e88]:
+            - generic [ref=f10e89]: Lượt bị chặn do hết Credit
+            - strong [ref=f10e90]: "0"
+            - generic [ref=f10e91]: Đã bị chặn trước RAG và mô hình AI
+      - region [ref=f10e92]:
+        - generic [ref=f10e94]:
+          - paragraph [ref=f10e95]: Phân tích Credit
+          - heading "Mức sử dụng theo đối tượng" [level=2] [ref=f10e96]
+          - paragraph [ref=f10e97]: So sánh mức sử dụng Credit theo sinh viên, môn học và mô hình AI.
+        - generic [ref=f10e98]:
+          - article [ref=f10e99]:
+            - heading "Credit theo sinh viên" [level=3] [ref=f10e100]
+            - generic [ref=f10e101]:
+              - strong [ref=f10e102]: Chưa có dữ liệu
+              - paragraph [ref=f10e103]: Chưa có Credit được ghi nhận theo sinh viên.
+          - article [ref=f10e104]:
+            - heading "Credit theo môn học" [level=3] [ref=f10e105]
+            - generic [ref=f10e106]:
+              - strong [ref=f10e107]: Chưa có dữ liệu
+              - paragraph [ref=f10e108]: Chưa có Credit được ghi nhận theo môn học.
+          - article [ref=f10e109]:
+            - heading "Credit theo mô hình AI" [level=3] [ref=f10e110]
+            - generic [ref=f10e111]:
+              - strong [ref=f10e112]: Chưa có dữ liệu
+              - paragraph [ref=f10e113]: Chưa có Credit được ghi nhận theo mô hình AI.
+      - region [ref=f10e114]:
+        - generic [ref=f10e116]:
+          - paragraph [ref=f10e117]: LƯỢT HỎI VÀ TRÍCH DẪN
+          - heading "Người dùng và tài liệu sử dụng nhiều" [level=2] [ref=f10e118]
+          - paragraph [ref=f10e119]: Dữ liệu Token kỹ thuật được hiển thị riêng với tần suất trích dẫn tài liệu.
+        - generic [ref=f10e120]:
+          - article [ref=f10e121]:
+            - heading "Người dùng sử dụng nhiều nhất" [level=3] [ref=f10e122]
+            - table [ref=f10e124]:
+              - rowgroup [ref=f10e125]:
+                - row [ref=f10e126]:
+                  - columnheader "Hạng" [ref=f10e127]
+                  - columnheader "Người dùng" [ref=f10e128]
+                  - columnheader "Vai trò" [ref=f10e129]
+                  - columnheader "Lượt hỏi" [ref=f10e130]
+                  - columnheader "Token" [ref=f10e131]
+              - rowgroup [ref=f10e132]:
+                - row [ref=f10e133]:
+                  - cell "1" [ref=f10e134]
+                  - cell "Demo Student student@example.com" [ref=f10e136]:
+                    - generic "Demo Student" [ref=f10e137]
+                    - generic "student@example.com" [ref=f10e138]
+                  - cell "Sinh viên" [ref=f10e139]
+                  - cell "1" [ref=f10e141]
+                  - cell "663" [ref=f10e142]
+          - article [ref=f10e143]:
+            - heading "Tài liệu được trích dẫn nhiều nhất" [level=3] [ref=f10e144]
+            - generic [ref=f10e146]:
+              - generic [ref=f10e147]:
+                - generic "IELTS_Writing_02_Task_2_Essay.docx" [ref=f10e148]
+                - generic "PRN222" [ref=f10e149]
+              - strong [ref=f10e153]: 3 lượt
+  - contentinfo [ref=f10e154]:
+    - generic [ref=f10e155]:
+      - generic [ref=f10e156]:
+        - generic [ref=f10e157]: R
+        - generic [ref=f10e158]: © 2026 RAG Chatbot System
+      - generic [ref=f10e159]:
+        - link "Tài liệu" [ref=f10e160] [cursor=pointer]:
+          - /url: "#"
+        - link "Bảo mật" [ref=f10e161] [cursor=pointer]:
+          - /url: "#"
+        - link "Điều khoản" [ref=f10e162] [cursor=pointer]:
+          - /url: "#"
+        - generic [ref=f10e163]: Hệ thống đang hoạt động

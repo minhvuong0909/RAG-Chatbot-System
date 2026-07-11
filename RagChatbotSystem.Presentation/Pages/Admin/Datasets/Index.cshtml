@@ -1,23 +1,23 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Admin.Datasets.IndexModel
 @{
-    ViewData["Title"] = "Subject Management";
+    ViewData["Title"] = "Quản lý môn học";
 }
 
 <section class="dataset-page" data-datasets-page>
     <header class="dataset-page-header">
         <div>
-            <p class="eyebrow">Admin / Subjects</p>
-            <h1>Subject Management</h1>
-            <p class="helper-text">Create subjects, control visibility, approve availability, and manage access.</p>
+            <p class="eyebrow">Quản trị / Môn học</p>
+            <h1>Quản lý môn học</h1>
+            <p class="helper-text">Tạo môn học, kiểm soát phạm vi truy cập, duyệt trạng thái sử dụng và phân quyền sinh viên.</p>
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Admin sections">
-        <a asp-page="/Admin/Index">Overview</a>
-        <a class="active" asp-page="/Admin/Datasets/Index" aria-current="page">Subjects</a>
-        <a asp-page="/Admin/Reports">Reports</a>
-        <a asp-page="/Admin/Settings">Settings</a>
+    <nav class="admin-tabs" aria-label="Khu vực quản trị">
+        <a asp-page="/Admin/Index">Tổng quan</a>
+        <a class="active" asp-page="/Admin/Datasets/Index" aria-current="page">Môn học</a>
+        <a asp-page="/Admin/Reports">Báo cáo</a>
+        <a asp-page="/Admin/Settings">Cài đặt</a>
     </nav>
 
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
@@ -33,34 +33,34 @@
 
     <div class="dataset-grid">
         <section class="dataset-create-panel">
-            <div class="section-title"><h2>Create subject</h2></div>
+            <div class="section-title"><h2>Tạo môn học</h2></div>
             <form method="post" asp-page-handler="Create" class="create-form">
                 <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
-                <label asp-for="CreateInput.Name">Subject name</label>
+                <label asp-for="CreateInput.Name">Tên môn học</label>
                 <input asp-for="CreateInput.Name" placeholder="PRN222" />
                 <span asp-validation-for="CreateInput.Name" class="text-danger small"></span>
-                <label asp-for="CreateInput.Description">Description</label>
-                <textarea asp-for="CreateInput.Description" rows="4" placeholder="Short subject description"></textarea>
+                <label asp-for="CreateInput.Description">Mô tả</label>
+                <textarea asp-for="CreateInput.Description" rows="4" placeholder="Mô tả ngắn về môn học"></textarea>
                 <span asp-validation-for="CreateInput.Description" class="text-danger small"></span>
                 <div class="form-check dataset-check-row">
                     <input asp-for="CreateInput.IsPublic" class="form-check-input" />
-                    <label asp-for="CreateInput.IsPublic" class="form-check-label">Public for approved users</label>
+                    <label asp-for="CreateInput.IsPublic" class="form-check-label">Công khai cho người dùng đã được duyệt</label>
                 </div>
-                <button type="submit">Create subject</button>
+                <button type="submit">Tạo môn học</button>
             </form>
         </section>
 
         <section class="dataset-list-panel">
-            <div class="section-title"><h2>Subjects</h2><span>@Model.Datasets.Count</span></div>
+            <div class="section-title"><h2>Môn học</h2><span>@Model.Datasets.Count</span></div>
             @if (Model.Datasets.Count == 0)
             {
-                <p class="helper-text">No subjects available in the system.</p>
+                <p class="helper-text">Chưa có môn học nào trong hệ thống.</p>
             }
             else
             {
                 <div class="table-responsive">
                     <table class="table align-middle dataset-table">
-                        <thead><tr><th>Subject</th><th>Visibility</th><th>Status</th><th>Documents</th><th>Teacher</th><th class="text-end">Actions</th></tr></thead>
+                        <thead><tr><th>Môn học</th><th>Phạm vi truy cập</th><th>Trạng thái</th><th>Tài liệu</th><th>Giảng viên</th><th class="text-end">Thao tác</th></tr></thead>
                         <tbody>
                             @foreach (var dataset in Model.Datasets)
                             {
@@ -68,31 +68,31 @@
                                     <td>
                                         <form id="edit-@dataset.DatasetId" method="post" asp-page-handler="Edit" class="dataset-edit-form">
                                             <input type="hidden" name="EditInput.DatasetId" value="@dataset.DatasetId" />
-                                            <input name="EditInput.Name" value="@dataset.Name" aria-label="Subject name" required maxlength="120" />
-                                            <textarea name="EditInput.Description" rows="2" aria-label="Subject description" maxlength="500">@(dataset.Description ?? string.Empty)</textarea>
+                                            <input name="EditInput.Name" value="@dataset.Name" aria-label="Tên môn học" required maxlength="120" />
+                                            <textarea name="EditInput.Description" rows="2" aria-label="Mô tả môn học" maxlength="500">@(dataset.Description ?? string.Empty)</textarea>
                                             <div class="form-check dataset-check-row">
                                                 <input type="checkbox" name="EditInput.IsPublic" value="true" class="form-check-input" checked="@dataset.IsPublic" id="public-@dataset.DatasetId" />
                                                 <input type="hidden" name="EditInput.IsPublic" value="false" />
-                                                <label class="form-check-label" for="public-@dataset.DatasetId">Public</label>
+                                                <label class="form-check-label" for="public-@dataset.DatasetId">Công khai</label>
                                             </div>
                                         </form>
                                     </td>
-                                    <td><span class="status-pill @(dataset.IsPublic ? string.Empty : "dataset-private-pill")">@(dataset.IsPublic ? "Public" : "Private")</span></td>
-                                    <td><span class="status-pill @(dataset.IsApproved ? "dataset-approved-pill" : "processing")">@(dataset.IsApproved ? "Approved" : "Pending")</span></td>
+                                    <td><span class="status-pill @(dataset.IsPublic ? string.Empty : "dataset-private-pill")">@(dataset.IsPublic ? "Công khai" : "Riêng tư")</span></td>
+                                    <td><span class="status-pill @(dataset.IsApproved ? "dataset-approved-pill" : "processing")">@(dataset.IsApproved ? "Đã duyệt" : "Chờ duyệt")</span></td>
                                     <td>@dataset.DocumentCount</td>
-                                    <td>@(dataset.AssignedTeacherName ?? "Unassigned")</td>
+                                    <td title="@(dataset.AssignedTeacherName ?? "Chưa phân công")">@(dataset.AssignedTeacherName ?? "Chưa phân công")</td>
                                     <td>
                                         <div class="dataset-actions">
-                                            <button type="submit" form="edit-@dataset.DatasetId" class="secondary-button">Save</button>
-                                            <a asp-page="/Admin/Datasets/Permissions" asp-route-id="@dataset.DatasetId" class="secondary-button">Permissions</a>
+                                            <button type="submit" form="edit-@dataset.DatasetId" class="secondary-button">Lưu</button>
+                                            <a asp-page="/Admin/Datasets/Permissions" asp-route-id="@dataset.DatasetId" class="secondary-button">Phân quyền</a>
                                             <form method="post" asp-page-handler="Approve">
                                                 <input type="hidden" name="id" value="@dataset.DatasetId" />
                                                 <input type="hidden" name="approve" value="@(!dataset.IsApproved)" />
-                                                <button type="submit" class="secondary-button">@(dataset.IsApproved ? "Unapprove" : "Approve")</button>
+                                                <button type="submit" class="secondary-button">@(dataset.IsApproved ? "Bỏ duyệt" : "Duyệt")</button>
                                             </form>
-                                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Archive this subject? Existing documents, chunks, and trace data will be kept.');">
+                                            <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Ngừng sử dụng môn học này? Tài liệu, chunk và dữ liệu truy vết hiện có sẽ được giữ lại.');">
                                                 <input type="hidden" name="id" value="@dataset.DatasetId" />
-                                                <button type="submit" class="dataset-danger-button">Archive</button>
+                                                <button type="submit" class="dataset-danger-button">Ngừng sử dụng</button>
                                             </form>
                                         </div>
                                     </td>
@@ -114,7 +114,7 @@
             if (!status || !event.detail) return;
             const payload = event.detail;
             status.hidden = false;
-            status.textContent = `Realtime: ${payload.name} was ${payload.action}.`;
+            status.textContent = `Cập nhật trực tiếp: môn học ${payload.name} đã được ${datasetActionLabel(payload.action)}.`;
             syncDatasetRow(payload);
         });
 
@@ -152,12 +152,12 @@
             if (cells[1]) cells[1].innerHTML = visibilityPill(payload);
             if (cells[2]) cells[2].innerHTML = approvalPill(payload);
             if (cells[3]) cells[3].textContent = String(payload.documentCount || 0);
-            if (cells[4]) cells[4].textContent = payload.assignedTeacherName || "Unassigned";
+            if (cells[4]) cells[4].textContent = payload.assignedTeacherName || "Chưa phân công";
 
             const approveValue = row.querySelector('input[name="approve"]');
             const approveButton = approveValue?.closest("form")?.querySelector("button");
             if (approveValue) approveValue.value = payload.isApproved === true ? "False" : "True";
-            if (approveButton) approveButton.textContent = payload.isApproved === true ? "Unapprove" : "Approve";
+            if (approveButton) approveButton.textContent = payload.isApproved === true ? "Bỏ duyệt" : "Duyệt";
         }
 
         function createDatasetRow(payload) {
@@ -168,33 +168,33 @@
                     <form id="edit-${payload.datasetId}" method="post" action="?handler=Edit" class="dataset-edit-form">
                         ${antiForgeryInput()}
                         <input type="hidden" name="EditInput.DatasetId" value="${escapeHtml(payload.datasetId)}" />
-                        <input name="EditInput.Name" value="${escapeHtml(payload.name || "")}" aria-label="Subject name" required maxlength="120" />
-                        <textarea name="EditInput.Description" rows="2" aria-label="Subject description" maxlength="500">${escapeHtml(payload.description || "")}</textarea>
+                        <input name="EditInput.Name" value="${escapeHtml(payload.name || "")}" aria-label="Tên môn học" required maxlength="120" />
+                        <textarea name="EditInput.Description" rows="2" aria-label="Mô tả môn học" maxlength="500">${escapeHtml(payload.description || "")}</textarea>
                         <div class="form-check dataset-check-row">
                             <input type="checkbox" name="EditInput.IsPublic" value="true" class="form-check-input" ${payload.isPublic ? "checked" : ""} id="public-${escapeHtml(payload.datasetId)}" />
                             <input type="hidden" name="EditInput.IsPublic" value="false" />
-                            <label class="form-check-label" for="public-${escapeHtml(payload.datasetId)}">Public</label>
+                            <label class="form-check-label" for="public-${escapeHtml(payload.datasetId)}">Công khai</label>
                         </div>
                     </form>
                 </td>
                 <td>${visibilityPill(payload)}</td>
                 <td>${approvalPill(payload)}</td>
                 <td>${payload.documentCount || 0}</td>
-                <td>${escapeHtml(payload.assignedTeacherName || "Unassigned")}</td>
+                <td title="${escapeHtml(payload.assignedTeacherName || "Chưa phân công")}">${escapeHtml(payload.assignedTeacherName || "Chưa phân công")}</td>
                 <td>
                     <div class="dataset-actions">
-                        <button type="submit" form="edit-${escapeHtml(payload.datasetId)}" class="secondary-button">Save</button>
-                        <a href="/Admin/Datasets/Permissions?id=${encodeURIComponent(payload.datasetId)}" class="secondary-button">Permissions</a>
+                        <button type="submit" form="edit-${escapeHtml(payload.datasetId)}" class="secondary-button">Lưu</button>
+                        <a href="/Admin/Datasets/Permissions?id=${encodeURIComponent(payload.datasetId)}" class="secondary-button">Phân quyền</a>
                         <form method="post" action="?handler=Approve">
                             ${antiForgeryInput()}
                             <input type="hidden" name="id" value="${escapeHtml(payload.datasetId)}" />
                             <input type="hidden" name="approve" value="${payload.isApproved ? "False" : "True"}" />
-                            <button type="submit" class="secondary-button">${payload.isApproved ? "Unapprove" : "Approve"}</button>
+                            <button type="submit" class="secondary-button">${payload.isApproved ? "Bỏ duyệt" : "Duyệt"}</button>
                         </form>
-                        <form method="post" action="?handler=Delete" onsubmit="return confirm('Archive this subject? Existing documents, chunks, and trace data will be kept.');">
+                        <form method="post" action="?handler=Delete" onsubmit="return confirm('Ngừng sử dụng môn học này? Tài liệu, chunk và dữ liệu truy vết hiện có sẽ được giữ lại.');">
                             ${antiForgeryInput()}
                             <input type="hidden" name="id" value="${escapeHtml(payload.datasetId)}" />
-                            <button type="submit" class="dataset-danger-button">Archive</button>
+                            <button type="submit" class="dataset-danger-button">Ngừng sử dụng</button>
                         </form>
                     </div>
                 </td>
@@ -203,11 +203,15 @@
         }
 
         function visibilityPill(payload) {
-            return `<span class="status-pill ${payload.isPublic ? "" : "dataset-private-pill"}">${payload.isPublic ? "Public" : "Private"}</span>`;
+            return `<span class="status-pill ${payload.isPublic ? "" : "dataset-private-pill"}">${payload.isPublic ? "Công khai" : "Riêng tư"}</span>`;
         }
 
         function approvalPill(payload) {
-            return `<span class="status-pill ${payload.isApproved ? "dataset-approved-pill" : "processing"}">${payload.isApproved ? "Approved" : "Pending"}</span>`;
+            return `<span class="status-pill ${payload.isApproved ? "dataset-approved-pill" : "processing"}">${payload.isApproved ? "Đã duyệt" : "Chờ duyệt"}</span>`;
+        }
+
+        function datasetActionLabel(action) {
+            return ({ created: "tạo", updated: "cập nhật", approved: "duyệt", unapproved: "ngừng sử dụng", deleted: "xóa" })[action] || "cập nhật";
         }
 
         function antiForgeryInput() {

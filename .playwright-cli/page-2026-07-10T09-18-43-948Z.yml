@@ -1,0 +1,98 @@
+- generic [active] [ref=f3e1]:
+  - banner [ref=f3e2]:
+    - navigation [ref=f3e3]:
+      - generic [ref=f3e4]:
+        - link "R RAG Chatbot" [ref=f3e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f3e6]: R
+          - generic [ref=f3e7]: RAG Chatbot
+        - generic [ref=f3e8]:
+          - list [ref=f3e9]:
+            - listitem [ref=f3e10]:
+              - link "Workspace" [ref=f3e11] [cursor=pointer]:
+                - /url: /
+          - generic [ref=f3e12]:
+            - generic [ref=f3e15]:
+              - generic [ref=f3e16]: Demo Student
+              - generic [ref=f3e17]: Student
+            - button "Sign Out" [ref=f3e19] [cursor=pointer]
+  - main [ref=f3e21]:
+    - generic [ref=f3e22]:
+      - complementary "Quản lý môn học" [ref=f3e23]:
+        - generic [ref=f3e24]:
+          - generic [ref=f3e25]:
+            - link "← Quay lại danh sách môn học" [ref=f3e26] [cursor=pointer]:
+              - /url: /
+            - heading "PRN222" [level=1] [ref=f3e27]
+            - paragraph [ref=f3e28]: Không gian học tập
+          - link "Làm mới không gian học tập" [ref=f3e29] [cursor=pointer]:
+            - /url: "?datasetId=c54fc8b7-25c6-42c4-bb68-38ee87d04fe4&sessionId="
+            - generic [ref=f3e30]: Làm mới
+        - generic [ref=f3e31]:
+          - generic [ref=f3e32]:
+            - generic [ref=f3e33]: D
+            - generic [ref=f3e34]:
+              - generic [ref=f3e35]: Demo Student
+              - generic [ref=f3e36]: "Vai trò: Sinh viên"
+          - generic [ref=f3e38]:
+            - generic [ref=f3e39]:
+              - generic [ref=f3e40]: Số dư credit
+              - generic [ref=f3e41]: "60"
+            - generic [ref=f3e42]:
+              - generic [ref=f3e43]: Miễn phí
+              - generic [ref=f3e44]: "60"
+            - generic [ref=f3e45]:
+              - generic [ref=f3e46]: Đã mua
+              - generic [ref=f3e47]: "0"
+            - link "Nạp thêm credit" [ref=f3e48] [cursor=pointer]:
+              - /url: /Credits
+            - paragraph
+        - generic [ref=f3e49]:
+          - generic [ref=f3e50]:
+            - heading "Tài liệu" [level=2] [ref=f3e51]
+            - generic [ref=f3e52]: "2"
+          - generic [ref=f3e53]:
+            - generic [ref=f3e54]:
+              - generic [ref=f3e56]:
+                - strong [ref=f3e57]: IELTS_Writing_02_Task_2_Essay.docx
+                - text: DOCX - 38 KB
+              - generic [ref=f3e58]: Đã xử lý
+            - generic [ref=f3e60]:
+              - generic [ref=f3e62]:
+                - strong [ref=f3e63]: IELTS_Writing_02_Task_2_Essay.docx
+                - text: DOCX - 38 KB
+              - generic [ref=f3e64]: Đã xử lý
+        - generic [ref=f3e66]:
+          - generic [ref=f3e67]:
+            - heading "Cuộc trò chuyện" [level=2] [ref=f3e68]
+            - generic [ref=f3e69]: "1"
+          - paragraph [ref=f3e70]: Mỗi môn học có thể có nhiều cuộc trò chuyện. Chọn một cuộc trò chuyện hoặc tạo phiên mới.
+          - generic [ref=f3e72]:
+            - textbox "Tên cuộc trò chuyện" [ref=f3e73]:
+              - /placeholder: Tên cuộc trò chuyện (không bắt buộc)
+            - button "Tạo mới" [ref=f3e74] [cursor=pointer]
+          - link "Trò chuyện mới Cập nhật 10:12 10/07" [ref=f3e76] [cursor=pointer]:
+            - /url: "?datasetId=c54fc8b7-25c6-42c4-bb68-38ee87d04fe4&sessionId=a824337d-cd25-43ad-a29d-93538cc120e7"
+            - generic [ref=f3e77]: Trò chuyện mới
+            - generic [ref=f3e78]: Cập nhật 10:12 10/07
+        - generic [ref=f3e79]:
+          - heading "Thống kê" [level=2] [ref=f3e81]
+          - generic [ref=f3e82]:
+            - generic [ref=f3e83]:
+              - generic [ref=f3e84]: Tổng tài liệu
+              - strong [ref=f3e85]: "2"
+            - generic [ref=f3e86]:
+              - generic [ref=f3e87]: Cuộc trò chuyện
+              - strong [ref=f3e88]: "1"
+            - generic [ref=f3e89]:
+              - generic [ref=f3e90]: Tin nhắn trong phiên
+              - strong [ref=f3e91]: "0"
+      - main "Không gian trò chuyện" [ref=f3e92]:
+        - generic [ref=f3e93]:
+          - generic [ref=f3e94]:
+            - paragraph [ref=f3e95]: KHÔNG GIAN TRÒ CHUYỆN
+            - heading "Chọn hoặc tạo cuộc trò chuyện" [level=2] [ref=f3e96]
+          - button "Phiên mới" [ref=f3e98] [cursor=pointer]
+        - generic [ref=f3e100]:
+          - heading "Chào mừng bạn đến với trợ lý học tập" [level=3] [ref=f3e104]
+          - paragraph [ref=f3e105]: Hãy chọn một môn học, tải tài liệu lên, sau đó bắt đầu cuộc trò chuyện để trao đổi dựa trên tài liệu của bạn.

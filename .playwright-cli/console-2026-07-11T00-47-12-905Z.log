@@ -1,0 +1,4 @@
+[     160ms] [LOG] RagChatbotSystem MVC Workspace loaded successfully. @ http://localhost:5157/js/site.js?v=qrvyWFNaXmQt-9YaJ0-_p2aUhCCtqdkeDKsc3DONVZI:2
+[   34173ms] [INFO] [2026-07-11T00:47:47.076Z] Information: Normalizing '/hubs/notifications' to 'http://localhost:5157/hubs/notifications'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[   34324ms] [LOG] RagChatbotSystem MVC Workspace loaded successfully. @ http://localhost:5157/js/site.js?v=qrvyWFNaXmQt-9YaJ0-_p2aUhCCtqdkeDKsc3DONVZI:2
+[   34368ms] [INFO] [2026-07-11T00:47:47.272Z] Information: WebSocket connected to ws://localhost:5157/hubs/notifications?id=tdAjlKhpLhr9Amn76ZK1AA. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0

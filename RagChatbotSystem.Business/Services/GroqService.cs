@@ -28,6 +28,10 @@ namespace RagChatbotSystem.Business.Services
         public int LastPromptTokens => _lastPromptTokens;
         public int LastCompletionTokens => _lastCompletionTokens;
         public int LastTotalTokens => _lastTotalTokens;
+        public bool LastWasActualTokenUsage => _lastWasActualTokenUsage;
+        public bool LastIsProviderFallback => _lastIsProviderFallback;
+        public string? LastErrorMessage => _lastErrorMessage;
+        public string ModelName => _model;
 
         public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger)
         {
@@ -49,18 +53,13 @@ namespace RagChatbotSystem.Business.Services
 
             if (!_hasApiKey)
             {
-                var mockAnswer = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
-                _lastPromptTokens = EstimateTokens(prompt);
-                _lastCompletionTokens = EstimateTokens(mockAnswer);
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 _lastIsProviderFallback = true;
                 _lastErrorMessage = "Groq API key is not configured.";
-                return mockAnswer;
+                throw new InvalidOperationException(_lastErrorMessage);
             }
 
             try
             {
-                // BaseAddress + Authorization header đã được cấu hình sẵn từ Program.cs
                 var payload = new
                 {
                     model = _model,
@@ -71,12 +70,11 @@ namespace RagChatbotSystem.Business.Services
                     temperature = 0.5
                 };
 
-                // Gọi trực tiếp endpoint tương đối (BaseAddress đã có sẵn)
                 var response = await _httpClient.PostAsJsonAsync("chat/completions", payload);
                 response.EnsureSuccessStatusCode();
 
                 var result = await response.Content.ReadFromJsonAsync<GroqResponse>();
-                var content = result?.Choices?[0]?.Message?.Content ?? "Không nhận được phản hồi từ Groq.";
+                var content = result?.Choices?[0]?.Message?.Content ?? string.Empty;
 
                 if (result?.Usage != null)
                 {
@@ -97,17 +95,11 @@ namespace RagChatbotSystem.Business.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Groq API call failed.");
-                
-                var fallbackAnswer = ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
-                _lastPromptTokens = EstimateTokens(prompt);
-                _lastCompletionTokens = EstimateTokens(fallbackAnswer);
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 _lastIsProviderFallback = true;
                 _lastErrorMessage = ex.Message;
-                return fallbackAnswer;
+                throw new InvalidOperationException("Groq API call failed.", ex);
             }
         }
-
         public async Task<LlmAnswerResult> GenerateAnswerWithUsageAsync(string prompt)
         {
             var content = await GenerateAnswerAsync(prompt);
@@ -134,20 +126,9 @@ namespace RagChatbotSystem.Business.Services
 
             if (!_hasApiKey)
             {
-                var mockText = ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
-                _lastPromptTokens = EstimateTokens(prompt);
-                _lastCompletionTokens = EstimateTokens(mockText);
-                _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
                 _lastIsProviderFallback = true;
                 _lastErrorMessage = "Groq API key is not configured.";
-
-                var words = mockText.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var word in words)
-                {
-                    yield return word + " ";
-                    await Task.Delay(40);
-                }
-                yield break;
+                throw new InvalidOperationException(_lastErrorMessage);
             }
 
             HttpResponseMessage? response = null;
@@ -169,8 +150,18 @@ namespace RagChatbotSystem.Business.Services
                 // Groq API client config has BaseAddress
                 response = await _httpClient.PostAsJsonAsync("chat/completions", payload);
                 response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Groq streaming API call failed.");
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = ex.Message;
+                throw new InvalidOperationException("Groq streaming API call failed.", ex);
+            }
 
-                using var stream = await response.Content.ReadAsStreamAsync();
+            try
+            {
+                using var stream = await response!.Content.ReadAsStreamAsync();
                 using var reader = new System.IO.StreamReader(stream);
 
                 while (!reader.EndOfStream)
