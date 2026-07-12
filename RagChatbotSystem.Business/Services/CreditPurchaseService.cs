@@ -56,7 +56,7 @@ namespace RagChatbotSystem.Business.Services
                 Amount = package.Price,
                 Currency = package.Currency,
                 Status = CreditPurchaseStatus.PENDING,
-                PaymentProvider = "MOCK",
+                PaymentProvider = "PAYOS",
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -98,6 +98,91 @@ namespace RagChatbotSystem.Business.Services
             await _db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return ToDto(purchase);
+        }
+
+        public async Task<CreditPurchaseDto> AttachPaymentLinkAsync(Guid purchaseId, long orderCode, string paymentLinkId, string checkoutUrl, CancellationToken cancellationToken = default)
+        {
+            var purchase = await _db.CreditPurchases.FirstOrDefaultAsync(p => p.Id == purchaseId, cancellationToken)
+                ?? throw new InvalidOperationException("Không tìm thấy giao dịch mua Credit.");
+
+            if (purchase.Status != CreditPurchaseStatus.PENDING)
+            {
+                throw new InvalidOperationException("Chỉ có thể tạo liên kết thanh toán cho giao dịch đang chờ.");
+            }
+
+            purchase.PaymentProvider = "PAYOS";
+            purchase.ProviderOrderCode = orderCode;
+            purchase.ProviderReference = paymentLinkId;
+            purchase.CheckoutUrl = checkoutUrl;
+            await _db.SaveChangesAsync(cancellationToken);
+            return ToDto(purchase);
+        }
+
+        public async Task<CreditPurchaseDto?> GetPurchaseByOrderCodeAsync(long orderCode, CancellationToken cancellationToken = default)
+        {
+            return await _db.CreditPurchases.AsNoTracking()
+                .Where(p => p.ProviderOrderCode == orderCode)
+                .Select(ToPurchaseDtoExpression())
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<CreditPurchaseDto> CompletePayOsPurchaseAsync(long orderCode, decimal paidAmount, string providerReference, CancellationToken cancellationToken = default)
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            var purchase = await _db.CreditPurchases
+                .FirstOrDefaultAsync(p => p.ProviderOrderCode == orderCode, cancellationToken)
+                ?? throw new KeyNotFoundException("Không tìm thấy giao dịch PayOS.");
+
+            if (!string.Equals(purchase.PaymentProvider, "PAYOS", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Giao dịch không thuộc PayOS.");
+            }
+
+            if (purchase.Amount != paidAmount)
+            {
+                throw new InvalidOperationException("Số tiền PayOS không khớp với đơn hàng.");
+            }
+
+            if (purchase.Status == CreditPurchaseStatus.COMPLETED)
+            {
+                return ToDto(purchase);
+            }
+
+            var completedAt = DateTime.UtcNow;
+            var affected = await _db.CreditPurchases
+                .Where(p => p.Id == purchase.Id && p.Status == CreditPurchaseStatus.PENDING)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(p => p.Status, CreditPurchaseStatus.COMPLETED)
+                    .SetProperty(p => p.CompletedAt, completedAt)
+                    .SetProperty(p => p.ProviderReference, providerReference), cancellationToken);
+
+            if (affected == 0)
+            {
+                _db.ChangeTracker.Clear();
+                var current = await _db.CreditPurchases.AsNoTracking().FirstAsync(p => p.Id == purchase.Id, cancellationToken);
+                if (current.Status == CreditPurchaseStatus.COMPLETED) return ToDto(current);
+                throw new InvalidOperationException("Giao dịch PayOS không còn ở trạng thái chờ thanh toán.");
+            }
+
+            await _creditService.AddPaidCreditsAsync(
+                purchase.UserId,
+                purchase.TotalCredits,
+                null,
+                $"Nạp Credit qua PayOS, mã đơn {orderCode}.",
+                purchase.PackageId,
+                cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            _db.ChangeTracker.Clear();
+            return ToDto(await _db.CreditPurchases.AsNoTracking().FirstAsync(p => p.Id == purchase.Id, cancellationToken));
+        }
+
+        public async Task<bool> CancelPayOsPurchaseAsync(long orderCode, CancellationToken cancellationToken = default)
+        {
+            var affected = await _db.CreditPurchases
+                .Where(p => p.ProviderOrderCode == orderCode && p.Status == CreditPurchaseStatus.PENDING)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.Status, CreditPurchaseStatus.CANCELLED), cancellationToken);
+            return affected > 0;
         }
 
         public async Task<CreditPurchaseDto> CreateManualTopUpAsync(Guid userId, int paidCredits, decimal amount, string currency, Guid createdByUserId, string note, CancellationToken cancellationToken = default)
@@ -184,7 +269,9 @@ namespace RagChatbotSystem.Business.Services
                 purchase.ProviderReference,
                 purchase.CreatedAt,
                 purchase.CompletedAt,
-                purchase.CreatedByUserId);
+                purchase.CreatedByUserId,
+                purchase.ProviderOrderCode,
+                purchase.CheckoutUrl);
         }
 
         private static System.Linq.Expressions.Expression<Func<CreditPurchase, CreditPurchaseDto>> ToPurchaseDtoExpression()
@@ -203,7 +290,9 @@ namespace RagChatbotSystem.Business.Services
                 p.ProviderReference,
                 p.CreatedAt,
                 p.CompletedAt,
-                p.CreatedByUserId);
+                p.CreatedByUserId,
+                p.ProviderOrderCode,
+                p.CheckoutUrl);
         }
     }
 }

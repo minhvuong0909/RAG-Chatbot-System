@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using RagChatbotSystem.DataAccess.Data;
 namespace RagChatbotSystem.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711143125_AddDatasetArchival")]
+    partial class AddDatasetArchival
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -497,10 +500,6 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.Property<int>("BonusCredits")
                         .HasColumnType("integer");
 
-                    b.Property<string>("CheckoutUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -522,9 +521,6 @@ namespace RagChatbotSystem.DataAccess.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
-                    b.Property<long?>("ProviderOrderCode")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("ProviderReference")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -545,9 +541,6 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("PackageId");
-
-                    b.HasIndex("ProviderOrderCode")
-                        .IsUnique();
 
                     b.HasIndex("Status", "CreatedAt");
 

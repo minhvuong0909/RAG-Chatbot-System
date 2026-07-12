@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -147,8 +148,17 @@ namespace RagChatbotSystem.Business.Services
                     stream_options = new { include_usage = true }
                 };
 
-                // Groq API client config has BaseAddress
-                response = await _httpClient.PostAsJsonAsync("chat/completions", payload);
+                // ResponseHeadersRead is required for true SSE streaming. PostAsJsonAsync
+                // uses ResponseContentRead and buffers the whole completion first.
+                using var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+                {
+                    Content = JsonContent.Create(payload)
+                };
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    CancellationToken.None);
                 response.EnsureSuccessStatusCode();
             }
             catch (Exception ex)
@@ -196,7 +206,8 @@ namespace RagChatbotSystem.Business.Services
                             _lastWasActualTokenUsage = true;
                         }
 
-                        var text = chunk?.Choices?[0]?.Delta?.Content;
+                        // The final usage frame from Groq legitimately has an empty choices array.
+                        var text = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
                         if (!string.IsNullOrEmpty(text))
                         {
                             accumulatedText.Append(text);

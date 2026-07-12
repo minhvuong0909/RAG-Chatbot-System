@@ -111,11 +111,11 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
 
             try
             {
-                var archived = await _datasetService.ApproveDatasetAsync(id, approve: false, HttpContext.RequestAborted);
+                var archived = await _datasetService.ArchiveDatasetAsync(id, archived: true, currentUserId, HttpContext.RequestAborted);
                 if (archived)
                 {
                     var archivedDataset = await _datasetService.GetDatasetAsync(id, HttpContext.RequestAborted);
-                    await _realtimeNotifier.DatasetChangedAsync("unapproved", archivedDataset ?? dataset, HttpContext.RequestAborted);
+                    await _realtimeNotifier.DatasetChangedAsync("archived", archivedDataset ?? dataset, HttpContext.RequestAborted);
                 }
 
                 return RedirectToPage("/Datasets/Index", new { success = archived ? "Đã ngừng sử dụng môn học. Tài liệu và dữ liệu truy vết vẫn được giữ lại." : "Không tìm thấy môn học." });

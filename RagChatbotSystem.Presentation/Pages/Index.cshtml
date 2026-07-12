@@ -103,11 +103,11 @@
                                         <span class="badge" style="font-size: 0.75rem; border-radius: 4px; background: var(--warning-soft); color: var(--warning); font-weight: 600;">Chờ duyệt</span>
                                     }
                                 </div>
-                                <p class="text-muted small flex-grow-1" style="line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                <p class="dataset-description text-muted small flex-grow-1" style="line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
                                     @(string.IsNullOrWhiteSpace(ds.Description) ? "Chưa có mô tả." : ds.Description)
                                 </p>
                                 <div class="d-flex justify-content-between align-items-center mt-auto pt-3" style="border-top: 1px solid var(--line);">
-                                    <span class="text-muted small d-flex align-items-center gap-1">
+                                <span class="dataset-document-count text-muted small d-flex align-items-center gap-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                                         @ds.DocumentCount tài liệu
                                     </span>
@@ -211,7 +211,7 @@ else
                     }
                     <span>@Model.Documents.Count</span>
                 </div>
-                @if (Model.SelectedDatasetId.HasValue)
+                @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
                 {
                     <div class="document-list" aria-live="polite" data-document-list>
                         @if (Model.Documents.Count == 0)
@@ -247,7 +247,7 @@ else
                     <span>@Model.Sessions.Count</span>
                 </div>
                 <p class="helper-text">Mỗi môn học có thể có nhiều cuộc trò chuyện. Chọn một cuộc trò chuyện hoặc tạo phiên mới.</p>
-                @if (Model.SelectedDatasetId.HasValue)
+                @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
                 {
                     <form method="post" asp-page-handler="CreateSession" class="create-form" style="margin-bottom: 6px;">
                         @Html.AntiForgeryToken()
@@ -316,7 +316,7 @@ else
                     <h2 data-chat-title>Chọn môn học để bắt đầu</h2>
                 }
             </div>
-            @if (Model.SelectedDatasetId.HasValue)
+            @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
             {
                 <form method="post" asp-page-handler="CreateSession" style="margin: 0; padding: 0;">
                     @Html.AntiForgeryToken()
@@ -363,7 +363,7 @@ else
                     {
                         <div class="message @msg.Role.ToLower()" data-message-id="@msg.MessageId">
                             <div class="message-bubble">
-                                <p style="margin: 0; white-space: pre-wrap;">@msg.Content</p>
+                                <div class="message-content @(msg.Role == "Assistant" ? "ai-markdown" : "user-message-text")">@msg.Content</div>
                             </div>
                             <div class="message-meta">
                                 @(msg.Role == "User" ? "Bạn" : "Trợ lý") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
@@ -393,7 +393,11 @@ else
             }
         </div>
 
-        @if (Model.SelectedSessionId.HasValue)
+        @if (Model.SelectedDataset?.IsArchived == true)
+        {
+            <div class="alert alert-warning" role="status">Môn học đã được lưu trữ. Bạn có thể xem lịch sử và nguồn trích dẫn nhưng không thể tạo phiên hoặc gửi câu hỏi mới.</div>
+        }
+        else if (Model.SelectedSessionId.HasValue)
         {
             <form method="post" asp-page-handler="SendMessage" class="composer">
                 @Html.AntiForgeryToken()
@@ -424,7 +428,14 @@ else
                 {
                     <div class="reference-card">
                         <h3 title="@c.FileName">@c.FileName</h3>
-                        <p><strong>Trang:</strong> @(c.PageNumber > 0 ? c.PageNumber.ToString() : "1")</p>
+                        @if (string.Equals(c.FileType, "pdf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <p><strong>Trang:</strong> @(c.PageNumber > 0 ? c.PageNumber.ToString() : "Không xác định")</p>
+                        }
+                        else
+                        {
+                            <p><strong>Đoạn:</strong> @(c.ChunkIndex?.ToString() ?? "Không xác định")</p>
+                        }
                         <p><strong>Nhãn nguồn:</strong> @c.SourceLabel</p>
                         <p style="margin-top: 6px; font-style: italic; background: var(--surface-muted); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent);">
                             "@c.QuoteText"
@@ -732,6 +743,87 @@ else
                 .replace(/'/g, "&#039;");
         }
 
+        function renderInlineMarkdown(value) {
+            const codeSpans = [];
+            let html = escapeHtml(String(value || "")).replace(/`([^`\n]+)`/g, function (_, code) {
+                const token = `@@CODE_SPAN_${codeSpans.length}@@`;
+                codeSpans.push(`<code>${code}</code>`);
+                return token;
+            });
+            html = html
+                .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+                .replace(/__([^_\n]+)__/g, "<strong>$1</strong>")
+                .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+                .replace(/(^|[^_])_([^_\n]+)_/g, "$1<em>$2</em>");
+            codeSpans.forEach(function (code, index) {
+                html = html.replace(`@@CODE_SPAN_${index}@@`, code);
+            });
+            return html;
+        }
+
+        function renderMarkdown(value) {
+            const lines = String(value || "").replace(/\r\n?/g, "\n").split("\n");
+            const output = [];
+            let listType = null;
+            let inCodeBlock = false;
+            const codeLines = [];
+
+            function closeList() {
+                if (listType) output.push(`</${listType}>`);
+                listType = null;
+            }
+
+            lines.forEach(function (line) {
+                if (/^\s*```/.test(line)) {
+                    closeList();
+                    if (inCodeBlock) {
+                        output.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+                        codeLines.length = 0;
+                    }
+                    inCodeBlock = !inCodeBlock;
+                    return;
+                }
+                if (inCodeBlock) {
+                    codeLines.push(line);
+                    return;
+                }
+
+                const unordered = line.match(/^\s*[-*+]\s+(.+)$/);
+                const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+                const nextListType = unordered ? "ul" : (ordered ? "ol" : null);
+                if (nextListType) {
+                    if (listType !== nextListType) {
+                        closeList();
+                        listType = nextListType;
+                        output.push(`<${listType}>`);
+                    }
+                    output.push(`<li>${renderInlineMarkdown((unordered || ordered)[1])}</li>`);
+                    return;
+                }
+
+                closeList();
+                if (!line.trim()) return;
+                const heading = line.match(/^\s*(#{1,4})\s+(.+)$/);
+                if (heading) {
+                    const level = Math.min(4, heading[1].length + 2);
+                    output.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+                } else if (/^\s*>\s?/.test(line)) {
+                    output.push(`<blockquote>${renderInlineMarkdown(line.replace(/^\s*>\s?/, ""))}</blockquote>`);
+                } else {
+                    output.push(`<p>${renderInlineMarkdown(line)}</p>`);
+                }
+            });
+            closeList();
+            if (inCodeBlock && codeLines.length) {
+                output.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+            }
+            return output.join("");
+        }
+
+        document.querySelectorAll(".message.assistant .ai-markdown").forEach(function (element) {
+            element.innerHTML = renderMarkdown(element.textContent || "");
+        });
+
         // Há»— trá»£ gá»­i tin nháº¯n báº±ng tá»• há»£p phÃ­m Enter (nhÆ°ng cho phÃ©p Shift+Enter Ä‘á»ƒ xuá»‘ng dÃ²ng)
         const textarea = document.getElementById("chatQuestionTextarea");
         if (textarea) {
@@ -805,15 +897,23 @@ else
             });
         }
 
+        let chatConnectionReady = Promise.resolve(false);
         const composerForm = document.querySelector(".composer");
         if (composerForm) {
-            composerForm.addEventListener("submit", function(e) {
+            composerForm.addEventListener("submit", async function(e) {
                 e.preventDefault();
                 
                 const questionInput = document.getElementById("chatQuestionTextarea");
                 if (!questionInput) return;
                 const question = questionInput.value.trim();
                 if (!question) return;
+
+                // Do not start the HTTP request until the browser has joined the
+                // SignalR session group; otherwise the first streamed chunks are lost.
+                const streamingReady = await chatConnectionReady;
+                if (!streamingReady) {
+                    console.warn("Không thể thiết lập kết nối streaming; yêu cầu vẫn tiếp tục bằng phản hồi hoàn chỉnh.");
+                }
                 
                 // Clear vÃ  reset textarea ngay láº­p tá»©c
                 questionInput.value = "";
@@ -841,7 +941,12 @@ else
                 })
                 .then(response => {
                     if (!response.ok) {
-                        return response.json().then(data => { throw new Error(data.error || "Gửi tin nhắn thất bại.") });
+                        return response.json().then(data => {
+                            const requestError = new Error(data.error || "Gửi tin nhắn thất bại.");
+                            requestError.code = data.code;
+                            requestError.status = response.status;
+                            throw requestError;
+                        });
                     }
                     return response.json();
                 })
@@ -850,7 +955,10 @@ else
                     if (loadingBubble && loadingBubble.classList.contains("loading-bubble")) loadingBubble.remove();
                     
                     // ThÃªm cÃ¢u tráº£ lá» i cá»§a AI vÃ o giao diá»‡n
-                    appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId, data.citations && data.citations.length > 0);
+                    const assistantId = String(data.assistantMessage.messageId);
+                    if (!document.querySelector(`[data-message-id="${assistantId}"]`)) {
+                        appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId, data.citations && data.citations.length > 0);
+                    }
                     
                     // Hiá»ƒn thá»‹ ngay cÃ¡c nguá»…n trÃ­ch dáº«n tÆ°Æ¡ng á»©ng bÃªn cá»™t pháº£i
                     if (data.citations && data.citations.length > 0) {
@@ -891,12 +999,12 @@ else
                     setTimeout(function () { delete composerForm.dataset.realtimeSuppress; }, 750);
                 })
                 .catch(err => {
-                    console.error(err);
+                    if (!err.code) console.error(err);
                     // ReceiveChatFailed normally handles this first. If the HTTP response
                     // arrives first, convert this request's loading bubble in place instead
                     // of creating a second assistant bubble.
                     if (loadingBubble && !loadingBubble.classList.contains("failed-message")) {
-                        markAssistantBubbleAsFailed(loadingBubble, friendlyAiUnavailableMessage);
+                        markAssistantBubbleAsFailed(loadingBubble, err.message || friendlyAiUnavailableMessage);
                     }
                     
                     if (chatStream) {
@@ -1168,9 +1276,13 @@ else
         function appendMessage(role, content, time, messageId = null, hasCitations = false) {
             if (messageId && document.querySelector(`[data-message-id="${messageId}"]`)) {
                 const existing = document.querySelector(`[data-message-id="${messageId}"]`);
-                const existingText = existing.querySelector(".message-bubble p");
+                const existingText = existing.querySelector(".message-bubble .message-content");
                 if (existingText && content) {
-                    existingText.textContent = content;
+                    if (role === "assistant") {
+                        existingText.innerHTML = renderMarkdown(content);
+                    } else {
+                        existingText.textContent = content;
+                    }
                 }
                 return existing;
             }
@@ -1199,7 +1311,7 @@ else
 
             messageDiv.innerHTML = `
                 <div class="message-bubble">
-                    <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(content)}</p>
+                    <div class="message-content ${role === "assistant" ? "ai-markdown" : "user-message-text"}">${role === "assistant" ? renderMarkdown(content) : escapeHtml(content)}</div>
                 </div>
                 <div class="message-meta">
                     ${role === "user" ? "Bạn" : "Trợ lý"} &bull; ${time}
@@ -1300,7 +1412,7 @@ else
             pending.dataset.pendingMessageId = key;
             pending.innerHTML = `
                 <div class="message-bubble">
-                    <p style="margin: 0; white-space: pre-wrap;"></p>
+                    <div class="message-content ai-markdown"></div>
                 </div>
                 <div class="message-meta">
                     Trợ lý &bull; Đang trả lời
@@ -1312,9 +1424,10 @@ else
 
         function appendPendingAssistantChunk(messageId, chunk) {
             const pending = getOrCreatePendingAssistant(messageId);
-            const text = pending.querySelector(".message-bubble p");
+            const text = pending.querySelector(".message-bubble .message-content");
             if (text) {
-                text.textContent += chunk || "";
+                text._rawMarkdown = (text._rawMarkdown || "") + (chunk || "");
+                text.innerHTML = renderMarkdown(text._rawMarkdown);
             }
             if (chatStream) {
                 chatStream.scrollTop = chatStream.scrollHeight;
@@ -1356,7 +1469,7 @@ else
 
             pending.innerHTML = `
                 <div class="message-bubble">
-                    <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(content)}</p>
+                    <div class="message-content ai-markdown">${renderMarkdown(content)}</div>
                 </div>
                 <div class="message-meta">
                     Trợ lý &bull; ${formatVietnamTime(new Date(createdAt))}
@@ -1427,12 +1540,14 @@ else
                 }
             });
 
-            chatConnection.start()
+            chatConnectionReady = chatConnection.start()
                 .then(function () {
                     return chatConnection.invoke("JoinSession", workspaceForChatHub.dataset.selectedSessionId);
                 })
+                .then(function () { return true; })
                 .catch(function (error) {
-                    console.warn("Chat streaming connection failed.", error);
+                    console.warn("Không thể thiết lập kết nối streaming cho cuộc trò chuyện.", error);
+                    return false;
                 });
         }
 
@@ -1539,6 +1654,10 @@ else
                     const docId = c.documentId || '';
                     const chunkId = c.chunkId || '';
                     const quoteText = c.quoteText || '';
+                    const isPdf = String(c.fileType || '').toLowerCase() === 'pdf';
+                    const locationLabel = isPdf
+                        ? `<p><strong>Trang:</strong> ${c.pageNumber > 0 ? c.pageNumber : 'Không xác định'}</p>`
+                        : `<p><strong>Đoạn:</strong> ${c.chunkIndex || 'Không xác định'}</p>`;
                     
                     let previewBtn = '';
                     if (docId && chunkId) {
@@ -1557,7 +1676,7 @@ else
                     html += `
                         <div class="reference-card">
                             <h3 title="${escapeHtml(c.fileName)}">${escapeHtml(c.fileName)}</h3>
-                            <p><strong>Trang:</strong> ${c.pageNumber > 0 ? c.pageNumber : 1}</p>
+                            ${locationLabel}
                             <p><strong>Nhãn nguồn:</strong> ${escapeHtml(c.sourceLabel || "Không có")}</p>
                             <p style="margin-top: 6px; font-style: italic; background: var(--surface-muted); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent); margin-bottom: 8px;">
                                 "${escapeHtml(quoteText)}"
@@ -1719,7 +1838,7 @@ else
                 const file = fileInput.files[0];
                 const maxSize = 50 * 1024 * 1024; // 50MB
                 if (file.size > maxSize) {
-                    alert('File size exceeds the allowed limit (max 50MB). Please choose a smaller file.');
+                    alert('Tệp vượt quá dung lượng cho phép (tối đa 50 MB). Vui lòng chọn tệp nhỏ hơn.');
                     fileInput.value = ""; // Reset
                     return;
                 }

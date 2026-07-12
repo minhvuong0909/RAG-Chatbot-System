@@ -49,6 +49,7 @@ async def retrieve(request: RetrieveRequest):
     try:
         results = hybrid_retrieve(
             query=request.query,
+            dataset_id=request.dataset_id,
             top_k=request.top_k,
             semantic_weight=request.semantic_weight,
             lexical_weight=request.lexical_weight,

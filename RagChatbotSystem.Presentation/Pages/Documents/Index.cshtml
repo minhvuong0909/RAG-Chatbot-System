@@ -73,7 +73,6 @@
                     <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="upload-doc-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.DatasetId" />
-                        <input type="hidden" id="overwrite-existing-file-name" name="overwriteExistingFileName" value="false" />
 
                         <div id="upload-dropzone" class="upload-dropzone" role="button" tabindex="0" aria-describedby="upload-support-text" onclick="if (!this.dataset.uploading) document.getElementById('file-upload').click();">
                             <div id="upload-idle-state">
@@ -165,19 +164,6 @@
     </div>
 </div>
 
-<div id="overwriteDocumentModal" class="document-modal" hidden role="dialog" aria-modal="true" aria-labelledby="overwriteDocumentTitle">
-    <div class="document-modal-backdrop" data-modal-dismiss></div>
-    <div class="document-modal-panel" role="document">
-        <h2 id="overwriteDocumentTitle">Tài liệu trùng lặp</h2>
-        <p>Hệ thống phát hiện một tài liệu có tên tệp trùng với tệp bạn vừa chọn.</p>
-        <p class="text-muted small mb-0">Sau khi tệp mới được xử lý thành công, tài liệu hiện tại sẽ không còn được chatbot dùng để trả lời. Dữ liệu cũ vẫn được giữ để truy vết.</p>
-        <div class="document-modal-actions">
-            <button type="button" class="btn btn-outline-secondary" data-modal-dismiss>Giữ tài liệu hiện tại</button>
-            <button type="button" class="btn btn-primary" id="confirm-overwrite-document">Thay thế bằng tệp mới</button>
-        </div>
-    </div>
-</div>
-
 <div id="deleteDocumentModal" class="document-modal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteDocumentTitle">
     <div class="document-modal-backdrop" data-modal-dismiss></div>
     <div class="document-modal-panel" role="document">
@@ -195,10 +181,8 @@
     <script>
         const uploadDocForm = document.getElementById("upload-doc-form");
         const fileUploadInput = document.getElementById("file-upload");
-        const overwriteExistingFileNameInput = document.getElementById("overwrite-existing-file-name");
         const dropzone = document.getElementById("upload-dropzone");
         const processingOverlay = document.getElementById("documentProcessingOverlay");
-        const overwriteModal = document.getElementById("overwriteDocumentModal");
         const deleteModal = document.getElementById("deleteDocumentModal");
         const deleteFileName = document.getElementById("delete-document-file-name");
         let pendingDeleteForm = null;
@@ -236,24 +220,31 @@
             processingOverlay.hidden = false;
         }
 
-        function submitUpload(overwrite) {
-            if (overwriteExistingFileNameInput) overwriteExistingFileNameInput.value = overwrite ? "true" : "false";
-            hideModal(overwriteModal);
+        function submitUpload() {
             showProcessing();
             uploadDocForm.submit();
+        }
+
+        function showUploadNotice(message) {
+            const notice = document.createElement("div");
+            notice.className = "alert alert-warning mt-3 auto-dismiss-alert";
+            notice.setAttribute("role", "alert");
+            notice.textContent = message;
+            uploadDocForm.after(notice);
+            window.setTimeout(() => notice.remove(), 5000);
         }
 
         function triggerUpload() {
             if (!fileUploadInput.files.length || !uploadDocForm) return;
             const selectedFileName = fileUploadInput.files[0].name.toLowerCase();
             if (existingDocumentNames.has(selectedFileName)) {
-                showModal(overwriteModal);
+                showUploadNotice("Môn học đã có tài liệu cùng tên. Vui lòng đổi tên tệp hoặc xóa tài liệu cũ trước khi tải lên.");
+                fileUploadInput.value = "";
                 return;
             }
-            submitUpload(false);
+            submitUpload();
         }
 
-        document.getElementById("confirm-overwrite-document")?.addEventListener("click", () => submitUpload(true));
         document.getElementById("confirm-delete-document")?.addEventListener("click", () => {
             if (pendingDeleteForm) {
                 pendingDeleteForm.dataset.confirmed = "true";
@@ -261,9 +252,7 @@
             }
         });
         document.querySelectorAll("[data-modal-dismiss]").forEach(button => button.addEventListener("click", () => {
-            hideModal(overwriteModal);
             hideModal(deleteModal);
-            if (fileUploadInput && overwriteModal?.hidden) fileUploadInput.value = "";
             pendingDeleteForm = null;
         }));
 

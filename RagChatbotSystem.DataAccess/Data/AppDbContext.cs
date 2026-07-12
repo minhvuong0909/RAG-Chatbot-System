@@ -62,6 +62,8 @@ namespace RagChatbotSystem.DataAccess.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.IsPublic).IsRequired().HasDefaultValue(false);
                 entity.Property(e => e.IsApproved).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.IsArchived).IsRequired().HasDefaultValue(false);
+                entity.HasIndex(e => e.IsArchived);
                 
                 entity.HasOne(d => d.Creator)
                     .WithMany(u => u.Datasets)
@@ -380,9 +382,11 @@ namespace RagChatbotSystem.DataAccess.Data
                 entity.Property(e => e.Currency).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.PaymentProvider).HasMaxLength(80);
                 entity.Property(e => e.ProviderReference).HasMaxLength(200);
+                entity.Property(e => e.CheckoutUrl).HasMaxLength(1000);
                 entity.Property(e => e.Amount).HasColumnType("numeric(18,2)");
                 entity.HasIndex(e => new { e.UserId, e.CreatedAt });
                 entity.HasIndex(e => new { e.Status, e.CreatedAt });
+                entity.HasIndex(e => e.ProviderOrderCode).IsUnique();
                 entity.ToTable(t =>
                 {
                     t.HasCheckConstraint("CK_CreditPurchase_BaseCredits_NonNegative", "\"BaseCredits\" >= 0");

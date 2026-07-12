@@ -2,6 +2,20 @@
 // All business features have been migrated to server-side MVC Razor templates.
 console.log("RagChatbotSystem MVC Workspace loaded successfully.");
 
+// Server-rendered status messages should inform without permanently occupying
+// the page. Keep validation summaries and persistent warnings untouched.
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".alert-success, .alert-danger").forEach(function (alertElement) {
+        if (alertElement.closest("form") || alertElement.hasAttribute("data-persistent")) return;
+        window.setTimeout(function () {
+            alertElement.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+            alertElement.style.opacity = "0";
+            alertElement.style.transform = "translateY(-6px)";
+            window.setTimeout(function () { alertElement.remove(); }, 260);
+        }, 4500);
+    });
+});
+
 // Toast Notification System
 window.showToastNotification = function (message) {
     let container = document.getElementById("toast-container");

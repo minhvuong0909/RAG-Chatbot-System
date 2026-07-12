@@ -17,6 +17,7 @@
         <a asp-page="/Admin/Index">Tổng quan</a>
         <a asp-page="/Admin/Datasets/Index">Môn học</a>
         <a asp-page="/Admin/Reports">Báo cáo</a>
+        <a asp-page="/Admin/Credits/Index">Credit</a>
         <a class="active" asp-page="/Admin/Settings" aria-current="page">Cài đặt</a>
     </nav>
 
@@ -67,7 +68,7 @@
 
             <div class="settings-token-group">
                 <h3>Giới hạn Token kỹ thuật</h3>
-                <p class="helper-text">Giới hạn này có hiệu lực ngay sau khi lưu.</p>
+                <p class="helper-text">Token là đơn vị kỹ thuật đo lượng văn bản AI đọc và tạo ra. Credit là đơn vị sử dụng của hệ thống, được quy đổi từ Token theo cấu hình và trừ vào số dư sinh viên. Giới hạn này là hàng rào kỹ thuật, độc lập với số dư Credit.</p>
                 <div class="form-group">
                     <label asp-for="Input.DailyTokenLimit">
                         Giới hạn Token hằng ngày (Sinh viên)

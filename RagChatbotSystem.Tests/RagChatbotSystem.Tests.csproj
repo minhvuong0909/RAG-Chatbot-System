@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RagChatbotSystem.Business\RagChatbotSystem.Business.csproj" />
+    <ProjectReference Include="..\RagChatbotSystem.Presentation\RagChatbotSystem.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

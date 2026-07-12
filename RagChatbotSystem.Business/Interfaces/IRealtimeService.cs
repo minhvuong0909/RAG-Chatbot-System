@@ -17,6 +17,7 @@ namespace RagChatbotSystem.Business.Interfaces
             CreditBalanceDto? creditBalance = null,
             CancellationToken cancellationToken = default);
         Task SendChatFailedAsync(Guid sessionId, Guid messageId, string errorMessage, CancellationToken cancellationToken = default);
+        Task SendCreditBalanceChangedAsync(Guid userId, CreditBalanceDto balance, string reason, CreditSpendResultDto? creditSpend = null, CancellationToken cancellationToken = default);
         Task SendDocumentProgressAsync(Guid datasetId, Guid documentId, string status, int progressPercentage, CancellationToken cancellationToken = default);
         Task SendNotificationAsync(Guid userId, string message, CancellationToken cancellationToken = default);
         Task TriggerUiUpdateAsync(string entityType, Guid entityId, CancellationToken cancellationToken = default);

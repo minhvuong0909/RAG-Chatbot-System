@@ -85,7 +85,7 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
             return Page();
         }
 
-        public async Task<IActionResult> OnPostUploadAsync(Guid datasetId, IFormFile file, bool overwriteExistingFileName = false)
+        public async Task<IActionResult> OnPostUploadAsync(Guid datasetId, IFormFile file)
         {
             if (!User.IsInRole("Teacher") && !User.IsInRole("Admin"))
             {
@@ -136,7 +136,7 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                         stream,
                         file.FileName,
                         file.Length,
-                        overwriteExistingFileName,
+                        false,
                         HttpContext.RequestAborted);
                     uploadedDocument = doc;
                     await _realtimeNotifier.DocumentProgressAsync(datasetId, doc, "uploaded", 15, HttpContext.RequestAborted);

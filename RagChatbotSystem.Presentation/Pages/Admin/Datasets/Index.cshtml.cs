@@ -125,7 +125,12 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                     return RedirectToPage();
                 }
 
-                var archived = await _datasetService.ApproveDatasetAsync(id, approve: false, cancellationToken);
+                if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+                {
+                    return Challenge();
+                }
+
+                var archived = await _datasetService.ArchiveDatasetAsync(id, archived: true, currentUserId, cancellationToken);
                 if (!archived)
                 {
                     ErrorMessage = "Không tìm thấy môn học.";
@@ -133,39 +138,35 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                 }
 
                 var archivedDataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-                SuccessMessage = "Đã ngừng sử dụng môn học. Tài liệu và dữ liệu truy vết vẫn được giữ lại.";
-                await _realtimeNotifier.DatasetChangedAsync("unapproved", archivedDataset ?? dataset, cancellationToken);
+                SuccessMessage = "Đã lưu trữ môn học. Lịch sử trò chuyện, tài liệu và trích dẫn vẫn được giữ lại.";
+                await _realtimeNotifier.DatasetChangedAsync("archived", archivedDataset ?? dataset, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to archive dataset {DatasetId}.", id);
-                ErrorMessage = "Không thể ngừng sử dụng môn học. Vui lòng thử lại.";
+                ErrorMessage = "Không thể lưu trữ môn học. Vui lòng thử lại.";
             }
 
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostApproveAsync(Guid id, bool approve, CancellationToken cancellationToken)
+        public async Task<IActionResult> OnPostRestoreAsync(Guid id, CancellationToken cancellationToken)
         {
-            try
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
             {
-                var updated = await _datasetService.ApproveDatasetAsync(id, approve, cancellationToken);
-                if (!updated)
-                {
-                    ErrorMessage = "Không tìm thấy môn học.";
-                    return RedirectToPage();
-                }
-
-                var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-                SuccessMessage = approve ? "Đã duyệt môn học." : "Đã bỏ duyệt môn học.";
-                await _realtimeNotifier.DatasetChangedAsync(approve ? "approved" : "unapproved", dataset, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to change approval status for dataset {DatasetId}.", id);
-                ErrorMessage = "Không thể thay đổi trạng thái duyệt của môn học. Vui lòng thử lại.";
+                return Challenge();
             }
 
+            var restored = await _datasetService.ArchiveDatasetAsync(id, archived: false, currentUserId, cancellationToken);
+            if (!restored)
+            {
+                ErrorMessage = "Không tìm thấy môn học.";
+                return RedirectToPage();
+            }
+
+            var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
+            SuccessMessage = "Đã khôi phục môn học.";
+            await _realtimeNotifier.DatasetChangedAsync("restored", dataset, cancellationToken);
             return RedirectToPage();
         }
 

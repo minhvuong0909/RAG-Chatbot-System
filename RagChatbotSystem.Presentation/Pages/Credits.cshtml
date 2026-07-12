@@ -59,13 +59,23 @@
         _ => package.Description
     };
 
-    string LedgerNote(CreditLedgerDto entry) =>
-        entry.Type == CreditLedgerType.DAILY_RESET && string.Equals(entry.Note, "Initial daily free credit reset.", StringComparison.Ordinal)
-            ? "Credit miễn phí được đặt lại hằng ngày."
-            : entry.Note ?? "-";
+    string LedgerNote(CreditLedgerDto entry) => entry.Note switch
+    {
+        "Initial daily free credit reset." => "Credit miễn phí được khởi tạo theo hạn mức hằng ngày.",
+        "Daily free credits reset to fixed amount." => "Credit miễn phí được đặt lại theo hạn mức hằng ngày.",
+        _ => entry.Note ?? "-"
+    };
 }
 
 <section class="admin-page credit-page">
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success" role="status">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+    }
     <header class="admin-page-heading">
         <div>
             <p class="eyebrow">Credit</p>
@@ -103,9 +113,9 @@
             <div>
                 <p class="eyebrow">Nạp Credit</p>
             <h2>Các gói Credit</h2>
-            <p>Hiện tại Credit được nạp thông qua quản trị viên.</p>
+            <p>Chọn gói và thanh toán chuyển khoản an toàn qua PayOS.</p>
             </div>
-            <span class="credit-notice">Chưa hỗ trợ thanh toán trực tuyến</span>
+            <span class="credit-notice">@(Model.IsPayOsConfigured ? "Thanh toán qua PayOS" : "PayOS chưa được cấu hình")</span>
         </div>
 
         <div class="credit-package-grid">
@@ -131,10 +141,25 @@
                         <div><dt>Tổng cộng</dt><dd>@package.TotalCredits.ToString("N0", vietnameseCulture)</dd></div>
                     </dl>
                     <strong class="credit-package-price">@FormatCurrency(package.Price, package.Currency)</strong>
+                    <form method="post" asp-page-handler="Buy" class="mt-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="packageId" value="@package.Id" />
+                        @if (Model.IsPayOsConfigured)
+                        {
+                            <button type="submit" class="btn btn-primary w-100">Thanh toán qua PayOS</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-primary w-100" disabled>Thanh toán qua PayOS</button>
+                        }
+                    </form>
                 </article>
             }
         </div>
-        <p class="credit-admin-contact">Liên hệ quản trị viên để nạp Credit theo gói phù hợp.</p>
+        @if (!Model.IsPayOsConfigured)
+        {
+            <p class="credit-admin-contact">Quản trị viên cần bổ sung cấu hình PayOS trước khi mở thanh toán.</p>
+        }
     </section>
 
     <section class="admin-section">

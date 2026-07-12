@@ -53,6 +53,12 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                     return NotFound();
                 }
 
+                if (dataset.IsArchived)
+                {
+                    ErrorMessage = "Môn học đã được lưu trữ và không thể thay đổi quyền truy cập.";
+                    return RedirectToPage(new { id });
+                }
+
                 if (dataset.IsPublic)
                 {
                     ErrorMessage = "Môn học công khai không cần cấp quyền truy cập riêng.";
@@ -87,6 +93,12 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                     return NotFound();
                 }
 
+                if (dataset.IsArchived)
+                {
+                    ErrorMessage = "Môn học đã được lưu trữ và không thể thay đổi quyền truy cập.";
+                    return RedirectToPage(new { id });
+                }
+
                 var revoked = await _datasetService.RevokePermissionAsync(id, userId, cancellationToken);
                 if (!revoked)
                 {
@@ -109,7 +121,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
         private async Task<bool> LoadPageAsync(Guid id, CancellationToken cancellationToken)
         {
             var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-            if (dataset == null)
+            if (dataset == null || dataset.IsArchived)
             {
                 return false;
             }

@@ -15,6 +15,8 @@ namespace RagChatbotSystem.DataAccess.Models
         public CreditPurchaseStatus Status { get; set; } = CreditPurchaseStatus.PENDING;
         public string? PaymentProvider { get; set; }
         public string? ProviderReference { get; set; }
+        public long? ProviderOrderCode { get; set; }
+        public string? CheckoutUrl { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
         public Guid? CreatedByUserId { get; set; }

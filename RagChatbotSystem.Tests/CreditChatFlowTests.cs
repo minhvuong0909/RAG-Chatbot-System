@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RagChatbotSystem.Business.DTOs;
+using RagChatbotSystem.Business.Exceptions;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Business.Services;
 using RagChatbotSystem.DataAccess.Data;
@@ -22,8 +23,11 @@ public class CreditChatFlowTests
         var llm = new Mock<ILlmService>(MockBehavior.Strict);
         var service = CreateChatService(context, rag.Object, llm.Object);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<ChatRequestBlockedException>(() =>
             service.SendChatMessageAsync(ids.SessionId, "What is dependency injection?"));
+
+        Assert.Equal(ChatBlockReason.InsufficientCredits, exception.Reason);
+        Assert.Equal("Bạn đã hết Credit. Vui lòng nạp thêm Credit để tiếp tục đặt câu hỏi.", exception.Message);
 
         rag.Verify(r => r.RetrieveAsync(It.IsAny<RetrieveRequestDto>()), Times.Never);
         llm.Verify(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()), Times.Never);
@@ -162,8 +166,10 @@ public class CreditChatFlowTests
         var llm = new Mock<ILlmService>(MockBehavior.Strict);
         var service = CreateChatService(context, rag.Object, llm.Object);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var exception = await Assert.ThrowsAsync<ChatRequestBlockedException>(() =>
             service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222"));
+
+        Assert.Equal(ChatBlockReason.DailyTokenLimit, exception.Reason);
 
         rag.Verify(r => r.RetrieveAsync(It.IsAny<RetrieveRequestDto>()), Times.Never);
         llm.Verify(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()), Times.Never);
@@ -214,6 +220,12 @@ public class CreditChatFlowTests
             It.IsAny<IReadOnlyList<CitationDto>>(),
             It.IsAny<CreditSpendResultDto?>(),
             It.IsAny<CreditBalanceDto?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        realtime.Verify(r => r.SendCreditBalanceChangedAsync(
+            ids.UserId,
+            It.IsAny<CreditBalanceDto>(),
+            "chat-spend",
+            It.IsAny<CreditSpendResultDto?>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

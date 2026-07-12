@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
+using RagChatbotSystem.Business.Exceptions;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.DataAccess.Models;
 using RagChatbotSystem.DataAccess.Repositories;
@@ -63,10 +64,19 @@ namespace RagChatbotSystem.Business.Services
 
             var session = await _sessionRepository.GetQueryable()
                 .Include(s => s.User)
+                .Include(s => s.Dataset)
+                    .ThenInclude(d => d.DatasetPermissions)
+                .Include(s => s.Dataset)
+                    .ThenInclude(d => d.TeacherSubjectAssignment)
                 .FirstOrDefaultAsync(s => s.SessionId == sessionId, cancellationToken);
             if (session == null)
             {
                 throw new ArgumentException("Chat session not found.");
+            }
+
+            if (session.Dataset.IsArchived)
+            {
+                throw new UnauthorizedAccessException("Subject is archived.");
             }
 
             var isStudent = session.User != null && string.Equals(session.User.Role, "Student", StringComparison.OrdinalIgnoreCase);
@@ -85,7 +95,9 @@ namespace RagChatbotSystem.Business.Services
                         userQuestion,
                         note: "Daily technical token limit blocked chat before LLM call.",
                         cancellationToken: cancellationToken);
-                    throw new InvalidOperationException("Ban da dung het han muc AI hom nay. Ban van co the xem lich su chat va nguon dan chung. Vui long quay lai vao ngay mai hoac lien he giang vien/quan tri vien.");
+                    throw new ChatRequestBlockedException(
+                        ChatBlockReason.DailyTokenLimit,
+                        "Bạn đã dùng hết hạn mức AI hôm nay. Bạn vẫn có thể xem lịch sử chat và nguồn dẫn chứng. Vui lòng quay lại vào ngày mai hoặc liên hệ giảng viên/quản trị viên.");
                 }
 
                 creditBalance = await _creditService.GetStudentCreditSummaryAsync(session.UserId, cancellationToken);
@@ -100,7 +112,9 @@ namespace RagChatbotSystem.Business.Services
                         userQuestion,
                         note: "Student had no available credits before RAG/LLM call.",
                         cancellationToken: cancellationToken);
-                    throw new InvalidOperationException("Ban da dung het credits. Vui long nap them credits de tiep tuc dat cau hoi.");
+                    throw new ChatRequestBlockedException(
+                        ChatBlockReason.InsufficientCredits,
+                        "Bạn đã hết Credit. Vui lòng nạp thêm Credit để tiếp tục đặt câu hỏi.");
                 }
             }
 
@@ -130,6 +144,7 @@ namespace RagChatbotSystem.Business.Services
             var retrieveResult = await _ragApiClient.RetrieveAsync(new RetrieveRequestDto
             {
                 Query = userQuestion,
+                DatasetId = session.DatasetId,
                 TopK = 10,
                 SemanticWeight = 0.7,
                 LexicalWeight = 0.3,
@@ -386,10 +401,25 @@ namespace RagChatbotSystem.Business.Services
                 .ToListAsync(cancellationToken);
 
             var assistantMessageDto = ToDto(assistantMessage);
-            var citationDtos = savedCitations.Select(ToDto).ToList();
+            var citationMetadata = contextDocs
+                .Select(doc => new { ChunkId = TryGetGuidMetadata(doc.Metadata, "id"), doc.Metadata })
+                .Where(item => item.ChunkId.HasValue)
+                .ToDictionary(item => item.ChunkId!.Value, item => item.Metadata);
+            var citationDtos = savedCitations
+                .Select(citation => ToDto(citation, citationMetadata.GetValueOrDefault(citation.ChunkId)))
+                .ToList();
 
             // Push completion payload via SignalR
             await _realtimeService.SendChatCompleteAsync(sessionId, assistantMessageDto, citationDtos, creditSpend, creditBalance, cancellationToken);
+            if (isStudent && creditBalance != null)
+            {
+                await _realtimeService.SendCreditBalanceChangedAsync(
+                    session.UserId,
+                    creditBalance,
+                    "chat-spend",
+                    creditSpend,
+                    cancellationToken);
+            }
 
             return new SendChatMessageResponse(
                 ToDto(userMessage),
@@ -636,18 +666,24 @@ namespace RagChatbotSystem.Business.Services
                 message.CreatedAt);
         }
 
-        private static CitationDto ToDto(Citation citation)
+        private static CitationDto ToDto(Citation citation, Dictionary<string, object>? metadata = null)
         {
+            var fileName = citation.Document?.FileName ?? citation.SourceLabel;
+            var fileType = citation.Document?.FileType
+                ?? GetMetadataString(metadata ?? new Dictionary<string, object>(), "file_type")
+                ?? Path.GetExtension(fileName ?? string.Empty).TrimStart('.').ToLowerInvariant();
             return new CitationDto(
                 citation.CitationId,
                 citation.MessageId,
                 citation.ChunkId,
                 citation.DocumentId,
-                citation.Document?.FileName ?? citation.SourceLabel,
+                fileName,
                 citation.PageNumber,
                 citation.QuoteText,
                 citation.SourceLabel,
-                citation.CreatedAt);
+                citation.CreatedAt,
+                fileType,
+                citation.Chunk?.ChunkIndex ?? (metadata == null ? null : GetMetadataInt(metadata, "chunk_index")));
         }
 
         private static int? GetMetadataInt(Dictionary<string, object> metadata, string key)

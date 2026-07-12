@@ -55,7 +55,9 @@ namespace RagChatbotSystem.Business.DTOs
         string? ProviderReference,
         DateTime CreatedAt,
         DateTime? CompletedAt,
-        Guid? CreatedByUserId);
+        Guid? CreatedByUserId,
+        long? ProviderOrderCode = null,
+        string? CheckoutUrl = null);
 
     public sealed record CreditLedgerDto(
         Guid Id,

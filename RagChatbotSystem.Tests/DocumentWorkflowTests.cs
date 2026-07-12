@@ -29,12 +29,12 @@ public class DocumentWorkflowTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.UploadDocumentAsync(datasetId, userId, duplicateFile, "copy.txt", duplicateFile.Length));
 
-        Assert.Contains("This document already exists in this subject.", ex.Message);
+        Assert.Contains("đã tồn tại", ex.Message);
         Assert.Equal(1, await context.Documents.CountAsync());
     }
 
     [Fact]
-    public async Task UploadDocumentAsync_BlocksSameFileNameUntilOverwriteConfirmed()
+    public async Task UploadDocumentAsync_BlocksSameFileName()
     {
         await using var context = CreateContext();
         var datasetId = Guid.NewGuid();
@@ -49,12 +49,12 @@ public class DocumentWorkflowTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.UploadDocumentAsync(datasetId, userId, replacementFile, "outline.txt", replacementFile.Length));
 
-        Assert.Contains("Confirm overwrite", ex.Message);
+        Assert.Contains("cùng tên", ex.Message);
         Assert.Equal(1, await context.Documents.CountAsync(d => !d.IsDeleted));
     }
 
     [Fact]
-    public async Task UploadDocumentAsync_OverwriteConfirmedSoftDeletesExistingFileName()
+    public async Task UploadDocumentAsync_DoesNotAllowOverwriteBypassingSameNameRule()
     {
         await using var context = CreateContext();
         var datasetId = Guid.NewGuid();
@@ -66,13 +66,11 @@ public class DocumentWorkflowTests
         await service.UploadDocumentAsync(datasetId, userId, firstFile, "outline.txt", firstFile.Length);
 
         var replacementFile = NewTextStream("new content");
-        var replacement = await service.UploadDocumentAsync(datasetId, userId, replacementFile, "outline.txt", replacementFile.Length, overwriteExistingFileName: true);
-        Assert.Equal(2, await context.Documents.CountAsync(d => !d.IsDeleted));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UploadDocumentAsync(datasetId, userId, replacementFile, "outline.txt", replacementFile.Length, overwriteExistingFileName: true));
 
-        await service.ProcessUploadedDocumentAsync(replacement.DocumentId);
-
-        Assert.Equal(2, await context.Documents.CountAsync());
-        Assert.Equal(1, await context.Documents.CountAsync(d => d.IsDeleted));
+        Assert.Single(await context.Documents.ToListAsync());
+        Assert.Equal(0, await context.Documents.CountAsync(d => d.IsDeleted));
         Assert.Equal(1, await context.Documents.CountAsync(d => !d.IsDeleted && d.FileName == "outline.txt"));
     }
 
@@ -257,6 +255,7 @@ public class DocumentWorkflowTests
         public Task SendChatChunkAsync(Guid sessionId, Guid messageId, string chunk, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SendChatCompleteAsync(Guid sessionId, ChatMessageDto assistantMessage, IReadOnlyList<CitationDto> citations, CreditSpendResultDto? creditSpend = null, CreditBalanceDto? creditBalance = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SendChatFailedAsync(Guid sessionId, Guid messageId, string errorMessage, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SendCreditBalanceChangedAsync(Guid userId, CreditBalanceDto balance, string reason, CreditSpendResultDto? creditSpend = null, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SendDocumentProgressAsync(Guid datasetId, Guid documentId, string status, int progressPercentage, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task SendNotificationAsync(Guid userId, string message, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task TriggerUiUpdateAsync(string entityType, Guid entityId, CancellationToken cancellationToken = default) => Task.CompletedTask;

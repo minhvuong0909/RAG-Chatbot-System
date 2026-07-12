@@ -17,6 +17,7 @@
         <a class="active" asp-page="/Admin/Index" aria-current="page">Tổng quan</a>
         <a asp-page="/Admin/Datasets/Index">Môn học</a>
         <a asp-page="/Admin/Reports">Báo cáo</a>
+        <a asp-page="/Admin/Credits/Index">Credit</a>
         <a asp-page="/Admin/Settings">Cài đặt</a>
     </nav>
 
@@ -174,7 +175,7 @@
                             <td>@user.CreatedAt.ToLocalTime().ToString("g")</td>
                             <td>
                                 <span class="status-pill @(user.IsApproved ? "dataset-approved-pill" : "processing")">
-                                    @(user.IsApproved ? "Đang hoạt động" : "Chờ duyệt")
+                                    @(user.IsApproved ? "Đang hoạt động" : "Đã khóa")
                                 </span>
                             </td>
                             <td class="text-end">
@@ -184,7 +185,7 @@
                                         <input type="hidden" name="userId" value="@user.UserId" />
                                         <input type="hidden" name="approve" value="@(!user.IsApproved)" />
                                         <button type="submit" class="@(user.IsApproved ? "dataset-danger-button" : "secondary-button")">
-                                            @(user.IsApproved ? "Ngừng hoạt động" : "Duyệt")
+                                            @(user.IsApproved ? "Khóa tài khoản" : "Kích hoạt")
                                         </button>
                                     </form>
                                 }

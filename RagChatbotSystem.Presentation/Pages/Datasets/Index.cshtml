@@ -11,7 +11,10 @@
             <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Không gian học tập</p>
             <h2 class="fw-bold m-0" style="color: var(--ink);">Quản lý môn học</h2>
         </div>
-        <a asp-page="/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại không gian học tập</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại trang quản trị</a>
+        }
     </div>
 
     <!-- Alert Messages -->
@@ -70,7 +73,7 @@
                         <h4 class="fw-bold m-0" style="color: var(--ink);">Danh sách môn học</h4>
                         <p class="text-muted small m-0 mt-1">Các môn học bạn có thể quản lý tài liệu và sử dụng với AI.</p>
                     </div>
-                    <span class="badge bg-secondary" style="border-radius: 20px; padding: 6px 12px; font-weight: 600; background: var(--bg-elevated) !important; color: var(--ink-soft) !important;">
+                    <span class="badge bg-secondary" data-dataset-count style="border-radius: 20px; padding: 6px 12px; font-weight: 600; background: var(--bg-elevated) !important; color: var(--ink-soft) !important;">
                         @Model.Datasets.Count môn học
                     </span>
                 </div>
@@ -90,20 +93,19 @@
                                     <tr style="border-bottom: 2px solid var(--line);">
                                         <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Môn học</th>
                                         <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Phạm vi truy cập</th>
-                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Trạng thái</th>
                                         <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Tài liệu</th>
                                         <th scope="col" class="pb-3 text-muted small text-uppercase text-end" style="font-weight: 700;">Thao tác</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody data-dataset-list>
                                     @foreach (var ds in Model.Datasets)
                                     {
-                                        <tr style="border-bottom: 1px solid var(--line);">
+                                        <tr data-dataset-id="@ds.DatasetId" style="border-bottom: 1px solid var(--line);">
                                             <td class="py-3">
-                                                <div class="fw-bold" style="color: var(--ink);">@ds.Name</div>
+                                                <div class="dataset-name fw-bold" style="color: var(--ink);">@ds.Name</div>
                                                 @if (!string.IsNullOrWhiteSpace(ds.Description))
                                                 {
-                                                    <div class="text-muted small text-truncate" style="max-width: 250px;" title="@ds.Description">@ds.Description</div>
+                                                    <div class="dataset-description text-muted small text-truncate" style="max-width: 250px;" title="@ds.Description">@ds.Description</div>
                                                 }
                                                 <div class="text-muted small" style="font-size: 0.75rem;">Tạo lúc: @ds.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
                                             </td>
@@ -118,17 +120,7 @@
                                                 }
                                             </td>
                                             <td class="py-3">
-                                                @if (ds.IsApproved)
-                                                {
-                                                    <span class="badge" style="background: var(--info-soft); color: var(--info); font-weight: 600; border-radius: 4px; padding: 4px 8px;">Đã duyệt</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge" style="background: var(--warning-soft); color: var(--warning); font-weight: 600; border-radius: 4px; padding: 4px 8px;">Chờ duyệt</span>
-                                                }
-                                            </td>
-                                            <td class="py-3">
-                                                <span class="fw-semibold" style="color: var(--ink-soft);">@ds.DocumentCount</span>
+                                                <span class="dataset-document-count fw-semibold" style="color: var(--ink-soft);">@ds.DocumentCount</span>
                                             </td>
                                             <td class="py-3 text-end">
                                                 <div class="d-flex justify-content-end gap-2">

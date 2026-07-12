@@ -7,6 +7,9 @@ namespace RagChatbotSystem.Business.DTOs
         [JsonPropertyName("query")]
         public string Query { get; set; } = string.Empty;
 
+        [JsonPropertyName("dataset_id")]
+        public Guid? DatasetId { get; set; }
+
         [JsonPropertyName("top_k")]
         public int TopK { get; set; } = 3;
 

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
+using RagChatbotSystem.Presentation.Realtime;
 
 namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
 {
@@ -19,12 +20,14 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
         private readonly IUserService _userService;
         private readonly ICreditService _creditService;
         private readonly ICreditPurchaseService _purchaseService;
+        private readonly IRealtimeNotifier _realtimeNotifier;
 
-        public IndexModel(IUserService userService, ICreditService creditService, ICreditPurchaseService purchaseService)
+        public IndexModel(IUserService userService, ICreditService creditService, ICreditPurchaseService purchaseService, IRealtimeNotifier realtimeNotifier)
         {
             _userService = userService;
             _creditService = creditService;
             _purchaseService = purchaseService;
+            _realtimeNotifier = realtimeNotifier;
         }
 
         public IReadOnlyList<UserDto> Students { get; private set; } = Array.Empty<UserDto>();
@@ -59,6 +62,8 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
             try
             {
                 await _purchaseService.CreateManualTopUpAsync(Input.UserId, Input.PaidCredits, Input.Amount, "VND", adminId, Input.Note, cancellationToken);
+                var balance = await _creditService.GetStudentCreditSummaryAsync(Input.UserId, cancellationToken);
+                await _realtimeNotifier.CreditBalanceChangedAsync(Input.UserId, balance, "manual-top-up", cancellationToken);
                 SuccessMessage = "Đã cộng Credit đã mua cho sinh viên.";
             }
             catch (Exception)
@@ -78,7 +83,8 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
 
             try
             {
-                await _creditService.GrantFreeCreditsAsync(Input.UserId, Input.FreeCredits, adminId, Input.Note, cancellationToken);
+                var balance = await _creditService.GrantFreeCreditsAsync(Input.UserId, Input.FreeCredits, adminId, Input.Note, cancellationToken);
+                await _realtimeNotifier.CreditBalanceChangedAsync(Input.UserId, balance, "free-grant", cancellationToken);
                 SuccessMessage = "Đã tặng Credit miễn phí cho sinh viên.";
             }
             catch (Exception)
@@ -98,7 +104,8 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
 
             try
             {
-                await _creditService.AdjustCreditsAsync(Input.UserId, Input.FreeCreditsDelta, Input.PaidCreditsDelta, adminId, Input.Note, cancellationToken);
+                var balance = await _creditService.AdjustCreditsAsync(Input.UserId, Input.FreeCreditsDelta, Input.PaidCreditsDelta, adminId, Input.Note, cancellationToken);
+                await _realtimeNotifier.CreditBalanceChangedAsync(Input.UserId, balance, "admin-adjustment", cancellationToken);
                 SuccessMessage = "Đã điều chỉnh số dư Credit.";
             }
             catch (Exception)

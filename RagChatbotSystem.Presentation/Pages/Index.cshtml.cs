@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
+using RagChatbotSystem.Business.Exceptions;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Presentation.Helpers;
 using RagChatbotSystem.Presentation.Realtime;
@@ -138,6 +139,13 @@ namespace RagChatbotSystem.Presentation.Pages
                     if (SelectedDataset != null)
                     {
                         var hasAccess = currentUserRole == "Admin" || Datasets.Any(d => d.DatasetId == datasetId.Value);
+                        if (!hasAccess && SelectedDataset.IsArchived && sessionId.HasValue)
+                        {
+                            var historicalSession = await _chatSessionService.GetSessionAsync(sessionId.Value, HttpContext.RequestAborted);
+                            hasAccess = historicalSession != null
+                                && historicalSession.DatasetId == datasetId.Value
+                                && (currentUserRole == "Admin" || historicalSession.UserId == currentUserId);
+                        }
                         if (!hasAccess)
                         {
                             return RedirectToPage("/Index", new { error = "Bạn không có quyền truy cập môn học này." });
@@ -231,7 +239,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 return RedirectToPage("/Index", new { datasetId, sessionId, error = "Câu hỏi không được để trống." });
             }
 
-            if (!TryGetCurrentUser(out var currentUserId, out _))
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
             {
                 return Challenge();
             }
@@ -252,6 +260,11 @@ namespace RagChatbotSystem.Presentation.Pages
                 if (session.DatasetId != datasetId)
                 {
                     return RedirectToPage("/Index", new { datasetId, error = "Cuộc trò chuyện này không thuộc môn học đã chọn." });
+                }
+
+                if (!await _datasetService.CanAccessActiveDatasetAsync(currentUserId, role, datasetId, HttpContext.RequestAborted))
+                {
+                    return RedirectToPage("/Index", new { error = "Môn học đã được lưu trữ hoặc quyền truy cập của bạn đã bị thu hồi." });
                 }
 
                 if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
@@ -301,6 +314,11 @@ namespace RagChatbotSystem.Presentation.Pages
                     return new BadRequestObjectResult(new { error = "Cuộc trò chuyện này không thuộc môn học đã chọn." });
                 }
 
+                if (!await _datasetService.CanAccessActiveDatasetAsync(currentUserId, currentUserRole, datasetId, HttpContext.RequestAborted))
+                {
+                    return new ForbidResult();
+                }
+
                 if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
                 {
                     return new BadRequestObjectResult(new { error = "Môn học này chưa có tài liệu đã xử lý. Vui lòng tải tài liệu lên trước khi bắt đầu trò chuyện." });
@@ -343,7 +361,9 @@ namespace RagChatbotSystem.Presentation.Pages
                         quoteText = c.QuoteText,
                         sourceLabel = c.SourceLabel,
                         documentId = c.DocumentId,
-                        chunkId = c.ChunkId
+                        chunkId = c.ChunkId,
+                        fileType = c.FileType,
+                        chunkIndex = c.ChunkIndex
                     }),
                     dailyTokensUsed,
                     dailyTokenLimit,
@@ -364,6 +384,18 @@ namespace RagChatbotSystem.Presentation.Pages
                         modelName = response.CreditSpend.ModelName
                     }
                 });
+            }
+            catch (ChatRequestBlockedException ex)
+            {
+                _logger.LogInformation(ex, "Blocked AJAX chat request for session {SessionId}: {Reason}.", sessionId, ex.Reason);
+                var statusCode = ex.Reason == ChatBlockReason.InsufficientCredits
+                    ? StatusCodes.Status402PaymentRequired
+                    : StatusCodes.Status429TooManyRequests;
+                return new ObjectResult(new
+                {
+                    error = ex.Message,
+                    code = ex.Reason.ToString()
+                }) { StatusCode = statusCode };
             }
             catch (Exception ex)
             {
@@ -397,7 +429,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 var canAccessDataset = allowedDatasets.Any(d => d.DatasetId == session.DatasetId);
                 var hasAccess = role == "Admin"
                     || (role == "Teacher" && canAccessDataset)
-                    || (session.UserId == currentUserId && canAccessDataset);
+                    || session.UserId == currentUserId;
                 if (!hasAccess)
                 {
                     return new ForbidResult();
@@ -412,7 +444,9 @@ namespace RagChatbotSystem.Presentation.Pages
                     quoteText = c.QuoteText,
                     sourceLabel = c.SourceLabel,
                     documentId = c.DocumentId,
-                    chunkId = c.ChunkId
+                    chunkId = c.ChunkId,
+                    fileType = c.FileType,
+                    chunkIndex = c.ChunkIndex
                 }));
             }
             catch (Exception ex)
@@ -480,7 +514,8 @@ namespace RagChatbotSystem.Presentation.Pages
                 }
 
                 var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
-                if (!allowedDatasets.Any(d => d.DatasetId == doc.DatasetId))
+                var ownsHistoricalEvidence = await _chatSessionService.CanUserAccessDocumentEvidenceAsync(currentUserId, documentId, HttpContext.RequestAborted);
+                if (!allowedDatasets.Any(d => d.DatasetId == doc.DatasetId) && role != "Admin" && !ownsHistoricalEvidence)
                 {
                     return new ForbidResult();
                 }

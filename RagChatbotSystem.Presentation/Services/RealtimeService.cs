@@ -53,6 +53,23 @@ namespace RagChatbotSystem.Presentation.Services
                 .SendAsync("ReceiveChatFailed", messageId, errorMessage, cancellationToken);
         }
 
+        public Task SendCreditBalanceChangedAsync(
+            Guid userId,
+            CreditBalanceDto balance,
+            string reason,
+            CreditSpendResultDto? creditSpend = null,
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationHubContext.Clients.Group($"user_{userId}")
+                .SendAsync("CreditBalanceChanged", new
+                {
+                    reason,
+                    balance,
+                    creditSpend,
+                    changedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
+        }
+
         public async Task SendDocumentProgressAsync(Guid datasetId, Guid documentId, string status, int percentComplete, CancellationToken cancellationToken = default)
         {
             await _documentHubContext.Clients.Group($"dataset_{datasetId}")
