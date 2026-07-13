@@ -8,7 +8,7 @@
 
 1. Chọn môn học (dataset đã có tài liệu được index).
 2. Nhập câu hỏi thử nghiệm.
-3. Tick chọn các model muốn so sánh (Groq, Gemini, Ollama).
+3. Tick chọn các model muốn so sánh (Groq, Gemini).
 4. Bấm "Chạy thử nghiệm".
 
 ## Cách hoạt động phía sau

@@ -129,13 +129,6 @@ namespace RagChatbotSystem.Presentation
                 client.Timeout = TimeSpan.FromSeconds(60);
             });
 
-            builder.Services.AddHttpClient("ModelComparison.Ollama", client =>
-            {
-                var baseUrl = builder.Configuration["Ollama:BaseUrl"] ?? "http://localhost:11434/";
-                client.BaseAddress = new Uri(baseUrl);
-                client.Timeout = TimeSpan.FromSeconds(180);
-            });
-
             builder.Services.AddHttpClient<IPayOsService, PayOsService>(client =>
             {
                 client.BaseAddress = new Uri("https://api-merchant.payos.vn/");
