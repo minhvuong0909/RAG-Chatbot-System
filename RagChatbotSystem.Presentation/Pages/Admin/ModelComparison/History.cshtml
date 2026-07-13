@@ -16,6 +16,7 @@
     var statLabels = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => ProviderLabel(s.ProviderKey)));
     var statLatency = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgLatencyMs, 0)));
     var statScore = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgQualityScore.HasValue ? Math.Round(s.AvgQualityScore.Value, 1) : (double?)null));
+    var statSuccessRate = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.SuccessRatePercent, 0)));
 }
 
 <section class="admin-page" data-admin-page>
@@ -50,6 +51,7 @@
         @if (hasStats)
         {
             <div class="mc-history-chart-grid">
+                <div class="mc-history-chart-frame"><canvas id="successRateChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="latencyChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="scoreChart"></canvas></div>
             </div>
@@ -133,6 +135,27 @@
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 const labels = @Html.Raw(statLabels);
+
+                const successRateCanvas = document.getElementById("successRateChart");
+                if (successRateCanvas && typeof Chart !== "undefined") {
+                    new Chart(successRateCanvas, {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: "Tỷ lệ thành công (%)",
+                                data: @Html.Raw(statSuccessRate),
+                                backgroundColor: "#d97706"
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { min: 0, max: 100 } },
+                            plugins: { title: { display: true, text: "Tỷ lệ thành công theo model" } }
+                        }
+                    });
+                }
 
                 const latencyCanvas = document.getElementById("latencyChart");
                 if (latencyCanvas && typeof Chart !== "undefined") {
