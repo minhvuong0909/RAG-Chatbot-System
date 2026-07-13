@@ -14,11 +14,27 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
     [Authorize(Roles = "Admin,Teacher")]
     public class HistoryModel : PageModel
     {
+        // Container chạy giờ UTC nên .ToLocalTime() không quy đổi đúng giờ Việt Nam — quy đổi tường minh như TokenUsageService đã làm.
+        private static readonly TimeZoneInfo VietnamTz = ResolveVietnamTimeZone();
+
         private readonly IModelComparisonService _modelComparisonService;
 
         public HistoryModel(IModelComparisonService modelComparisonService)
         {
             _modelComparisonService = modelComparisonService;
+        }
+
+        public static string FormatVietnamTime(DateTime utc) =>
+            TimeZoneInfo.ConvertTimeFromUtc(utc, VietnamTz).ToString("dd/MM/yyyy HH:mm");
+
+        private static TimeZoneInfo ResolveVietnamTimeZone()
+        {
+            foreach (var id in new[] { "Asia/Ho_Chi_Minh", "SE Asia Standard Time" })
+            {
+                try { return TimeZoneInfo.FindSystemTimeZoneById(id); }
+                catch { }
+            }
+            return TimeZoneInfo.CreateCustomTimeZone("UTC+07", TimeSpan.FromHours(7), "UTC+07", "UTC+07");
         }
 
         public IReadOnlyList<ModelComparisonRunSummaryDto> Runs { get; private set; } = Array.Empty<ModelComparisonRunSummaryDto>();

@@ -94,7 +94,7 @@
                             @foreach (var result in run.Results)
                             {
                                 <tr>
-                                    <td>@run.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@RagChatbotSystem.Presentation.Pages.Admin.ModelComparison.HistoryModel.FormatVietnamTime(run.CreatedAt)</td>
                                     <td>@run.DatasetName</td>
                                     <td><span title="@run.Question">@run.Question</span></td>
                                     <td>@ProviderLabel(result.ProviderKey)</td>
