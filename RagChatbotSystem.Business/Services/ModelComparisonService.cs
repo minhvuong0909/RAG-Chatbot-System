@@ -18,8 +18,11 @@ namespace RagChatbotSystem.Business.Services
 {
     public class ModelComparisonService : IModelComparisonService
     {
-        // Model riêng cho giám khảo, khác dòng huấn luyện với Llama (Groq) và Gemini để giảm thiên vị tự chấm.
+        // Model riêng cho giám khảo, khác dòng huấn luyện với Llama và Qwen để giảm thiên vị tự chấm.
         private const string JudgeModel = "openai/gpt-oss-120b";
+
+        // Model Qwen dùng cho lựa chọn "Qwen" — cùng hạ tầng Groq (free tier) nhưng khác dòng huấn luyện với Llama.
+        private const string QwenModel = "qwen/qwen3-32b";
 
         private readonly IRagApiClient _ragApiClient;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -30,7 +33,7 @@ namespace RagChatbotSystem.Business.Services
         private readonly ILogger<GroqService> _groqLogger;
         private readonly ILogger<ModelComparisonService> _logger;
 
-        public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Gemini" };
+        public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Qwen" };
 
         public ModelComparisonService(
             IRagApiClient ragApiClient,
@@ -310,7 +313,7 @@ namespace RagChatbotSystem.Business.Services
             return providerKey switch
             {
                 "Groq" => new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger),
-                "Gemini" => new LlmService(_httpClientFactory.CreateClient("ModelComparison.Gemini"), _configuration),
+                "Qwen" => new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger, QwenModel),
                 _ => null
             };
         }
