@@ -9,5 +9,7 @@ namespace RagChatbotSystem.Business.DTOs
         int OutputTokens,
         int TotalTokens,
         bool IsSuccess,
-        string? ErrorMessage);
+        string? ErrorMessage,
+        int? QualityScore,
+        string? QualityReasoning);
 }
