@@ -1,0 +1,41 @@
+[    1180ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5157/RagChatbotSystem.Presentation.styles.css:0
+[    1223ms] [INFO] [2026-07-10T09:18:43.839Z] Information: Normalizing '/hubs/notifications' to 'http://localhost:5157/hubs/notifications'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[    1229ms] [LOG] RagChatbotSystem MVC Workspace loaded successfully. @ http://localhost:5157/js/site.js?v=qrvyWFNaXmQt-9YaJ0-_p2aUhCCtqdkeDKsc3DONVZI:2
+[    1286ms] [INFO] [2026-07-10T09:18:43.903Z] Information: WebSocket connected to ws://localhost:5157/hubs/notifications?id=LRf57UfwbhLJ2llp9DlOlQ. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[   21949ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5157/RagChatbotSystem.Presentation.styles.css:0
+[   21958ms] [INFO] [2026-07-10T09:19:04.574Z] Information: Normalizing '/hubs/notifications' to 'http://localhost:5157/hubs/notifications'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[   21960ms] [LOG] RagChatbotSystem MVC Workspace loaded successfully. @ http://localhost:5157/js/site.js?v=qrvyWFNaXmQt-9YaJ0-_p2aUhCCtqdkeDKsc3DONVZI:2
+[   22004ms] [INFO] [2026-07-10T09:19:04.619Z] Information: Normalizing '/hubs/chat' to 'http://localhost:5157/hubs/chat'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[   22039ms] [INFO] [2026-07-10T09:19:04.655Z] Information: WebSocket connected to ws://localhost:5157/hubs/notifications?id=wmJPhmu_kB_7XNajz2vZzQ. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[   22061ms] [INFO] [2026-07-10T09:19:04.678Z] Information: WebSocket connected to ws://localhost:5157/hubs/chat?id=kcZtVPsJVXdlo0-O32_qBQ. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  334592ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5157/?handler=SendMessageAjax:0
+[  334593ms] [ERROR] Error: Không thể gửi câu hỏi. Vui lòng thử lại sau.
+    at http://localhost:5157/?datasetId=c54fc8b7-25c6-42c4-bb68-38ee87d04fe4&sessionId=a824337d-cd25-43ad-a29d-93538cc120e7:705:69 @ http://localhost:5157/?datasetId=c54fc8b7-25c6-42c4-bb68-38ee87d04fe4&sessionId=a824337d-cd25-43ad-a29d-93538cc120e7:754
+[  553251ms] [ERROR] [2026-07-10T09:27:55.868Z] Error: Connection disconnected with error 'Error: WebSocket closed with status code: 1006 (no reason given).'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  553252ms] [ERROR] [2026-07-10T09:27:55.869Z] Error: Connection disconnected with error 'Error: WebSocket closed with status code: 1006 (no reason given).'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  555590ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5157/hubs/notifications/negotiate?negotiateVersion=1:0
+[  555590ms] [WARNING] [2026-07-10T09:27:58.206Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  555590ms] [ERROR] [2026-07-10T09:27:58.207Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  555591ms] [ERROR] [2026-07-10T09:27:58.207Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  555591ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5157/hubs/chat/negotiate?negotiateVersion=1:0
+[  555591ms] [WARNING] [2026-07-10T09:27:58.208Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  555591ms] [ERROR] [2026-07-10T09:27:58.208Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  555591ms] [ERROR] [2026-07-10T09:27:58.208Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  559947ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5157/hubs/notifications/negotiate?negotiateVersion=1:0
+[  559947ms] [WARNING] [2026-07-10T09:28:02.564Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  559948ms] [ERROR] [2026-07-10T09:28:02.564Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  559948ms] [ERROR] [2026-07-10T09:28:02.564Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  559949ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5157/hubs/chat/negotiate?negotiateVersion=1:0
+[  559949ms] [WARNING] [2026-07-10T09:28:02.565Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  559949ms] [ERROR] [2026-07-10T09:28:02.565Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  559949ms] [ERROR] [2026-07-10T09:28:02.565Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  572319ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5157/hubs/notifications/negotiate?negotiateVersion=1:0
+[  572320ms] [WARNING] [2026-07-10T09:28:14.936Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  572320ms] [ERROR] [2026-07-10T09:28:14.936Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  572320ms] [ERROR] [2026-07-10T09:28:14.937Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  572320ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5157/hubs/chat/negotiate?negotiateVersion=1:0
+[  572321ms] [WARNING] [2026-07-10T09:28:14.937Z] Warning: Error from HTTP request. TypeError: Failed to fetch. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  572321ms] [ERROR] [2026-07-10T09:28:14.937Z] Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  572321ms] [ERROR] [2026-07-10T09:28:14.937Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Failed to fetch @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  602455ms] [INFO] [2026-07-10T09:28:45.071Z] Information: WebSocket connected to ws://localhost:5157/hubs/notifications?id=kB79ohD5i56dqrFFUX6L9g. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
+[  602475ms] [INFO] [2026-07-10T09:28:45.091Z] Information: WebSocket connected to ws://localhost:5157/hubs/chat?id=uqgeJIxJIu4O8htzcex2Ww. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0

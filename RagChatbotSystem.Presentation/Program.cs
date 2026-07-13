@@ -17,6 +17,44 @@ namespace RagChatbotSystem.Presentation
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var groqApiKey = builder.Configuration["Groq:ApiKey"]
+                ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+            if (string.IsNullOrWhiteSpace(groqApiKey) && builder.Environment.IsDevelopment())
+            {
+                var envFile = new[]
+                {
+                    Path.Combine(builder.Environment.ContentRootPath, ".env"),
+                    Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", ".env"))
+                }.FirstOrDefault(File.Exists);
+
+                var keyLine = envFile == null
+                    ? null
+                    : File.ReadLines(envFile).FirstOrDefault(line => line.StartsWith("GROQ_API_KEY=", StringComparison.Ordinal));
+                groqApiKey = keyLine?["GROQ_API_KEY=".Length..].Trim().Trim('"', '\'');
+            }
+            if (!string.IsNullOrWhiteSpace(groqApiKey))
+            {
+                builder.Configuration["Groq:ApiKey"] = groqApiKey;
+            }
+
+            var payOsSettings = new[]
+            {
+                (ConfigKey: "PayOs:ClientId", EnvironmentKey: "PAYOS_CLIENT_ID"),
+                (ConfigKey: "PayOs:ApiKey", EnvironmentKey: "PAYOS_API_KEY"),
+                (ConfigKey: "PayOs:ChecksumKey", EnvironmentKey: "PAYOS_CHECKSUM_KEY"),
+                (ConfigKey: "PayOs:PublicBaseUrl", EnvironmentKey: "PAYOS_PUBLIC_BASE_URL")
+            };
+            foreach (var setting in payOsSettings)
+            {
+                if (!string.IsNullOrWhiteSpace(builder.Configuration[setting.ConfigKey])) continue;
+                var value = Environment.GetEnvironmentVariable(setting.EnvironmentKey);
+                if (string.IsNullOrWhiteSpace(value) && builder.Environment.IsDevelopment())
+                {
+                    value = ReadLocalEnvValue(builder.Environment.ContentRootPath, setting.EnvironmentKey);
+                }
+                if (!string.IsNullOrWhiteSpace(value)) builder.Configuration[setting.ConfigKey] = value;
+            }
+
             builder.Services.AddRazorPages();
             builder.Services.AddSignalR();
 
@@ -71,6 +109,12 @@ namespace RagChatbotSystem.Presentation
                 }
             });
 
+            builder.Services.AddHttpClient<IPayOsService, PayOsService>(client =>
+            {
+                client.BaseAddress = new Uri("https://api-merchant.payos.vn/");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
             // Đăng ký các dịch vụ Data Access Layer
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -84,6 +128,10 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IChatSessionService, ChatSessionService>();
             builder.Services.AddScoped<IQuestionSuggestionService, QuestionSuggestionService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
+            builder.Services.AddScoped<ITokenUsageService, TokenUsageService>();
+            builder.Services.AddScoped<ICreditService, CreditService>();
+            builder.Services.AddScoped<ICreditPurchaseService, CreditPurchaseService>();
+            builder.Services.AddScoped<IStatisticsService, StatisticsService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
             builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();
@@ -105,10 +153,10 @@ namespace RagChatbotSystem.Presentation
 
                     // Seed admin account nếu chưa có Admin nào trong hệ thống
                     // Đọc thông tin từ biến môi trường (cấu hình trong .env trên VPS)
-                    var adminEmail = builder.Configuration["AdminSeed:Email"]
-                        ?? Environment.GetEnvironmentVariable("ADMIN_EMAIL");
-                    var adminPassword = builder.Configuration["AdminSeed:Password"]
-                        ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+                    var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL")
+                        ?? builder.Configuration["AdminSeed:Email"];
+                    var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+                        ?? builder.Configuration["AdminSeed:Password"];
                     var adminUsername = builder.Configuration["AdminSeed:Username"] ?? "admin";
                     var adminFullName = builder.Configuration["AdminSeed:FullName"] ?? "System Admin";
 
@@ -118,9 +166,9 @@ namespace RagChatbotSystem.Presentation
                         adminEmail = adminEmail.Trim().ToLowerInvariant();
                         adminUsername = adminUsername.Trim().ToLowerInvariant();
 
-                        var admin = db.Users.FirstOrDefault(u =>
-                            u.Email.ToLower() == adminEmail ||
-                            u.Username.ToLower() == adminUsername);
+                        var adminByEmail = db.Users.FirstOrDefault(u => u.Email.ToLower() == adminEmail);
+                        var adminByUsername = db.Users.FirstOrDefault(u => u.Username.ToLower() == adminUsername);
+                        var admin = adminByEmail ?? adminByUsername;
 
                         if (admin == null)
                         {
@@ -134,7 +182,7 @@ namespace RagChatbotSystem.Presentation
 
                         admin.FullName = adminFullName;
                         admin.Email = adminEmail;
-                        admin.Username = adminUsername;
+                        admin.Username = ResolveAvailableUsername(db, adminUsername, admin.UserId);
                         admin.PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword(adminPassword);
                         admin.Role = "Admin";
                         admin.IsApproved = true;
@@ -153,6 +201,7 @@ namespace RagChatbotSystem.Presentation
                             UserId = Guid.NewGuid(),
                             FullName = "Vuong Dev Admin",
                             Email = myAdminEmail,
+                            Username = ResolveAvailableUsername(db, "vuongdev-admin", Guid.Empty),
                             PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Vv123456!"),
                             Role = "Admin",
                             IsApproved = true,
@@ -161,6 +210,25 @@ namespace RagChatbotSystem.Presentation
                         db.Users.Add(myAdmin);
                         db.SaveChanges();
                         startupLogger.LogInformation("Admin account seeded successfully for {Email}.", myAdminEmail);
+                    }
+
+                    var studentEmail = "student@example.com";
+                    if (!db.Users.Any(u => u.Email == studentEmail))
+                    {
+                        var studentUser = new RagChatbotSystem.DataAccess.Models.User
+                        {
+                            UserId = Guid.NewGuid(),
+                            FullName = "Demo Student",
+                            Email = studentEmail,
+                            Username = "student",
+                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Student@123456"),
+                            Role = "Student",
+                            IsApproved = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        db.Users.Add(studentUser);
+                        db.SaveChanges();
+                        startupLogger.LogInformation("Student account seeded successfully for {Email}.", studentEmail);
                     }
                 }
                 catch (Exception ex)
@@ -207,6 +275,39 @@ namespace RagChatbotSystem.Presentation
             app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();
+        }
+
+        private static string ResolveAvailableUsername(AppDbContext db, string desiredUsername, Guid currentUserId)
+        {
+            var baseUsername = string.IsNullOrWhiteSpace(desiredUsername)
+                ? "admin"
+                : desiredUsername.Trim().ToLowerInvariant();
+
+            var username = baseUsername;
+            var suffix = 2;
+
+            while (db.Users.Any(u => u.UserId != currentUserId && u.Username.ToLower() == username))
+            {
+                username = $"{baseUsername}{suffix}";
+                suffix++;
+            }
+
+            return username;
+        }
+
+        private static string? ReadLocalEnvValue(string contentRootPath, string key)
+        {
+            var envFile = new[]
+            {
+                Path.Combine(contentRootPath, ".env"),
+                Path.GetFullPath(Path.Combine(contentRootPath, "..", ".env"))
+            }.FirstOrDefault(File.Exists);
+            if (envFile == null) return null;
+
+            var prefix = key + "=";
+            var line = File.ReadLines(envFile)
+                .FirstOrDefault(candidate => candidate.StartsWith(prefix, StringComparison.Ordinal));
+            return line?[prefix.Length..].Trim().Trim('"', '\'');
         }
     }
 }

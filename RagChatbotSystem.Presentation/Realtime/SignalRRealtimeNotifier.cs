@@ -31,12 +31,28 @@ namespace RagChatbotSystem.Presentation.Realtime
                     .SendAsync("DatasetChanged", payload, cancellationToken);
 
                 // For unapproved/deleted: also notify the assigned teacher so they can remove it from view
-                if (action is "created" or "approved" or "unapproved" or "updated" or "deleted")
+                if (action is "created" or "approved" or "unapproved" or "updated" or "archived" or "restored" or "deleted")
                 {
                     if (dataset.AssignedTeacherId.HasValue)
                     {
-                        await _hubContext.Clients.Group($"user_{dataset.AssignedTeacherId.Value}")
-                            .SendAsync("DatasetChanged", payload, cancellationToken);
+                        var teacherGroup = _hubContext.Clients.Group($"user_{dataset.AssignedTeacherId.Value}");
+                        await teacherGroup.SendAsync("DatasetChanged", payload, cancellationToken);
+                        if (action is "updated" or "archived" or "restored" or "deleted")
+                        {
+                            await teacherGroup.SendAsync("ReceiveNotification", new
+                            {
+                                type = "dataset",
+                                title = "Môn học đã thay đổi",
+                                message = action switch
+                                {
+                                    "updated" => $"Môn học '{dataset.Name}' vừa được quản trị viên cập nhật.",
+                                    "archived" => $"Môn học '{dataset.Name}' vừa được lưu trữ. Lịch sử vẫn được giữ ở chế độ chỉ đọc.",
+                                    "restored" => $"Môn học '{dataset.Name}' vừa được khôi phục.",
+                                    _ => $"Môn học '{dataset.Name}' vừa được quản trị viên xóa."
+                                },
+                                changedAt = DateTimeOffset.UtcNow
+                            }, cancellationToken);
+                        }
                     }
 
                     // For public datasets also notify students, but only if they are approved
@@ -63,14 +79,14 @@ namespace RagChatbotSystem.Presentation.Realtime
             await userGroup.SendAsync("ReceiveNotification", new
             {
                 type = "dataset-access",
-                title = "Subject access updated",
+                title = "Quyền truy cập môn học đã thay đổi",
                 message = BuildAccessMessage(action, dataset.Name),
                 changedAt = DateTimeOffset.UtcNow
             }, cancellationToken);
 
             await AdminChangedAsync(
                 action,
-                $"Access to subject '{dataset.Name}' was {action}.",
+                $"Quyền truy cập môn học '{dataset.Name}' vừa được cập nhật.",
                 cancellationToken);
         }
 
@@ -143,8 +159,25 @@ namespace RagChatbotSystem.Presentation.Realtime
                         fileName = c.FileName,
                         pageNumber = c.PageNumber,
                         quoteText = c.QuoteText,
-                        sourceLabel = c.SourceLabel
+                        sourceLabel = c.SourceLabel,
+                        fileType = c.FileType,
+                        chunkIndex = c.ChunkIndex
                     }),
+                    changedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
+        }
+
+        public Task CreditBalanceChangedAsync(
+            Guid userId,
+            CreditBalanceDto balance,
+            string reason,
+            CancellationToken cancellationToken = default)
+        {
+            return _hubContext.Clients.Group($"user_{userId}")
+                .SendAsync("CreditBalanceChanged", new
+                {
+                    reason,
+                    balance,
                     changedAt = DateTimeOffset.UtcNow
                 }, cancellationToken);
         }
@@ -157,14 +190,14 @@ namespace RagChatbotSystem.Presentation.Realtime
             await _hubContext.Clients.Group($"user_{userId}").SendAsync("ReceiveNotification", new
             {
                 type = "account",
-                title = "Account status updated",
-                message = approved ? "Your account was approved." : "Your account was deactivated.",
+                title = "Trạng thái tài khoản đã thay đổi",
+                message = approved ? "Tài khoản của bạn đã được kích hoạt." : "Tài khoản của bạn đã bị khóa.",
                 changedAt = DateTimeOffset.UtcNow
             }, cancellationToken);
 
             await AdminChangedAsync(
                 approved ? "user-approved" : "user-deactivated",
-                approved ? "A teacher account was approved." : "A teacher account was deactivated.",
+                approved ? "Một tài khoản giảng viên đã được kích hoạt." : "Một tài khoản giảng viên đã bị khóa.",
                 cancellationToken);
         }
 
@@ -187,13 +220,14 @@ namespace RagChatbotSystem.Presentation.Realtime
             {
                 action,
                 datasetId = dataset?.DatasetId,
-                name = dataset?.Name ?? "Unknown subject",
+                name = dataset?.Name ?? "Môn học chưa xác định",
                 description = dataset?.Description,
                 documentCount = dataset?.DocumentCount ?? 0,
                 isPublic = dataset?.IsPublic,
                 isApproved = dataset?.IsApproved,
                 assignedTeacherId = dataset?.AssignedTeacherId,
                 assignedTeacherName = dataset?.AssignedTeacherName,
+                isArchived = dataset?.IsArchived,
                 changedAt = DateTimeOffset.UtcNow
             };
         }
@@ -214,11 +248,11 @@ namespace RagChatbotSystem.Presentation.Realtime
         {
             return action switch
             {
-                "assigned" => $"You were assigned to subject '{datasetName}'.",
-                "unassigned" => $"You were unassigned from subject '{datasetName}'.",
-                "granted" => $"You were granted access to subject '{datasetName}'.",
-                "revoked" => $"Your access to subject '{datasetName}' was revoked.",
-                _ => $"Your access to subject '{datasetName}' changed."
+                "assigned" => $"Bạn vừa được phân công môn học '{datasetName}'.",
+                "unassigned" => $"Bạn không còn phụ trách môn học '{datasetName}'.",
+                "granted" => $"Bạn vừa được cấp quyền truy cập môn học '{datasetName}'.",
+                "revoked" => $"Quyền truy cập môn học '{datasetName}' của bạn đã bị thu hồi.",
+                _ => $"Quyền truy cập môn học '{datasetName}' của bạn vừa thay đổi."
             };
         }
     }

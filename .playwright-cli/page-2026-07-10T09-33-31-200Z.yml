@@ -1,0 +1,164 @@
+- generic [ref=f7e1]:
+  - banner [ref=f7e2]:
+    - navigation [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - link "R RAG Chatbot" [ref=f7e5] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f7e6]: R
+          - generic [ref=f7e7]: RAG Chatbot
+        - generic [ref=f7e8]:
+          - list [ref=f7e9]:
+            - listitem [ref=f7e10]:
+              - link "Không gian học tập" [ref=f7e11] [cursor=pointer]:
+                - /url: /
+          - generic [ref=f7e12]:
+            - generic [ref=f7e15]:
+              - generic [ref=f7e16]: Demo Student
+              - generic [ref=f7e17]: Sinh viên
+            - button "Đăng xuất" [ref=f7e19] [cursor=pointer]
+  - main [ref=f7e21]:
+    - generic [ref=f7e22]:
+      - complementary "Quản lý môn học" [ref=f7e23]:
+        - generic [ref=f7e24]:
+          - generic [ref=f7e25]:
+            - link "← Quay lại danh sách môn học" [ref=f7e26] [cursor=pointer]:
+              - /url: /
+            - heading "PRN222" [level=1] [ref=f7e27]
+            - paragraph [ref=f7e28]: Không gian học tập
+          - link "Làm mới không gian học tập" [ref=f7e29] [cursor=pointer]:
+            - /url: "?datasetId=c54fc8b7-25c6-42c4-bb68-38ee87d04fe4&sessionId=a824337d-cd25-43ad-a29d-93538cc120e7"
+            - generic [ref=f7e30]: Làm mới
+        - generic [ref=f7e31]:
+          - generic [ref=f7e32]:
+            - generic [ref=f7e33]: D
+            - generic [ref=f7e34]:
+              - generic [ref=f7e35]: Demo Student
+              - generic [ref=f7e36]: "Vai trò: Sinh viên"
+          - generic [ref=f7e38]:
+            - generic [ref=f7e39]:
+              - generic [ref=f7e40]: Số dư credit
+              - generic [ref=f7e41]: "60"
+            - generic [ref=f7e42]:
+              - generic [ref=f7e43]: Miễn phí
+              - generic [ref=f7e44]: "60"
+            - generic [ref=f7e45]:
+              - generic [ref=f7e46]: Đã mua
+              - generic [ref=f7e47]: "0"
+            - link "Nạp thêm credit" [ref=f7e48] [cursor=pointer]:
+              - /url: /Credits
+            - paragraph
+        - generic [ref=f7e49]:
+          - generic [ref=f7e50]:
+            - heading "Tài liệu" [level=2] [ref=f7e51]
+            - generic [ref=f7e52]: "2"
+          - generic [ref=f7e53]:
+            - generic [ref=f7e54]:
+              - generic [ref=f7e56]:
+                - strong [ref=f7e57]: IELTS_Writing_02_Task_2_Essay.docx
+                - text: DOCX - 38 KB
+              - generic [ref=f7e58]: Đã xử lý
+            - generic [ref=f7e60]:
+              - generic [ref=f7e62]:
+                - strong [ref=f7e63]: IELTS_Writing_02_Task_2_Essay.docx
+                - text: DOCX - 38 KB
+              - generic [ref=f7e64]: Đã xử lý
+        - generic [ref=f7e66]:
+          - generic [ref=f7e67]:
+            - heading "Cuộc trò chuyện" [level=2] [ref=f7e68]
+            - generic [ref=f7e69]: "1"
+          - paragraph [ref=f7e70]: Mỗi môn học có thể có nhiều cuộc trò chuyện. Chọn một cuộc trò chuyện hoặc tạo phiên mới.
+          - generic [ref=f7e72]:
+            - textbox "Tên cuộc trò chuyện" [ref=f7e73]:
+              - /placeholder: Tên cuộc trò chuyện (không bắt buộc)
+            - button "Tạo mới" [ref=f7e74] [cursor=pointer]
+          - link "Trò chuyện mới Cập nhật 10:12 10/07" [ref=f7e76] [cursor=pointer]:
+            - /url: "?datasetId=c54fc8b7-25c6-42c4-bb68-38ee87d04fe4&sessionId=a824337d-cd25-43ad-a29d-93538cc120e7"
+            - generic [ref=f7e77]: Trò chuyện mới
+            - generic [ref=f7e78]: Cập nhật 10:12 10/07
+        - generic [ref=f7e79]:
+          - heading "Thống kê" [level=2] [ref=f7e81]
+          - generic [ref=f7e82]:
+            - generic [ref=f7e83]:
+              - generic [ref=f7e84]: Tổng tài liệu
+              - strong [ref=f7e85]: "2"
+            - generic [ref=f7e86]:
+              - generic [ref=f7e87]: Cuộc trò chuyện
+              - strong [ref=f7e88]: "1"
+            - generic [ref=f7e89]:
+              - generic [ref=f7e90]: Tin nhắn trong phiên
+              - strong [ref=f7e91]: "5"
+      - main "Không gian trò chuyện" [ref=f7e92]:
+        - generic [ref=f7e93]:
+          - generic [ref=f7e94]:
+            - paragraph [ref=f7e95]: KHÔNG GIAN TRÒ CHUYỆN
+            - heading "Trò chuyện mới" [level=2] [ref=f7e96]
+          - button "Phiên mới" [ref=f7e98] [cursor=pointer]
+        - generic [ref=f7e99]:
+          - generic [ref=f7e100]:
+            - generic [ref=f7e101]:
+              - paragraph [ref=f7e102]: GỢI Ý CÂU HỎI AI
+              - heading "Gợi ý học tập cho môn này" [level=3] [ref=f7e103]
+            - button "Gợi ý câu hỏi" [ref=f7e104] [cursor=pointer]
+          - generic [ref=f7e105]:
+            - button "Tóm tắt ý chính" [ref=f7e106] [cursor=pointer]
+            - button "Khái niệm quan trọng" [ref=f7e107] [cursor=pointer]
+            - button "Câu hỏi ôn tập" [ref=f7e108] [cursor=pointer]
+          - paragraph [ref=f7e109]: Chọn một gợi ý để điền vào ô chat.
+        - generic [ref=f7e110]:
+          - generic [ref=f7e111]:
+            - paragraph [ref=f7e113]: Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?
+            - generic [ref=f7e114]: Bạn • 10:03
+          - generic [ref=f7e115]:
+            - paragraph [ref=f7e117]: Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?
+            - generic [ref=f7e118]: Bạn • 10:11
+          - generic [ref=f7e119]:
+            - paragraph [ref=f7e121]: "[LƯU Ý: Lỗi kết nối Groq API (Response status code does not indicate success: 401 (Unauthorized).). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn] **Câu hỏi:** *Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?* **Đoạn trích tìm thấy trong tài liệu:** 1. \"utes to check grammar, article use, subject-verb agreement, punctuation, and whether the thesis matches the conclusion. Have I answered every part of the prompt? Does each body paragraph have one clea...\" 2. \"tic general example is usually enough. Topic sentence: state the main point. Explanation: show the logic behind the point. Example: make the idea concrete. Result: connect the example back to the ques...\" 3. \"e the topic, the instruction words, and any limits such as people, place, time, or specific social group. Opinion: state your position clearly and maintain it. Discussion: cover both views and give yo...\""
+            - generic [ref=f7e122]: Trợ lý • 10:12
+            - button "Xem nguồn trích dẫn" [active] [ref=f7e124] [cursor=pointer]
+          - generic [ref=f7e128]:
+            - paragraph [ref=f7e130]: Tom tat cac y chinh cua mon hoc nay theo tai lieu da upload?
+            - generic [ref=f7e131]: Bạn • 15:06
+          - generic [ref=f7e132]:
+            - paragraph [ref=f7e134]: Theo tài liệu, hãy nêu ý chính của bài viết.
+            - generic [ref=f7e135]: Bạn • 16:24
+        - generic [ref=f7e136]:
+          - textbox "Câu hỏi" [ref=f7e137]:
+            - /placeholder: Hỏi về môn học này...
+          - button "Gửi" [ref=f7e138] [cursor=pointer]
+      - complementary "Tài liệu tham khảo" [ref=f7e139]:
+        - generic [ref=f7e140]:
+          - generic [ref=f7e141]:
+            - paragraph [ref=f7e142]: TÀI LIỆU THAM KHẢO
+            - heading "Nguồn trích dẫn" [level=2] [ref=f7e143]
+          - button "Đóng nguồn trích dẫn" [ref=f7e144] [cursor=pointer]
+        - generic [ref=f7e148]:
+          - generic [ref=f7e149]:
+            - heading "IELTS_Writing_02_Task_2_Essay.docx" [level=3] [ref=f7e150]
+            - paragraph [ref=f7e151]:
+              - strong [ref=f7e152]: "Trang:"
+              - text: "1"
+            - paragraph [ref=f7e153]:
+              - strong [ref=f7e154]: "Nhãn nguồn:"
+              - text: IELTS_Writing_02_Task_2_Essay.docx
+            - paragraph [ref=f7e155]: "\"utes to check grammar, article use, subject-verb agreement, punctuation, and whether the thesis matches the conclusion. Have I answered every part of the prompt? Does each body paragraph have one clear main idea? Are examples relevant and not too long? Did I avoid informal language and contractions?\""
+            - button "Xem trong tài liệu" [ref=f7e156] [cursor=pointer]
+          - generic [ref=f7e160]:
+            - heading "IELTS_Writing_02_Task_2_Essay.docx" [level=3] [ref=f7e161]
+            - paragraph [ref=f7e162]:
+              - strong [ref=f7e163]: "Trang:"
+              - text: "1"
+            - paragraph [ref=f7e164]:
+              - strong [ref=f7e165]: "Nhãn nguồn:"
+              - text: IELTS_Writing_02_Task_2_Essay.docx
+            - paragraph [ref=f7e166]: "\"tic general example is usually enough. Topic sentence: state the main point. Explanation: show the logic behind the point. Example: make the idea concrete. Result: connect the example back to the question. 4. Language and Revision Checklist Aim for accurate, flexible language rather than artificially complex vocabulary. The essay should sound natural, formal, and controlled. Leave two or three minutes to check grammar, article use, subject-verb agreement, punctuation, and whether the thesis matc\""
+            - button "Xem trong tài liệu" [ref=f7e167] [cursor=pointer]
+          - generic [ref=f7e171]:
+            - heading "IELTS_Writing_02_Task_2_Essay.docx" [level=3] [ref=f7e172]
+            - paragraph [ref=f7e173]:
+              - strong [ref=f7e174]: "Trang:"
+              - text: "1"
+            - paragraph [ref=f7e175]:
+              - strong [ref=f7e176]: "Nhãn nguồn:"
+              - text: IELTS_Writing_02_Task_2_Essay.docx
+            - paragraph [ref=f7e177]: "\"e the topic, the instruction words, and any limits such as people, place, time, or specific social group. Opinion: state your position clearly and maintain it. Discussion: cover both views and give your own view if requested. Problem and solution: connect each solution to a specific problem. Two-part question: answer both questions with balanced development. 2. Essay Structure A practical IELTS essay has four paragraphs: introduction, body paragraph 1, body paragraph 2, and conclusion. Each body\""
+            - button "Xem trong tài liệu" [ref=f7e178] [cursor=pointer]

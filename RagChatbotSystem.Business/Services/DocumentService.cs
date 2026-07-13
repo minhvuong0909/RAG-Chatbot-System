@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,13 @@ namespace RagChatbotSystem.Business.Services
     public class DocumentService : IDocumentService
     {
         private const string EmbeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
+        private const long MaxFileSizeBytes = 52_428_800;
+        private static readonly HashSet<string> SupportedFileTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "pdf",
+            "docx",
+            "txt"
+        };
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<Document> _documentRepository;
@@ -65,7 +73,7 @@ namespace RagChatbotSystem.Business.Services
 
             return await _documentRepository.GetQueryable()
                 .AsNoTracking()
-                .Where(d => d.DatasetId == datasetId)
+                .Where(d => d.DatasetId == datasetId && !d.IsDeleted)
                 .OrderByDescending(d => d.UploadedAt)
                 .Select(d => new DocumentDto(
                     d.DocumentId,
@@ -77,7 +85,12 @@ namespace RagChatbotSystem.Business.Services
                     d.Status,
                     d.UploadedBy,
                     d.UploadedAt,
-                    d.UpdatedAt))
+                    d.UpdatedAt,
+                    d.FileHash,
+                    d.ProcessError,
+                    d.IsDeleted,
+                    d.DeletedAt,
+                    d.DeletedBy))
                 .ToListAsync(cancellationToken);
         }
 
@@ -96,11 +109,16 @@ namespace RagChatbotSystem.Business.Services
                     d.Status,
                     d.UploadedBy,
                     d.UploadedAt,
-                    d.UpdatedAt))
+                    d.UpdatedAt,
+                    d.FileHash,
+                    d.ProcessError,
+                    d.IsDeleted,
+                    d.DeletedAt,
+                    d.DeletedBy))
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<DocumentDto> UploadDocumentAsync(Guid datasetId, Guid userId, Stream fileStream, string fileName, long fileSize, CancellationToken cancellationToken = default)
+        public async Task<DocumentDto> UploadDocumentAsync(Guid datasetId, Guid userId, Stream fileStream, string fileName, long fileSize, bool overwriteExistingFileName = false, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(fileName))
             {
@@ -110,6 +128,17 @@ namespace RagChatbotSystem.Business.Services
             if (fileSize <= 0)
             {
                 throw new ArgumentException("File must not be empty.", nameof(fileSize));
+            }
+
+            if (fileSize > MaxFileSizeBytes)
+            {
+                throw new ArgumentException("File size exceeds the allowed limit (max 50MB).", nameof(fileSize));
+            }
+
+            var fileType = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
+            if (!SupportedFileTypes.Contains(fileType))
+            {
+                throw new NotSupportedException("Only PDF, DOCX, and TXT files are supported.");
             }
 
             var datasetExists = await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == datasetId, cancellationToken);
@@ -124,7 +153,30 @@ namespace RagChatbotSystem.Business.Services
                 throw new InvalidOperationException("Uploader user was not found.");
             }
 
-            var storedFile = await _fileStorageService.SaveDatasetFileAsync(datasetId, fileStream, fileName, fileSize, cancellationToken);
+            await using var bufferedStream = new MemoryStream();
+            await fileStream.CopyToAsync(bufferedStream, cancellationToken);
+            if (bufferedStream.Length == 0)
+            {
+                throw new ArgumentException("File must not be empty.", nameof(fileSize));
+            }
+
+            var fileHash = ComputeSha256(bufferedStream);
+            var duplicate = await _documentRepository.GetQueryable()
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted, cancellationToken);
+            if (duplicate != null)
+            {
+                throw new InvalidOperationException("Tài liệu này đã tồn tại trong môn học.");
+            }
+
+            var existingDoc = await _documentRepository.GetQueryable()
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower() && !d.IsDeleted, cancellationToken);
+            if (existingDoc != null)
+            {
+                throw new InvalidOperationException("Môn học đã có tài liệu cùng tên. Vui lòng đổi tên tệp hoặc xóa tài liệu cũ trước khi tải lên.");
+            }
+
+            bufferedStream.Position = 0;
+            var storedFile = await _fileStorageService.SaveDatasetFileAsync(datasetId, bufferedStream, fileName, bufferedStream.Length, cancellationToken);
             var now = DateTime.UtcNow;
 
             var document = new Document
@@ -135,7 +187,9 @@ namespace RagChatbotSystem.Business.Services
                 FilePath = storedFile.RelativePath,
                 FileType = storedFile.FileType,
                 FileSize = storedFile.FileSize,
+                FileHash = fileHash,
                 Status = "Uploaded",
+                ProcessError = null,
                 UploadedBy = userId,
                 UploadedAt = now,
                 UpdatedAt = now
@@ -156,6 +210,7 @@ namespace RagChatbotSystem.Business.Services
             }
 
             document.Status = "Processing";
+            document.ProcessError = null;
             document.UpdatedAt = DateTime.UtcNow;
             _documentRepository.Update(document);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -180,7 +235,17 @@ namespace RagChatbotSystem.Business.Services
                 await _realtimeService.SendDocumentProgressAsync(document.DatasetId, document.DocumentId, "Embedding & indexing", 75, cancellationToken);
                 await IndexExistingDocumentAsync(document, chunks, cancellationToken);
 
+                var oldDocs = await _documentRepository.GetQueryable()
+                    .Where(d => d.DatasetId == document.DatasetId && d.FileName.ToLower() == document.FileName.ToLower() && !d.IsDeleted && d.DocumentId != document.DocumentId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var oldDoc in oldDocs)
+                {
+                    await DeleteDocumentAsync(oldDoc.DocumentId, document.UploadedBy, cancellationToken);
+                }
+
                 document.Status = "Completed";
+                document.ProcessError = null;
                 document.UpdatedAt = DateTime.UtcNow;
                 _documentRepository.Update(document);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -198,6 +263,7 @@ namespace RagChatbotSystem.Business.Services
                 if (failedDocument != null)
                 {
                     failedDocument.Status = "Failed";
+                    failedDocument.ProcessError = TruncateError(ex.Message);
                     failedDocument.UpdatedAt = DateTime.UtcNow;
                     _documentRepository.Update(failedDocument);
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -219,6 +285,28 @@ namespace RagChatbotSystem.Business.Services
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
+                string fileHash;
+                byte[] textBytes = Encoding.UTF8.GetBytes(rawText);
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    byte[] hashBytes = sha256.ComputeHash(textBytes);
+                    fileHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                }
+
+                var duplicate = await _documentRepository.GetQueryable()
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted);
+                if (duplicate != null)
+                {
+                    throw new InvalidOperationException("This document already exists in this subject.");
+                }
+
+                var existingDoc = await _documentRepository.GetQueryable()
+                    .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower() && !d.IsDeleted);
+                if (existingDoc != null)
+                {
+                    throw new InvalidOperationException("A document with this file name already exists. Confirm overwrite to replace it.");
+                }
+
                 var now = DateTime.UtcNow;
                 var document = new Document
                 {
@@ -226,9 +314,10 @@ namespace RagChatbotSystem.Business.Services
                     DatasetId = datasetId,
                     FileName = fileName,
                     FilePath = fileName,
-                    FileSize = Encoding.UTF8.GetByteCount(rawText),
+                    FileSize = textBytes.Length,
                     FileType = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant(),
                     Status = "Processing",
+                    FileHash = fileHash,
                     UploadedBy = userId,
                     UploadedAt = now,
                     UpdatedAt = now
@@ -248,10 +337,11 @@ namespace RagChatbotSystem.Business.Services
             }
         }
 
-        public async Task<bool> DeleteDocumentAsync(Guid documentId)
+        public async Task<bool> DeleteDocumentAsync(Guid documentId, Guid deletedBy, CancellationToken cancellationToken = default)
         {
-            var document = await _documentRepository.GetByIdAsync(documentId);
+            var document = await _documentRepository.GetByIdAsync(documentId, cancellationToken);
             if (document == null) return false;
+            if (document.IsDeleted) return true;
 
             var pythonDeleted = await _ragApiClient.DeleteDocumentAsync(documentId);
             if (!pythonDeleted)
@@ -259,13 +349,31 @@ namespace RagChatbotSystem.Business.Services
                 _logger.LogWarning("Failed to delete document {DocumentId} from Python RAG index.", documentId);
             }
 
-            _documentRepository.Delete(document);
-            await _unitOfWork.SaveChangesAsync();
-            await _fileStorageService.DeleteFileIfExistsAsync(document.FilePath);
+            document.IsDeleted = true;
+            document.DeletedAt = DateTime.UtcNow;
+            document.DeletedBy = deletedBy;
+            document.Status = "Deleted";
+            document.UpdatedAt = DateTime.UtcNow;
+            document.ProcessError = pythonDeleted
+                ? null
+                : "Document was hidden in the application, but removing it from the RAG index failed. Rebuild the index if it still appears in retrieval.";
+
+            _documentRepository.Update(document);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await _realtimeService.TriggerUiUpdateAsync("Document", documentId);
 
             return true;
+        }
+
+        public async Task<bool> HasCompletedDocumentsAsync(Guid datasetId, CancellationToken cancellationToken = default)
+        {
+            return await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .AnyAsync(d => d.DatasetId == datasetId &&
+                    !d.Dataset.IsArchived &&
+                    !d.IsDeleted &&
+                    d.Status == "Completed", cancellationToken);
         }
 
         public async Task<DocumentPreviewDto?> GetDocumentPreviewAsync(Guid documentId, Guid currentUserId, string role, CancellationToken cancellationToken = default)
@@ -319,12 +427,19 @@ namespace RagChatbotSystem.Business.Services
                 document.FileSize,
                 document.Status,
                 document.UploadedAt,
+                document.ProcessError,
+                document.IsDeleted,
+                document.DeletedAt,
                 chunks);
         }
 
         internal static async Task<List<ExtractedTextSegment>> ExtractTextSegmentsAsync(Stream stream, string fileType, CancellationToken cancellationToken = default)
         {
             var normalizedType = fileType.TrimStart('.').ToLowerInvariant();
+            if (!SupportedFileTypes.Contains(normalizedType))
+            {
+                throw new NotSupportedException($"File type '{fileType}' is not supported.");
+            }
 
             return normalizedType switch
             {
@@ -437,6 +552,7 @@ namespace RagChatbotSystem.Business.Services
                         { "document_id", document.DocumentId.ToString() },
                         { "dataset_id", document.DatasetId.ToString() },
                         { "file_name", document.FileName },
+                        { "file_type", document.FileType },
                         { "page_number", textChunk.PageNumber },
                         { "chunk_index", chunkIndex }
                     }
@@ -558,6 +674,24 @@ namespace RagChatbotSystem.Business.Services
             )).ToList();
         }
 
+        private static string ComputeSha256(Stream stream)
+        {
+            stream.Position = 0;
+            var hash = SHA256.HashData(stream);
+            stream.Position = 0;
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        private static string TruncateError(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return "Document processing failed.";
+            }
+
+            return message.Length <= 2000 ? message : message[..2000];
+        }
+
         private static DocumentDto ToDto(Document document)
         {
             return new DocumentDto(
@@ -570,7 +704,12 @@ namespace RagChatbotSystem.Business.Services
                 document.Status,
                 document.UploadedBy,
                 document.UploadedAt,
-                document.UpdatedAt);
+                document.UpdatedAt,
+                document.FileHash,
+                document.ProcessError,
+                document.IsDeleted,
+                document.DeletedAt,
+                document.DeletedBy);
         }
     }
 

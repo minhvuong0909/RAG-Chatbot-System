@@ -1,15 +1,15 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Account.LoginModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Đăng nhập";
 }
 
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-title">
             <span class="brand-mark mb-3" style="display: inline-grid; width: 54px; height: 54px; place-items: center; border-radius: 12px; font-size: 1.8rem; margin-bottom: 12px;">R</span>
-            <h1>Access Workspace</h1>
-            <p>Connect credentials to interact with RAG AI</p>
+            <h1>Đăng nhập</h1>
+            <p>Đăng nhập để sử dụng không gian học tập với RAG AI.</p>
         </div>
 
         @if (TempData["SuccessMessage"] != null)
@@ -37,23 +37,23 @@
             <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
 
             <div>
-                <label for="email" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">USERNAME OR EMAIL</label>
-                <input type="text" id="email" name="email" placeholder="Enter your username or email" required style="min-height: 48px;" />
+                <label for="email" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">TÊN ĐĂNG NHẬP HOẶC EMAIL</label>
+                <input type="text" id="email" name="email" placeholder="Nhập tên đăng nhập hoặc Email" required autocomplete="username" style="min-height: 48px;" />
             </div>
 
             <div>
-                <label for="password" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">PASSWORD</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required style="min-height: 48px;" />
+                <label for="password" class="form-label small fw-bold mb-2" style="color: var(--muted); letter-spacing: 0.05em;">MẬT KHẨU</label>
+                <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required autocomplete="current-password" style="min-height: 48px;" />
             </div>
 
             <div style="margin-top: 10px;">
                 <button type="submit" style="width: 100%; min-height: 48px; border-radius: 8px; font-size: 0.9rem;">
-                    Enter Workspace
+                    Đăng nhập
                 </button>
             </div>
 
             <div class="text-center mt-3">
-                <span class="text-muted small">Accounts are provided by Admin via email.</span>
+                <span class="text-muted small">Tài khoản được quản trị viên cung cấp qua Email.</span>
             </div>
         </form>
     </div>

@@ -65,13 +65,13 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                     new CreateDatasetRequest(CreateInput.Name, CreateInput.Description, currentUserId, CreateInput.IsPublic),
                     cancellationToken);
 
-                SuccessMessage = $"Subject '{dataset.Name}' created successfully.";
+                SuccessMessage = $"Đã tạo môn học \"{dataset.Name}\".";
                 await _realtimeNotifier.DatasetChangedAsync("created", dataset, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create dataset.");
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể tạo môn học. Vui lòng kiểm tra thông tin và thử lại.";
             }
 
             return RedirectToPage();
@@ -97,18 +97,18 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
 
                 if (!updated)
                 {
-                    ErrorMessage = "Subject was not found.";
+                    ErrorMessage = "Không tìm thấy môn học.";
                     return RedirectToPage();
                 }
 
                 var dataset = await _datasetService.GetDatasetAsync(EditInput.DatasetId, cancellationToken);
-                SuccessMessage = "Subject updated successfully.";
+                SuccessMessage = "Đã cập nhật môn học.";
                 await _realtimeNotifier.DatasetChangedAsync("updated", dataset, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to update dataset {DatasetId}.", EditInput.DatasetId);
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể cập nhật môn học. Vui lòng thử lại.";
             }
 
             return RedirectToPage();
@@ -119,46 +119,54 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
             try
             {
                 var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-                var deleted = await _datasetService.DeleteDatasetAsync(id, cancellationToken);
-                if (!deleted)
+                if (dataset == null)
                 {
-                    ErrorMessage = "Subject was not found.";
+                    ErrorMessage = "Không tìm thấy môn học.";
                     return RedirectToPage();
                 }
 
-                SuccessMessage = "Subject deleted successfully.";
-                await _realtimeNotifier.DatasetChangedAsync("deleted", dataset, cancellationToken);
+                if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
+                {
+                    return Challenge();
+                }
+
+                var archived = await _datasetService.ArchiveDatasetAsync(id, archived: true, currentUserId, cancellationToken);
+                if (!archived)
+                {
+                    ErrorMessage = "Không tìm thấy môn học.";
+                    return RedirectToPage();
+                }
+
+                var archivedDataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
+                SuccessMessage = "Đã lưu trữ môn học. Lịch sử trò chuyện, tài liệu và trích dẫn vẫn được giữ lại.";
+                await _realtimeNotifier.DatasetChangedAsync("archived", archivedDataset ?? dataset, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to delete dataset {DatasetId}.", id);
-                ErrorMessage = ex.Message;
+                _logger.LogError(ex, "Failed to archive dataset {DatasetId}.", id);
+                ErrorMessage = "Không thể lưu trữ môn học. Vui lòng thử lại.";
             }
 
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostApproveAsync(Guid id, bool approve, CancellationToken cancellationToken)
+        public async Task<IActionResult> OnPostRestoreAsync(Guid id, CancellationToken cancellationToken)
         {
-            try
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var currentUserId))
             {
-                var updated = await _datasetService.ApproveDatasetAsync(id, approve, cancellationToken);
-                if (!updated)
-                {
-                    ErrorMessage = "Subject was not found.";
-                    return RedirectToPage();
-                }
-
-                var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-                SuccessMessage = approve ? "Subject approved successfully." : "Subject unapproved successfully.";
-                await _realtimeNotifier.DatasetChangedAsync(approve ? "approved" : "unapproved", dataset, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to change approval status for dataset {DatasetId}.", id);
-                ErrorMessage = ex.Message;
+                return Challenge();
             }
 
+            var restored = await _datasetService.ArchiveDatasetAsync(id, archived: false, currentUserId, cancellationToken);
+            if (!restored)
+            {
+                ErrorMessage = "Không tìm thấy môn học.";
+                return RedirectToPage();
+            }
+
+            var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
+            SuccessMessage = "Đã khôi phục môn học.";
+            await _realtimeNotifier.DatasetChangedAsync("restored", dataset, cancellationToken);
             return RedirectToPage();
         }
 
@@ -169,11 +177,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
 
         public sealed class CreateDatasetInput
         {
-            [Required(ErrorMessage = "Subject name is required.")]
-            [StringLength(120, ErrorMessage = "Subject name must be 120 characters or fewer.")]
+            [Required(ErrorMessage = "Vui lòng nhập tên môn học.")]
+            [StringLength(120, ErrorMessage = "Tên môn học không được vượt quá 120 ký tự.")]
             public string Name { get; set; } = string.Empty;
 
-            [StringLength(500, ErrorMessage = "Description must be 500 characters or fewer.")]
+            [StringLength(500, ErrorMessage = "Mô tả không được vượt quá 500 ký tự.")]
             public string? Description { get; set; }
 
             public bool IsPublic { get; set; } = true;
@@ -184,11 +192,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
             [Required]
             public Guid DatasetId { get; set; }
 
-            [Required(ErrorMessage = "Subject name is required.")]
-            [StringLength(120, ErrorMessage = "Subject name must be 120 characters or fewer.")]
+            [Required(ErrorMessage = "Vui lòng nhập tên môn học.")]
+            [StringLength(120, ErrorMessage = "Tên môn học không được vượt quá 120 ký tự.")]
             public string Name { get; set; } = string.Empty;
 
-            [StringLength(500, ErrorMessage = "Description must be 500 characters or fewer.")]
+            [StringLength(500, ErrorMessage = "Mô tả không được vượt quá 500 ký tự.")]
             public string? Description { get; set; }
 
             public bool IsPublic { get; set; }

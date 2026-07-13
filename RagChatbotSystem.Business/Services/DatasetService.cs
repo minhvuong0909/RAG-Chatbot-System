@@ -40,7 +40,8 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<IReadOnlyList<DatasetDto>> GetDatasetsForUserAsync(Guid userId, string role, CancellationToken cancellationToken = default)
         {
-            var query = _datasetRepository.GetQueryable().AsNoTracking();
+            var query = _datasetRepository.GetQueryable().AsNoTracking()
+                .Where(d => !d.IsArchived);
 
             if (role == "Teacher")
             {
@@ -101,7 +102,7 @@ namespace RagChatbotSystem.Business.Services
         public async Task<bool> UpdateDatasetAsync(Guid datasetId, string name, string? description, bool isPublic, CancellationToken cancellationToken = default)
         {
             var dataset = await _datasetRepository.GetByIdAsync(datasetId, cancellationToken);
-            if (dataset == null)
+            if (dataset == null || dataset.IsArchived)
             {
                 return false;
             }
@@ -119,7 +120,7 @@ namespace RagChatbotSystem.Business.Services
             return true;
         }
 
-        public async Task<bool> DeleteDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default)
+        public async Task<bool> ArchiveDatasetAsync(Guid datasetId, bool archived, Guid changedBy, CancellationToken cancellationToken = default)
         {
             var dataset = await _datasetRepository.GetByIdAsync(datasetId, cancellationToken);
             if (dataset == null)
@@ -127,7 +128,11 @@ namespace RagChatbotSystem.Business.Services
                 return false;
             }
 
-            _datasetRepository.Delete(dataset);
+            dataset.IsArchived = archived;
+            dataset.ArchivedAt = archived ? DateTime.UtcNow : null;
+            dataset.ArchivedBy = archived ? changedBy : null;
+            dataset.UpdatedAt = DateTime.UtcNow;
+            _datasetRepository.Update(dataset);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await _realtimeService.TriggerUiUpdateAsync("Dataset", datasetId, cancellationToken);
@@ -156,6 +161,10 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<bool> GrantPermissionAsync(Guid datasetId, Guid userId, CancellationToken cancellationToken = default)
         {
+            if (!await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == datasetId && !d.IsArchived, cancellationToken))
+            {
+                return false;
+            }
             var permissionRepo = _unitOfWork.Repository<DatasetPermission>();
             var exists = await permissionRepo.GetQueryable()
                 .AnyAsync(dp => dp.DatasetId == datasetId && dp.UserId == userId, cancellationToken);
@@ -180,6 +189,10 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<bool> RevokePermissionAsync(Guid datasetId, Guid userId, CancellationToken cancellationToken = default)
         {
+            if (!await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == datasetId && !d.IsArchived, cancellationToken))
+            {
+                return false;
+            }
             var permissionRepo = _unitOfWork.Repository<DatasetPermission>();
             var permission = await permissionRepo.GetQueryable()
                 .FirstOrDefaultAsync(dp => dp.DatasetId == datasetId && dp.UserId == userId, cancellationToken);
@@ -218,7 +231,7 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<bool> AssignTeacherToDatasetAsync(Guid datasetId, Guid teacherId, Guid adminUserId, CancellationToken cancellationToken = default)
         {
-            var datasetExists = await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == datasetId, cancellationToken);
+            var datasetExists = await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == datasetId && !d.IsArchived, cancellationToken);
             if (!datasetExists)
             {
                 throw new InvalidOperationException("Subject was not found.");
@@ -303,7 +316,8 @@ namespace RagChatbotSystem.Business.Services
         {
             if (role == "Admin")
             {
-                return true;
+                return await _datasetRepository.GetQueryable()
+                    .AnyAsync(d => d.DatasetId == datasetId && !d.IsArchived, cancellationToken);
             }
 
             if (role != "Teacher")
@@ -313,7 +327,20 @@ namespace RagChatbotSystem.Business.Services
 
             var assignmentRepo = _unitOfWork.Repository<TeacherSubjectAssignment>();
             return await assignmentRepo.GetQueryable()
-                .AnyAsync(a => a.DatasetId == datasetId && a.TeacherId == userId, cancellationToken);
+                .AnyAsync(a => a.DatasetId == datasetId && a.TeacherId == userId && !a.Dataset.IsArchived, cancellationToken);
+        }
+
+        public async Task<bool> CanAccessActiveDatasetAsync(Guid userId, string role, Guid datasetId, CancellationToken cancellationToken = default)
+        {
+            var query = _datasetRepository.GetQueryable().AsNoTracking()
+                .Where(d => d.DatasetId == datasetId && !d.IsArchived);
+
+            return role switch
+            {
+                "Admin" => await query.AnyAsync(cancellationToken),
+                "Teacher" => await query.AnyAsync(d => d.TeacherSubjectAssignment != null && d.TeacherSubjectAssignment.TeacherId == userId, cancellationToken),
+                _ => await query.AnyAsync(d => (d.IsPublic && d.IsApproved) || d.DatasetPermissions.Any(p => p.UserId == userId), cancellationToken)
+            };
         }
 
         private static async Task<IReadOnlyList<DatasetDto>> MaterializeDatasetDtosAsync(IQueryable<Dataset> query, CancellationToken cancellationToken)
@@ -343,11 +370,14 @@ namespace RagChatbotSystem.Business.Services
                 dataset.CreatedBy,
                 dataset.CreatedAt,
                 dataset.UpdatedAt,
-                dataset.Documents.Count,
+                dataset.Documents.Count(d => !d.IsDeleted),
                 dataset.IsPublic,
                 dataset.IsApproved,
                 dataset.TeacherSubjectAssignment?.TeacherId,
-                dataset.TeacherSubjectAssignment?.Teacher?.FullName);
+                dataset.TeacherSubjectAssignment?.Teacher?.FullName,
+                dataset.IsArchived,
+                dataset.ArchivedAt,
+                dataset.ArchivedBy);
         }
     }
 }

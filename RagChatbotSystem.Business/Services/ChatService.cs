@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
+using RagChatbotSystem.Business.Exceptions;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.DataAccess.Models;
 using RagChatbotSystem.DataAccess.Repositories;
@@ -16,13 +17,19 @@ namespace RagChatbotSystem.Business.Services
 {
     public class ChatService : IChatService
     {
+        private const string FriendlyAiUnavailableMessage = "Hiện chưa thể tạo câu trả lời từ AI. Vui lòng thử lại sau hoặc liên hệ quản trị viên.";
+
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<ChatSession> _sessionRepository;
         private readonly IGenericRepository<ChatMessage> _messageRepository;
         private readonly IGenericRepository<Citation> _citationRepository;
+        private readonly IGenericRepository<Document> _documentRepository;
+        private readonly IGenericRepository<Chunk> _chunkRepository;
         private readonly IRagApiClient _ragApiClient;
         private readonly ILlmService _llmService;
         private readonly IRealtimeService _realtimeService;
+        private readonly ITokenUsageService _tokenUsageService;
+        private readonly ICreditService _creditService;
         private readonly ILogger<ChatService> _logger;
 
         public ChatService(
@@ -30,15 +37,21 @@ namespace RagChatbotSystem.Business.Services
             IRagApiClient ragApiClient,
             ILlmService llmService,
             IRealtimeService realtimeService,
+            ITokenUsageService tokenUsageService,
+            ICreditService creditService,
             ILogger<ChatService> logger)
         {
             _unitOfWork = unitOfWork;
             _sessionRepository = _unitOfWork.Repository<ChatSession>();
             _messageRepository = _unitOfWork.Repository<ChatMessage>();
             _citationRepository = _unitOfWork.Repository<Citation>();
+            _documentRepository = _unitOfWork.Repository<Document>();
+            _chunkRepository = _unitOfWork.Repository<Chunk>();
             _ragApiClient = ragApiClient;
             _llmService = llmService;
             _realtimeService = realtimeService;
+            _tokenUsageService = tokenUsageService;
+            _creditService = creditService;
             _logger = logger;
         }
 
@@ -49,10 +62,70 @@ namespace RagChatbotSystem.Business.Services
                 throw new ArgumentException("Question is required.", nameof(userQuestion));
             }
 
-            var session = await _sessionRepository.GetQueryable().FirstOrDefaultAsync(s => s.SessionId == sessionId, cancellationToken);
+            var session = await _sessionRepository.GetQueryable()
+                .Include(s => s.User)
+                .Include(s => s.Dataset)
+                    .ThenInclude(d => d.DatasetPermissions)
+                .Include(s => s.Dataset)
+                    .ThenInclude(d => d.TeacherSubjectAssignment)
+                .FirstOrDefaultAsync(s => s.SessionId == sessionId, cancellationToken);
             if (session == null)
             {
                 throw new ArgumentException("Chat session not found.");
+            }
+
+            if (session.Dataset.IsArchived)
+            {
+                throw new UnauthorizedAccessException("Subject is archived.");
+            }
+
+            var isStudent = session.User != null && string.Equals(session.User.Role, "Student", StringComparison.OrdinalIgnoreCase);
+            CreditBalanceDto? creditBalance = null;
+            var creditSystemEnabled = true;
+            if (isStudent)
+            {
+                var isLimitExceeded = await _tokenUsageService.IsLimitExceededAsync(session.UserId, cancellationToken);
+                if (isLimitExceeded)
+                {
+                    await _creditService.LogBlockedAttemptAsync(
+                        session.UserId,
+                        CreditBlockedReason.DAILY_TOKEN_LIMIT,
+                        session.DatasetId,
+                        sessionId,
+                        userQuestion,
+                        note: "Daily technical token limit blocked chat before LLM call.",
+                        cancellationToken: cancellationToken);
+                    throw new ChatRequestBlockedException(
+                        ChatBlockReason.DailyTokenLimit,
+                        "Bạn đã dùng hết hạn mức AI hôm nay. Bạn vẫn có thể xem lịch sử chat và nguồn dẫn chứng. Vui lòng quay lại vào ngày mai hoặc liên hệ giảng viên/quản trị viên.");
+                }
+
+                creditBalance = await _creditService.GetStudentCreditSummaryAsync(session.UserId, cancellationToken);
+                creditSystemEnabled = creditBalance.Settings.EnableCreditSystem;
+                if (creditSystemEnabled && creditBalance.TotalCredits <= 0)
+                {
+                    await _creditService.LogBlockedAttemptAsync(
+                        session.UserId,
+                        CreditBlockedReason.ZERO_BALANCE,
+                        session.DatasetId,
+                        sessionId,
+                        userQuestion,
+                        note: "Student had no available credits before RAG/LLM call.",
+                        cancellationToken: cancellationToken);
+                    throw new ChatRequestBlockedException(
+                        ChatBlockReason.InsufficientCredits,
+                        "Bạn đã hết Credit. Vui lòng nạp thêm Credit để tiếp tục đặt câu hỏi.");
+                }
+            }
+
+
+            var hasCompletedDocuments = await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .AnyAsync(d => d.DatasetId == session.DatasetId && !d.IsDeleted && d.Status == "Completed", cancellationToken);
+
+            if (!hasCompletedDocuments)
+            {
+                throw new InvalidOperationException("This subject does not have any indexed documents yet. Please upload a document before starting chat.");
             }
 
             var now = DateTime.UtcNow;
@@ -71,6 +144,7 @@ namespace RagChatbotSystem.Business.Services
             var retrieveResult = await _ragApiClient.RetrieveAsync(new RetrieveRequestDto
             {
                 Query = userQuestion,
+                DatasetId = session.DatasetId,
                 TopK = 10,
                 SemanticWeight = 0.7,
                 LexicalWeight = 0.3,
@@ -96,9 +170,9 @@ namespace RagChatbotSystem.Business.Services
             var contextDocs = (retrieveResult.Documents ?? Enumerable.Empty<DocumentModelDto>())
                 .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
                     && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
-                .Take(3)
                 .ToList();
 
+            contextDocs = await FilterActiveCompletedContextAsync(contextDocs, session.DatasetId, cancellationToken);
             var isDocumentScopedQuestion = IsDocumentScopedQuestion(userQuestion, contextDocs);
 
             var contextText = contextDocs.Count > 0
@@ -114,34 +188,119 @@ namespace RagChatbotSystem.Business.Services
 
             var assistantMessageId = Guid.NewGuid();
             var accumulatedText = new StringBuilder();
+            LlmAnswerResult? llmResult = null;
+            var streamedAnyChunk = false;
+            var streamedChunkCount = 0;
 
             if (!isDocumentScopedQuestion)
             {
                 accumulatedText.Append(BuildOutOfScopeAnswer());
                 await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, accumulatedText.ToString(), cancellationToken);
+                streamedAnyChunk = true;
                 contextDocs.Clear();
             }
             else
             {
-                // Try to stream the response first
                 try
                 {
                     await foreach (var chunk in _llmService.GenerateAnswerStreamAsync(prompt).WithCancellation(cancellationToken))
                     {
+                        if (string.IsNullOrEmpty(chunk))
+                        {
+                            continue;
+                        }
+
                         accumulatedText.Append(chunk);
-                        // Push each chunk in real-time via SignalR
+                        streamedAnyChunk = true;
+                        streamedChunkCount++;
                         await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, chunk, cancellationToken);
                     }
+
+                    var streamedContent = accumulatedText.ToString();
+                    var streamCompletedWithoutContent = string.IsNullOrWhiteSpace(streamedContent);
+                    llmResult = new LlmAnswerResult(
+                        streamedContent,
+                        _llmService.ModelName,
+                        _llmService.LastPromptTokens,
+                        _llmService.LastCompletionTokens,
+                        _llmService.LastTotalTokens,
+                        _llmService.LastWasActualTokenUsage,
+                        !_llmService.LastIsProviderFallback && !streamCompletedWithoutContent,
+                        _llmService.LastIsProviderFallback || streamCompletedWithoutContent,
+                        streamCompletedWithoutContent ? "LLM stream completed without content." : _llmService.LastErrorMessage);
+
+                    _logger.LogInformation(
+                        "LLM stream completed. Provider={Provider}, Model={Model}, IsSuccess={IsSuccess}, IsProviderFallback={IsProviderFallback}, Error={Error}, ContentLength={ContentLength}, InputTokens={InputTokens}, OutputTokens={OutputTokens}, TotalTokens={TotalTokens}, WasActualTokenUsage={WasActualTokenUsage}, RetrievedChunks={RetrievedChunks}, StreamedChunks={StreamedChunks}",
+                        _llmService.GetType().Name,
+                        llmResult.ModelName,
+                        llmResult.IsSuccess,
+                        llmResult.IsProviderFallback,
+                        llmResult.ErrorMessage,
+                        llmResult.Content.Length,
+                        llmResult.InputTokens,
+                        llmResult.OutputTokens,
+                        llmResult.TotalTokens,
+                        llmResult.WasActualTokenUsage,
+                        contextDocs.Count,
+                        streamedChunkCount);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Streaming failed. Falling back to synchronous generation.");
-                    // If stream fails, fallback to generate answer synchronously
-                    var fallbackAnswer = await _llmService.GenerateAnswerAsync(prompt);
-                    accumulatedText.Clear();
-                    accumulatedText.Append(fallbackAnswer);
-                    await _realtimeService.SendChatChunkAsync(sessionId, assistantMessageId, fallbackAnswer, cancellationToken);
+                    _logger.LogError(ex, "LLM generation failed.");
+                    await _realtimeService.SendChatFailedAsync(
+                        sessionId,
+                        assistantMessageId,
+                        FriendlyAiUnavailableMessage,
+                        cancellationToken);
+
+                    if (isStudent)
+                    {
+                        await _creditService.LogBlockedAttemptAsync(
+                            session.UserId,
+                            CreditBlockedReason.PROVIDER_ERROR,
+                            session.DatasetId,
+                            sessionId,
+                            userQuestion,
+                            note: ex.Message,
+                            cancellationToken: cancellationToken);
+                    }
+
+                    throw new InvalidOperationException(FriendlyAiUnavailableMessage, ex);
                 }
+            }
+
+            if (isDocumentScopedQuestion && llmResult != null && (!llmResult.IsSuccess || llmResult.IsProviderFallback))
+            {
+                _logger.LogWarning(
+                    "LLM provider did not return a chargeable answer. Provider={Provider}, Model={Model}, IsSuccess={IsSuccess}, IsProviderFallback={IsProviderFallback}, Error={Error}, ContentLength={ContentLength}, RetrievedChunks={RetrievedChunks}, StreamedChunks={StreamedChunks}",
+                    _llmService.GetType().Name,
+                    llmResult.ModelName,
+                    llmResult.IsSuccess,
+                    llmResult.IsProviderFallback,
+                    llmResult.ErrorMessage,
+                    llmResult.Content.Length,
+                    contextDocs.Count,
+                    streamedChunkCount);
+
+                await _realtimeService.SendChatFailedAsync(
+                    sessionId,
+                    assistantMessageId,
+                    FriendlyAiUnavailableMessage,
+                    cancellationToken);
+
+                if (isStudent)
+                {
+                    await _creditService.LogBlockedAttemptAsync(
+                        session.UserId,
+                        CreditBlockedReason.PROVIDER_ERROR,
+                        session.DatasetId,
+                        sessionId,
+                        userQuestion,
+                        note: llmResult.ErrorMessage ?? "Provider did not return a valid answer.",
+                        cancellationToken: cancellationToken);
+                }
+
+                throw new InvalidOperationException(FriendlyAiUnavailableMessage);
             }
 
             var finalContent = accumulatedText.ToString();
@@ -164,17 +323,76 @@ namespace RagChatbotSystem.Business.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            await _messageRepository.AddAsync(assistantMessage, cancellationToken);
-
             var citations = BuildCitations(contextDocs, assistantMessage.MessageId);
-            if (citations.Count > 0)
-            {
-                await _citationRepository.AddRangeAsync(citations, cancellationToken);
-            }
+            CreditSpendResultDto? creditSpend = null;
 
-            session.UpdatedAt = DateTime.UtcNow;
-            _sessionRepository.Update(session);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await using (var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken))
+                {
+                    await _messageRepository.AddAsync(assistantMessage, cancellationToken);
+
+                    if (citations.Count > 0)
+                    {
+                        await _citationRepository.AddRangeAsync(citations, cancellationToken);
+                    }
+
+                    session.UpdatedAt = DateTime.UtcNow;
+                    _sessionRepository.Update(session);
+                    await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                    if (isDocumentScopedQuestion && llmResult != null && llmResult.IsSuccess && !llmResult.IsProviderFallback && llmResult.TotalTokens > 0)
+                    {
+                        await _tokenUsageService.RecordUsageAsync(session.UserId, session.DatasetId, llmResult.TotalTokens, cancellationToken);
+                    }
+
+                    if (isStudent && creditSystemEnabled && isDocumentScopedQuestion && llmResult != null)
+                    {
+                        if (llmResult.IsSuccess && !llmResult.IsProviderFallback)
+                        {
+                            creditSpend = await _creditService.SpendForChatAnswerAsync(
+                                session.UserId,
+                                session.DatasetId,
+                                sessionId,
+                                assistantMessage.MessageId,
+                                llmResult.InputTokens,
+                                llmResult.OutputTokens,
+                                llmResult.TotalTokens,
+                                llmResult.ModelName,
+                                llmResult.WasActualTokenUsage,
+                                cancellationToken);
+                            creditBalance = await _creditService.GetStudentCreditSummaryAsync(session.UserId, cancellationToken);
+                        }
+                        else
+                        {
+                            await _creditService.LogBlockedAttemptAsync(
+                                session.UserId,
+                                CreditBlockedReason.PROVIDER_ERROR,
+                                session.DatasetId,
+                                sessionId,
+                                userQuestion,
+                                note: llmResult.ErrorMessage ?? "Provider fallback answer was not charged.",
+                                cancellationToken: cancellationToken);
+                        }
+                    }
+
+                    await transaction.CommitAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist streamed chat answer.");
+                if (streamedAnyChunk)
+                {
+                    await _realtimeService.SendChatFailedAsync(
+                        sessionId,
+                        assistantMessageId,
+                        "The answer was not saved, so it was not charged. Please try again.",
+                        cancellationToken);
+                }
+
+                throw;
+            }
 
             // Fetch loaded citations for DTO formatting (e.g. includes Document name)
             var savedCitations = await _citationRepository.GetQueryable()
@@ -183,15 +401,32 @@ namespace RagChatbotSystem.Business.Services
                 .ToListAsync(cancellationToken);
 
             var assistantMessageDto = ToDto(assistantMessage);
-            var citationDtos = savedCitations.Select(ToDto).ToList();
+            var citationMetadata = contextDocs
+                .Select(doc => new { ChunkId = TryGetGuidMetadata(doc.Metadata, "id"), doc.Metadata })
+                .Where(item => item.ChunkId.HasValue)
+                .ToDictionary(item => item.ChunkId!.Value, item => item.Metadata);
+            var citationDtos = savedCitations
+                .Select(citation => ToDto(citation, citationMetadata.GetValueOrDefault(citation.ChunkId)))
+                .ToList();
 
             // Push completion payload via SignalR
-            await _realtimeService.SendChatCompleteAsync(sessionId, assistantMessageDto, citationDtos, cancellationToken);
+            await _realtimeService.SendChatCompleteAsync(sessionId, assistantMessageDto, citationDtos, creditSpend, creditBalance, cancellationToken);
+            if (isStudent && creditBalance != null)
+            {
+                await _realtimeService.SendCreditBalanceChangedAsync(
+                    session.UserId,
+                    creditBalance,
+                    "chat-spend",
+                    creditSpend,
+                    cancellationToken);
+            }
 
             return new SendChatMessageResponse(
                 ToDto(userMessage),
                 assistantMessageDto,
-                citationDtos);
+                citationDtos,
+                creditSpend,
+                creditBalance);
         }
 
         private static bool LooksLikeNoInformationAnswer(string answer)
@@ -354,6 +589,42 @@ namespace RagChatbotSystem.Business.Services
             builder.Append("Các nguồn tham khảo đã được gắn ở phần View Sources.");
             return builder.ToString();
         }
+        private async Task<List<DocumentModelDto>> FilterActiveCompletedContextAsync(
+            IReadOnlyList<DocumentModelDto> candidates,
+            Guid datasetId,
+            CancellationToken cancellationToken)
+        {
+            var chunkIds = candidates
+                .Select(doc => TryGetGuidMetadata(doc.Metadata, "id"))
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .ToHashSet();
+
+            if (chunkIds.Count == 0)
+            {
+                return new List<DocumentModelDto>();
+            }
+
+            var activeChunkIds = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(c => chunkIds.Contains(c.ChunkId) &&
+                    c.DatasetId == datasetId &&
+                    !c.Document.IsDeleted &&
+                    c.Document.Status == "Completed")
+                .Select(c => c.ChunkId)
+                .ToListAsync(cancellationToken);
+
+            var activeSet = activeChunkIds.ToHashSet();
+
+            return candidates
+                .Where(doc =>
+                {
+                    var chunkId = TryGetGuidMetadata(doc.Metadata, "id");
+                    return chunkId.HasValue && activeSet.Contains(chunkId.Value);
+                })
+                .Take(3)
+                .ToList();
+        }
 
         private static List<Citation> BuildCitations(IReadOnlyList<DocumentModelDto> contextDocs, Guid messageId)
         {
@@ -395,18 +666,24 @@ namespace RagChatbotSystem.Business.Services
                 message.CreatedAt);
         }
 
-        private static CitationDto ToDto(Citation citation)
+        private static CitationDto ToDto(Citation citation, Dictionary<string, object>? metadata = null)
         {
+            var fileName = citation.Document?.FileName ?? citation.SourceLabel;
+            var fileType = citation.Document?.FileType
+                ?? GetMetadataString(metadata ?? new Dictionary<string, object>(), "file_type")
+                ?? Path.GetExtension(fileName ?? string.Empty).TrimStart('.').ToLowerInvariant();
             return new CitationDto(
                 citation.CitationId,
                 citation.MessageId,
                 citation.ChunkId,
                 citation.DocumentId,
-                citation.Document?.FileName ?? citation.SourceLabel,
+                fileName,
                 citation.PageNumber,
                 citation.QuoteText,
                 citation.SourceLabel,
-                citation.CreatedAt);
+                citation.CreatedAt,
+                fileType,
+                citation.Chunk?.ChunkIndex ?? (metadata == null ? null : GetMetadataInt(metadata, "chunk_index")));
         }
 
         private static int? GetMetadataInt(Dictionary<string, object> metadata, string key)
@@ -432,6 +709,13 @@ namespace RagChatbotSystem.Business.Services
             }
 
             return int.TryParse(value.ToString(), out var parsed) ? parsed : null;
+        }
+
+        private static Guid? TryGetGuidMetadata(Dictionary<string, object> metadata, string key)
+        {
+            return metadata.TryGetValue(key, out var value) && Guid.TryParse(value?.ToString(), out var parsed)
+                ? parsed
+                : null;
         }
 
         private static string? GetMetadataString(Dictionary<string, object> metadata, string key)

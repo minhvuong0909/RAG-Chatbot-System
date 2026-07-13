@@ -31,10 +31,43 @@ namespace RagChatbotSystem.Presentation.Services
                 .SendAsync("ReceiveChatChunk", messageId, chunk, cancellationToken);
         }
 
-        public async Task SendChatCompleteAsync(Guid sessionId, ChatMessageDto message, IReadOnlyList<CitationDto> citations, CancellationToken cancellationToken = default)
+        public async Task SendChatCompleteAsync(
+            Guid sessionId,
+            ChatMessageDto message,
+            IReadOnlyList<CitationDto> citations,
+            CreditSpendResultDto? creditSpend = null,
+            CreditBalanceDto? creditBalance = null,
+            CancellationToken cancellationToken = default)
         {
             await _chatHubContext.Clients.Group($"session_{sessionId}")
-                .SendAsync("ReceiveChatComplete", message, citations, cancellationToken);
+                .SendAsync("ReceiveChatComplete", message, citations, new
+                {
+                    creditSpend,
+                    creditBalance
+                }, cancellationToken);
+        }
+
+        public async Task SendChatFailedAsync(Guid sessionId, Guid messageId, string errorMessage, CancellationToken cancellationToken = default)
+        {
+            await _chatHubContext.Clients.Group($"session_{sessionId}")
+                .SendAsync("ReceiveChatFailed", messageId, errorMessage, cancellationToken);
+        }
+
+        public Task SendCreditBalanceChangedAsync(
+            Guid userId,
+            CreditBalanceDto balance,
+            string reason,
+            CreditSpendResultDto? creditSpend = null,
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationHubContext.Clients.Group($"user_{userId}")
+                .SendAsync("CreditBalanceChanged", new
+                {
+                    reason,
+                    balance,
+                    creditSpend,
+                    changedAt = DateTimeOffset.UtcNow
+                }, cancellationToken);
         }
 
         public async Task SendDocumentProgressAsync(Guid datasetId, Guid documentId, string status, int percentComplete, CancellationToken cancellationToken = default)

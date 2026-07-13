@@ -66,19 +66,19 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
         {
             if (StudentsFile == null || StudentsFile.Length == 0)
             {
-                ErrorMessage = "Please choose an XLSX file to import students.";
+                ErrorMessage = "Vui lòng chọn tệp XLSX để nhập danh sách sinh viên.";
                 return RedirectToPage();
             }
 
             if (!string.Equals(Path.GetExtension(StudentsFile.FileName), ".xlsx", StringComparison.OrdinalIgnoreCase))
             {
-                ErrorMessage = "Only XLSX files are supported.";
+                ErrorMessage = "Hệ thống chỉ hỗ trợ tệp XLSX.";
                 return RedirectToPage();
             }
 
             if (StudentsFile.Length > MaxImportFileSize)
             {
-                ErrorMessage = "The XLSX file must be 5 MB or smaller.";
+                ErrorMessage = "Tệp XLSX không được vượt quá 5 MB.";
                 return RedirectToPage();
             }
 
@@ -91,24 +91,24 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             {
                 if (!IsSmtpConfigured())
                 {
-                    ErrorMessage = "SMTP email is not configured. Configure Smtp settings before importing students.";
+                    ErrorMessage = "Email SMTP chưa được cấu hình. Vui lòng cấu hình SMTP trước khi nhập sinh viên.";
                     return RedirectToPage();
                 }
 
                 await using var stream = StudentsFile.OpenReadStream();
                 var result = await _userService.ImportStudentsFromXlsxAsync(stream, adminUserId, cancellationToken);
-                SuccessMessage = $"Student import completed. Created {result.CreatedCount}/{result.TotalRows} accounts. Failed {result.FailedCount}.";
+                SuccessMessage = $"Đã nhập sinh viên: tạo thành công {result.CreatedCount}/{result.TotalRows} tài khoản, thất bại {result.FailedCount}.";
                 ImportErrors = string.Join(" | ", result.Rows
                     .Where(row => !row.Success)
                     .Take(8)
-                    .Select(row => $"Row {row.RowNumber}: {row.ErrorMessage}"));
+                    .Select(row => $"Dòng {row.RowNumber}: {row.ErrorMessage}"));
 
                 await _realtimeNotifier.AdminChangedAsync("students-imported", SuccessMessage, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to import student accounts.");
-                ErrorMessage = $"Student import failed: {ex.Message}";
+                ErrorMessage = $"Không thể nhập danh sách sinh viên: {ex.Message}";
             }
 
             return RedirectToPage();
@@ -132,7 +132,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             {
                 if (!IsSmtpConfigured())
                 {
-                    ErrorMessage = "SMTP email is not configured. Configure Smtp settings before creating teacher accounts.";
+                    ErrorMessage = "Email SMTP chưa được cấu hình. Vui lòng cấu hình SMTP trước khi tạo tài khoản giảng viên.";
                     return RedirectToPage();
                 }
 
@@ -141,13 +141,13 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
                     adminUserId,
                     cancellationToken);
 
-                SuccessMessage = $"Teacher account created and emailed to {provisioned.Email}. Username: {provisioned.Username}.";
+                SuccessMessage = $"Đã tạo tài khoản giảng viên và gửi tới {provisioned.Email}. Tên đăng nhập: {provisioned.Username}.";
                 await _realtimeNotifier.AdminChangedAsync("teacher-created", SuccessMessage, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create teacher account for {Email}.", TeacherInput.Email);
-                ErrorMessage = $"Teacher creation failed: {ex.Message}";
+                ErrorMessage = $"Không thể tạo tài khoản giảng viên: {ex.Message}";
             }
 
             return RedirectToPage();
@@ -185,7 +185,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
                         cancellationToken);
                 }
 
-                SuccessMessage = "Teacher assigned to subject successfully.";
+                SuccessMessage = "Đã phân công môn học cho giảng viên.";
             }
             catch (Exception ex)
             {
@@ -207,7 +207,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
 
                 if (!removed)
                 {
-                    ErrorMessage = "Teacher assignment was not found.";
+                    ErrorMessage = "Không tìm thấy phân công giảng viên cần gỡ.";
                     return RedirectToPage();
                 }
 
@@ -220,7 +220,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
                         cancellationToken);
                 }
 
-                SuccessMessage = "Teacher assignment removed.";
+                SuccessMessage = "Đã gỡ phân công giảng viên khỏi môn học.";
             }
             catch (Exception ex)
             {
@@ -251,7 +251,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             }
 
             await _realtimeNotifier.UserApprovalChangedAsync(userId, approve, cancellationToken);
-            SuccessMessage = approve ? "Teacher account approved." : "Teacher account deactivated.";
+            SuccessMessage = approve ? "Đã kích hoạt tài khoản giảng viên." : "Đã khóa tài khoản giảng viên.";
             return RedirectToPage();
         }
 
@@ -261,7 +261,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
             var datasets = await _datasetService.GetDatasetsAsync(cancellationToken: cancellationToken);
             Assignments = await _datasetService.GetTeacherAssignmentsAsync(cancellationToken);
             ApprovedTeachers = Users.Where(user => user.Role == "Teacher" && user.IsApproved).ToList();
-            UnassignedDatasets = datasets.Where(dataset => dataset.AssignedTeacherId == null).ToList();
+            UnassignedDatasets = datasets.Where(dataset => !dataset.IsArchived && dataset.AssignedTeacherId == null).ToList();
         }
 
         private bool TryGetCurrentUserId(out Guid userId)
@@ -279,16 +279,16 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
 
         public sealed class CreateTeacherInput
         {
-            [Required(ErrorMessage = "Teacher name is required.")]
+            [Required(ErrorMessage = "Vui lòng nhập họ tên giảng viên.")]
             [StringLength(120)]
             public string FullName { get; set; } = string.Empty;
 
-            [Required(ErrorMessage = "Teacher email is required.")]
-            [EmailAddress(ErrorMessage = "Teacher email is invalid.")]
+            [Required(ErrorMessage = "Vui lòng nhập email giảng viên.")]
+            [EmailAddress(ErrorMessage = "Email giảng viên không hợp lệ.")]
             [StringLength(256)]
             public string Email { get; set; } = string.Empty;
 
-            [MinLength(1, ErrorMessage = "Select at least one subject.")]
+            [MinLength(1, ErrorMessage = "Vui lòng chọn ít nhất một môn học.")]
             public List<Guid> DatasetIds { get; set; } = new();
         }
 

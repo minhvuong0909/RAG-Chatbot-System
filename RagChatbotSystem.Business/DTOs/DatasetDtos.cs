@@ -13,7 +13,10 @@ namespace RagChatbotSystem.Business.DTOs
         bool IsPublic,
         bool IsApproved,
         Guid? AssignedTeacherId = null,
-        string? AssignedTeacherName = null);
+        string? AssignedTeacherName = null,
+        bool IsArchived = false,
+        DateTime? ArchivedAt = null,
+        Guid? ArchivedBy = null);
 
     public sealed record CreateDatasetRequest(
         string Name,

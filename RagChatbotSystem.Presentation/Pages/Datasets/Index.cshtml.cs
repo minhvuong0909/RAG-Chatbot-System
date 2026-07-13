@@ -51,7 +51,7 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading datasets list.");
-                ErrorMessage = $"System error: {ex.Message}";
+                ErrorMessage = "Không thể tải danh sách môn học. Vui lòng thử lại sau.";
             }
 
             return Page();
@@ -71,7 +71,7 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                return RedirectToPage("/Datasets/Index", new { error = "Subject name is required." });
+                return RedirectToPage("/Datasets/Index", new { error = "Vui lòng nhập tên môn học." });
             }
 
             try
@@ -82,12 +82,12 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
 
                 await _realtimeNotifier.DatasetChangedAsync("created", dataset, HttpContext.RequestAborted);
 
-                return RedirectToPage("/Datasets/Index", new { success = $"Subject '{dataset.Name}' created successfully." });
+                return RedirectToPage("/Datasets/Index", new { success = $"Đã tạo môn học \"{dataset.Name}\"." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create dataset.");
-                return RedirectToPage("/Datasets/Index", new { error = ex.Message });
+                return RedirectToPage("/Datasets/Index", new { error = "Không thể tạo môn học. Vui lòng kiểm tra thông tin và thử lại." });
             }
         }
 
@@ -101,7 +101,7 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
             var dataset = await _datasetService.GetDatasetAsync(id, HttpContext.RequestAborted);
             if (dataset == null)
             {
-                return RedirectToPage("/Datasets/Index", new { error = "Subject was not found." });
+                return RedirectToPage("/Datasets/Index", new { error = "Không tìm thấy môn học." });
             }
 
             if (role != "Admin" && dataset.CreatedBy != currentUserId)
@@ -111,18 +111,19 @@ namespace RagChatbotSystem.Presentation.Pages.Datasets
 
             try
             {
-                var deleted = await _datasetService.DeleteDatasetAsync(id, HttpContext.RequestAborted);
-                if (deleted)
+                var archived = await _datasetService.ArchiveDatasetAsync(id, archived: true, currentUserId, HttpContext.RequestAborted);
+                if (archived)
                 {
-                    await _realtimeNotifier.DatasetChangedAsync("deleted", dataset, HttpContext.RequestAborted);
+                    var archivedDataset = await _datasetService.GetDatasetAsync(id, HttpContext.RequestAborted);
+                    await _realtimeNotifier.DatasetChangedAsync("archived", archivedDataset ?? dataset, HttpContext.RequestAborted);
                 }
 
-                return RedirectToPage("/Datasets/Index", new { success = deleted ? "Subject deleted successfully." : "Subject was not found." });
+                return RedirectToPage("/Datasets/Index", new { success = archived ? "Đã ngừng sử dụng môn học. Tài liệu và dữ liệu truy vết vẫn được giữ lại." : "Không tìm thấy môn học." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to delete dataset {DatasetId}.", id);
-                return RedirectToPage("/Datasets/Index", new { error = $"Delete subject failed: {ex.Message}" });
+                _logger.LogError(ex, "Failed to archive dataset {DatasetId}.", id);
+                return RedirectToPage("/Datasets/Index", new { error = "Không thể ngừng sử dụng môn học. Vui lòng thử lại." });
             }
         }
 

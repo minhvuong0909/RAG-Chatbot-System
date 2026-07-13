@@ -30,6 +30,9 @@ Desktop.ini
 .env.local
 .env.*.local
 .env.deployment
+.history/
+.playwright-cli/
+output/
 # Runtime uploaded files
 **/wwwroot/uploads/
 
