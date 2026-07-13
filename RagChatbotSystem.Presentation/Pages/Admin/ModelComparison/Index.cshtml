@@ -7,7 +7,6 @@
     {
         "Groq" => "Groq (Llama 3.3 70B)",
         "Gemini" => "Google Gemini",
-        "Ollama" => "Ollama (Local)",
         _ => key
     };
 }
@@ -34,6 +33,7 @@
         }
         <a asp-page="/Admin/Reports">Báo cáo</a>
         <a class="active" asp-page="/Admin/ModelComparison/Index" aria-current="page">So sánh mô hình</a>
+        <a asp-page="/Admin/ModelComparison/History">Lịch sử &amp; Báo cáo</a>
         @if (User.IsInRole("Admin"))
         {
             <a asp-page="/Admin/Credits/Index">Credit</a>
@@ -86,10 +86,6 @@
                 <span asp-validation-for="Input.Providers" class="text-danger small"></span>
             </div>
 
-            <div class="alert alert-warning settings-note">
-                Ollama chạy local trên máy chủ ứng dụng (mặc định <code>http://localhost:11434</code>). Cần cài Ollama và tải sẵn model (<code>ollama pull llama3</code>) trước khi thử nghiệm, nếu không kết quả của Ollama sẽ báo lỗi kết nối.
-            </div>
-
             <button type="submit" class="btn btn-primary">Chạy thử nghiệm</button>
         </form>
     </section>
@@ -118,7 +114,15 @@
                             <span><strong>Model:</strong> @result.ModelName</span>
                             <span><strong>Thời gian:</strong> @result.LatencyMs ms</span>
                             <span><strong>Token:</strong> @result.InputTokens vào / @result.OutputTokens ra / @result.TotalTokens tổng</span>
+                            @if (result.QualityScore.HasValue)
+                            {
+                                <span><strong>Điểm chất lượng (AI chấm):</strong> @result.QualityScore/10</span>
+                            }
                         </div>
+                        @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
+                        {
+                            <div class="model-comparison-card-judge">@result.QualityReasoning</div>
+                        }
                         @if (result.IsSuccess)
                         {
                             <div class="model-comparison-card-answer">@result.Answer</div>
@@ -147,5 +151,6 @@
         .model-comparison-card-meta { color: var(--muted); display: grid; font-size: .78rem; gap: 3px; }
         .model-comparison-card-answer { border-top: 1px solid var(--line); font-size: .88rem; line-height: 1.5; padding-top: 10px; white-space: pre-wrap; }
         .model-comparison-card-answer-error { color: #e0554f; }
+        .model-comparison-card-judge { background: var(--surface-muted); border-radius: 6px; color: var(--muted); font-size: .78rem; font-style: italic; padding: 8px 10px; }
     </style>
 }

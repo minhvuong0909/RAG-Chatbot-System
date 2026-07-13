@@ -1,0 +1,184 @@
+@page
+@using System.Text.Json
+@model RagChatbotSystem.Presentation.Pages.Admin.ModelComparison.HistoryModel
+@{
+    ViewData["Title"] = "Lịch sử & Báo cáo so sánh mô hình";
+
+    string ProviderLabel(string key) => key switch
+    {
+        "Groq" => "Groq (Llama 3.3 70B)",
+        "Gemini" => "Google Gemini",
+        _ => key
+    };
+
+    var hasStats = Model.Stats.ProviderStats.Count > 0;
+    var statLabels = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => ProviderLabel(s.ProviderKey)));
+    var statLatency = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgLatencyMs, 0)));
+    var statScore = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgQualityScore.HasValue ? Math.Round(s.AvgQualityScore.Value, 1) : (double?)null));
+}
+
+<section class="admin-page" data-admin-page>
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Quản trị</p>
+            <h1>Lịch sử &amp; Báo cáo so sánh mô hình</h1>
+            <p class="helper-text">Tổng hợp các lần chạy so sánh model trước đây — độ trễ trung bình và điểm chất lượng do AI chấm.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Khu vực quản trị">
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Index">Tổng quan</a>
+            <a asp-page="/Admin/Datasets/Index">Môn học</a>
+        }
+        else
+        {
+            <a asp-page="/Index">Không gian học tập</a>
+            <a asp-page="/Datasets/Index">Môn học</a>
+        }
+        <a asp-page="/Admin/Reports">Báo cáo</a>
+        <a asp-page="/Admin/ModelComparison/Index">So sánh mô hình</a>
+        <a class="active" asp-page="/Admin/ModelComparison/History" aria-current="page">Lịch sử &amp; Báo cáo</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Credits/Index">Credit</a>
+            <a asp-page="/Admin/Settings">Cài đặt</a>
+        }
+    </nav>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Tổng hợp theo model</h2>
+        </div>
+        @if (hasStats)
+        {
+            <div class="mc-history-chart-grid">
+                <div class="mc-history-chart-frame"><canvas id="latencyChart"></canvas></div>
+                <div class="mc-history-chart-frame"><canvas id="scoreChart"></canvas></div>
+            </div>
+        }
+        else
+        {
+            <div class="mc-history-empty">Chưa có dữ liệu lịch sử để tổng hợp.</div>
+        }
+    </section>
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Lịch sử chạy gần đây</h2>
+            <span>@Model.Runs.Count lần chạy</span>
+        </div>
+
+        @if (Model.Runs.Count == 0)
+        {
+            <div class="mc-history-empty">Chưa có lần chạy nào được lưu.</div>
+        }
+        else
+        {
+            <div class="mc-history-table-scroll">
+                <table class="mc-history-table">
+                    <thead>
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Môn học</th>
+                            <th>Câu hỏi</th>
+                            <th>Model</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thời gian (ms)</th>
+                            <th class="text-end">Token</th>
+                            <th class="text-end">Điểm</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var run in Model.Runs)
+                        {
+                            @foreach (var result in run.Results)
+                            {
+                                <tr>
+                                    <td>@run.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@run.DatasetName</td>
+                                    <td><span title="@run.Question">@run.Question</span></td>
+                                    <td>@ProviderLabel(result.ProviderKey)</td>
+                                    <td>
+                                        <span class="status-pill @(result.IsSuccess ? "dataset-approved-pill" : "processing")">
+                                            @(result.IsSuccess ? "Thành công" : "Lỗi")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">@result.LatencyMs</td>
+                                    <td class="text-end">@result.TotalTokens</td>
+                                    <td class="text-end">@(result.QualityScore.HasValue ? $"{result.QualityScore}/10" : "-")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</section>
+
+@section Scripts {
+    <style>
+        .mc-history-chart-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .mc-history-chart-frame { position: relative; height: 280px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 12px; }
+        .mc-history-empty { border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); padding: 24px; text-align: center; }
+        .mc-history-table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+        .mc-history-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: .85rem; }
+        .mc-history-table th { position: sticky; top: 0; background: var(--surface-muted); text-align: left; padding: 8px 10px; white-space: nowrap; }
+        .mc-history-table td { border-top: 1px solid var(--line); padding: 8px 10px; vertical-align: top; }
+        .mc-history-table td span[title] { display: block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .text-end { text-align: right; }
+    </style>
+
+    @if (hasStats)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const labels = @Html.Raw(statLabels);
+
+                const latencyCanvas = document.getElementById("latencyChart");
+                if (latencyCanvas && typeof Chart !== "undefined") {
+                    new Chart(latencyCanvas, {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: "Độ trễ trung bình (ms)",
+                                data: @Html.Raw(statLatency),
+                                backgroundColor: "#2563eb"
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { title: { display: true, text: "Độ trễ trung bình theo model" } }
+                        }
+                    });
+                }
+
+                const scoreCanvas = document.getElementById("scoreChart");
+                if (scoreCanvas && typeof Chart !== "undefined") {
+                    new Chart(scoreCanvas, {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: "Điểm chất lượng trung bình (/10)",
+                                data: @Html.Raw(statScore),
+                                backgroundColor: "#0f766e"
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { min: 0, max: 10 } },
+                            plugins: { title: { display: true, text: "Điểm chất lượng trung bình theo model" } }
+                        }
+                    });
+                }
+            });
+        </script>
+    }
+}

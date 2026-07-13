@@ -64,7 +64,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
 
             try
             {
-                Result = await _modelComparisonService.CompareAsync(Input.DatasetId, Input.Question.Trim(), Input.Providers ?? new List<string>());
+                Result = await _modelComparisonService.CompareAsync(Input.DatasetId, Input.Question.Trim(), Input.Providers ?? new List<string>(), userId);
             }
             catch (Exception ex)
             {
