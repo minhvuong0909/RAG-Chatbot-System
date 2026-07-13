@@ -214,7 +214,7 @@ namespace RagChatbotSystem.Business.Services
                     g.Count(),
                     g.Average(x => x.IsSuccess ? (double?)x.LatencyMs : null) ?? 0,
                     g.Average(x => x.IsSuccess ? (double?)x.QualityScore : null),
-                    g.Count(x => x.IsSuccess) * 100.0 / g.Count()))
+                    g.Average(x => x.IsSuccess ? (double?)x.TotalTokens : null) ?? 0))
                 .ToListAsync(cancellationToken);
 
             return new ModelComparisonStatsDto(grouped);

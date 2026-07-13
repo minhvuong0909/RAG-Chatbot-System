@@ -7,7 +7,7 @@ namespace RagChatbotSystem.Business.DTOs
         int RunCount,
         double AvgLatencyMs,
         double? AvgQualityScore,
-        double SuccessRatePercent);
+        double AvgTotalTokens);
 
     public sealed record ModelComparisonStatsDto(
         IReadOnlyList<ModelComparisonProviderStatDto> ProviderStats);

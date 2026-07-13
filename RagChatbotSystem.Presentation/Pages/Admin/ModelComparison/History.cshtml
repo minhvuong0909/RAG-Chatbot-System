@@ -16,7 +16,7 @@
     var statLabels = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => ProviderLabel(s.ProviderKey)));
     var statLatency = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgLatencyMs, 0)));
     var statScore = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgQualityScore.HasValue ? Math.Round(s.AvgQualityScore.Value, 1) : (double?)null));
-    var statSuccessRate = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.SuccessRatePercent, 0)));
+    var statTokens = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgTotalTokens, 0)));
 }
 
 <section class="admin-page" data-admin-page>
@@ -51,7 +51,7 @@
         @if (hasStats)
         {
             <div class="mc-history-chart-grid">
-                <div class="mc-history-chart-frame"><canvas id="successRateChart"></canvas></div>
+                <div class="mc-history-chart-frame"><canvas id="tokensChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="latencyChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="scoreChart"></canvas></div>
             </div>
@@ -136,23 +136,22 @@
             document.addEventListener("DOMContentLoaded", () => {
                 const labels = @Html.Raw(statLabels);
 
-                const successRateCanvas = document.getElementById("successRateChart");
-                if (successRateCanvas && typeof Chart !== "undefined") {
-                    new Chart(successRateCanvas, {
+                const tokensCanvas = document.getElementById("tokensChart");
+                if (tokensCanvas && typeof Chart !== "undefined") {
+                    new Chart(tokensCanvas, {
                         type: "bar",
                         data: {
                             labels: labels,
                             datasets: [{
-                                label: "Tỷ lệ thành công (%)",
-                                data: @Html.Raw(statSuccessRate),
+                                label: "Token trung bình / lần trả lời",
+                                data: @Html.Raw(statTokens),
                                 backgroundColor: "#d97706"
                             }]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            scales: { y: { min: 0, max: 100 } },
-                            plugins: { title: { display: true, text: "Tỷ lệ thành công theo model" } }
+                            plugins: { title: { display: true, text: "Token trung bình theo model (chi phí)" } }
                         }
                     });
                 }
