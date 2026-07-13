@@ -75,7 +75,7 @@ namespace RagChatbotSystem.Business.Services
                 response.EnsureSuccessStatusCode();
 
                 var result = await response.Content.ReadFromJsonAsync<GroqResponse>();
-                var content = result?.Choices?[0]?.Message?.Content ?? string.Empty;
+                var content = StripReasoning(result?.Choices?[0]?.Message?.Content ?? string.Empty);
 
                 if (result?.Usage != null)
                 {
@@ -295,6 +295,17 @@ namespace RagChatbotSystem.Business.Services
         private static int EstimateTokens(string value)
         {
             return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));
+        }
+
+        // Một số model (ví dụ qwen/qwen3-32b) trả về block suy luận <think>...</think> lẫn trong content.
+        // Bỏ block này trước khi hiển thị; các model không có <think> (Llama...) không bị ảnh hưởng gì.
+        private static string StripReasoning(string content)
+        {
+            return System.Text.RegularExpressions.Regex.Replace(
+                content,
+                @"<think>.*?</think>",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
         }
 
         // Các class để deserialize phản hồi từ Groq API

@@ -18,8 +18,11 @@ namespace RagChatbotSystem.Business.Services
 {
     public class ModelComparisonService : IModelComparisonService
     {
-        // Model riêng cho giám khảo, khác dòng huấn luyện với Llama (Groq) và Gemini để giảm thiên vị tự chấm.
+        // Model riêng cho giám khảo, khác dòng huấn luyện với Llama và Qwen để giảm thiên vị tự chấm.
         private const string JudgeModel = "openai/gpt-oss-120b";
+
+        // Model Qwen dùng cho lựa chọn "Qwen" — cùng hạ tầng Groq (free tier) nhưng khác dòng huấn luyện với Llama.
+        private const string QwenModel = "qwen/qwen3-32b";
 
         private readonly IRagApiClient _ragApiClient;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -30,7 +33,9 @@ namespace RagChatbotSystem.Business.Services
         private readonly ILogger<GroqService> _groqLogger;
         private readonly ILogger<ModelComparisonService> _logger;
 
-        public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Gemini" };
+        // Đang dùng Qwen (miễn phí qua Groq). Muốn đổi lại Gemini: comment dòng Qwen, bỏ comment dòng Gemini bên dưới.
+        public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Qwen" };
+        // public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Gemini" };
 
         public ModelComparisonService(
             IRagApiClient ragApiClient,
@@ -86,58 +91,62 @@ namespace RagChatbotSystem.Business.Services
                 $"Câu hỏi: {question}\n" +
                 "Câu trả lời:";
 
-            var results = new List<ModelComparisonResultDto>();
+            var providerAnswers = new List<(string ProviderKey, string ModelName, LlmAnswerResult? Answer, long LatencyMs, string? ErrorMessage)>();
             foreach (var providerKey in providerKeys.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 var provider = CreateProvider(providerKey);
                 if (provider == null)
                 {
-                    results.Add(new ModelComparisonResultDto(providerKey, "-", string.Empty, 0, 0, 0, 0, false, "Provider không được hỗ trợ.", null, null));
+                    providerAnswers.Add((providerKey, "-", null, 0, "Provider không được hỗ trợ."));
                     continue;
                 }
 
+                var modelName = provider.ModelName;
                 var stopwatch = Stopwatch.StartNew();
                 try
                 {
                     var answer = await provider.GenerateAnswerWithUsageAsync(prompt);
                     stopwatch.Stop();
-
-                    (int? score, string? reasoning) judgeResult = (null, null);
-                    if (answer.IsSuccess)
-                    {
-                        judgeResult = await TryJudgeAsync(question, contextText, answer.Content, cancellationToken);
-                    }
-
-                    results.Add(new ModelComparisonResultDto(
-                        providerKey,
-                        answer.ModelName,
-                        answer.Content,
-                        stopwatch.ElapsedMilliseconds,
-                        answer.InputTokens,
-                        answer.OutputTokens,
-                        answer.TotalTokens,
-                        answer.IsSuccess,
-                        answer.ErrorMessage,
-                        judgeResult.score,
-                        judgeResult.reasoning));
+                    providerAnswers.Add((providerKey, modelName, answer, stopwatch.ElapsedMilliseconds, null));
                 }
                 catch (Exception ex)
                 {
                     stopwatch.Stop();
                     _logger.LogWarning(ex, "Model comparison call failed for provider {Provider}", providerKey);
-                    results.Add(new ModelComparisonResultDto(
-                        providerKey,
-                        provider.ModelName,
-                        string.Empty,
-                        stopwatch.ElapsedMilliseconds,
-                        0,
-                        0,
-                        0,
-                        false,
-                        ex.Message,
-                        null,
-                        null));
+                    providerAnswers.Add((providerKey, modelName, null, stopwatch.ElapsedMilliseconds, ex.Message));
                 }
+            }
+
+            // Chấm điểm so sánh trực tiếp giữa các câu trả lời thành công trong CÙNG 1 lần gọi giám khảo,
+            // thay vì chấm từng câu độc lập — ép giám khảo phải phân biệt chất lượng thay vì cho điểm na ná nhau.
+            var successfulAnswers = providerAnswers
+                .Where(p => p.Answer != null && p.Answer.IsSuccess)
+                .Select(p => (p.ProviderKey, Answer: p.Answer!.Content))
+                .ToList();
+            var judgeScores = await JudgeAllAsync(question, contextText, successfulAnswers, cancellationToken);
+
+            var results = new List<ModelComparisonResultDto>();
+            foreach (var pa in providerAnswers)
+            {
+                if (pa.Answer == null)
+                {
+                    results.Add(new ModelComparisonResultDto(pa.ProviderKey, pa.ModelName, string.Empty, pa.LatencyMs, 0, 0, 0, false, pa.ErrorMessage, null, null));
+                    continue;
+                }
+
+                var (score, reasoning) = judgeScores.TryGetValue(pa.ProviderKey, out var js) ? js : (null, null);
+                results.Add(new ModelComparisonResultDto(
+                    pa.ProviderKey,
+                    pa.Answer.ModelName,
+                    pa.Answer.Content,
+                    pa.LatencyMs,
+                    pa.Answer.InputTokens,
+                    pa.Answer.OutputTokens,
+                    pa.Answer.TotalTokens,
+                    pa.Answer.IsSuccess,
+                    pa.Answer.ErrorMessage,
+                    score,
+                    reasoning));
             }
 
             await PersistRunAsync(datasetId, question, contextDocs.Count, retrievalStopwatch.ElapsedMilliseconds, runByUserId, results, cancellationToken);
@@ -198,13 +207,14 @@ namespace RagChatbotSystem.Business.Services
             var runIds = runQuery.Select(r => r.Id);
 
             var grouped = await _resultRepository.GetQueryable().AsNoTracking()
-                .Where(res => res.IsSuccess && runIds.Contains(res.ModelComparisonRunId))
+                .Where(res => runIds.Contains(res.ModelComparisonRunId))
                 .GroupBy(res => res.ProviderKey)
                 .Select(g => new ModelComparisonProviderStatDto(
                     g.Key,
                     g.Count(),
-                    g.Average(x => (double)x.LatencyMs),
-                    g.Average(x => (double?)x.QualityScore)))
+                    g.Average(x => x.IsSuccess ? (double?)x.LatencyMs : null) ?? 0,
+                    g.Average(x => x.IsSuccess ? (double?)x.QualityScore : null),
+                    g.Average(x => x.IsSuccess ? (double?)x.TotalTokens : null) ?? 0))
                 .ToListAsync(cancellationToken);
 
             return new ModelComparisonStatsDto(grouped);
@@ -267,42 +277,60 @@ namespace RagChatbotSystem.Business.Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task<(int? Score, string? Reasoning)> TryJudgeAsync(
+        private async Task<Dictionary<string, (int? Score, string? Reasoning)>> JudgeAllAsync(
             string question,
             string contextText,
-            string candidateAnswer,
+            IReadOnlyList<(string ProviderKey, string Answer)> candidates,
             CancellationToken cancellationToken)
         {
+            var result = new Dictionary<string, (int? Score, string? Reasoning)>();
+            if (candidates.Count == 0)
+            {
+                return result;
+            }
+
             try
             {
-                var judgePrompt =
-                    "Bạn là giám khảo chấm điểm câu trả lời của một trợ lý AI. Dựa vào Ngữ cảnh và Câu hỏi dưới đây, hãy chấm điểm Câu trả lời theo thang điểm từ 1 đến 10 dựa trên độ chính xác, đầy đủ và mức độ liên quan tới Ngữ cảnh.\n" +
-                    "Chỉ trả lời đúng theo định dạng sau, không thêm gì khác: \"Điểm: X. Lý do: <giải thích ngắn gọn 1-2 câu>\" (X là số nguyên từ 1 đến 10).\n\n" +
-                    $"Ngữ cảnh:\n{contextText}\n\n" +
-                    $"Câu hỏi: {question}\n\n" +
-                    $"Câu trả lời cần chấm: {candidateAnswer}\n";
-
-                var judge = new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger, JudgeModel);
-                var judgeResponse = await judge.GenerateAnswerAsync(judgePrompt);
-
-                var scoreMatch = Regex.Match(judgeResponse, @"Điểm:\s*(\d{1,2})");
-                if (!scoreMatch.Success || !int.TryParse(scoreMatch.Groups[1].Value, out var score))
+                var promptBuilder = new System.Text.StringBuilder();
+                promptBuilder.AppendLine("Bạn là giám khảo chấm điểm SO SÁNH các câu trả lời AI cho CÙNG một câu hỏi, dựa trên CÙNG một ngữ cảnh.");
+                promptBuilder.AppendLine("Chấm mỗi câu theo thang điểm 1-10 dựa trên: độ chính xác, đầy đủ, mức độ bám sát ngữ cảnh (không cộng điểm cho nội dung không có trong ngữ cảnh dù đúng kiến thức chung). Hãy so sánh trực tiếp giữa các câu trả lời — chỉ cho điểm bằng nhau nếu chất lượng thực sự ngang nhau, đừng né tránh sự khác biệt.");
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine("Trả lời đúng định dạng sau, mỗi câu 1 dòng, không thêm gì khác:");
+                foreach (var candidate in candidates)
                 {
-                    return (null, null);
+                    promptBuilder.AppendLine($"{candidate.ProviderKey}: Điểm: X. Lý do: <giải thích ngắn gọn>");
+                }
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine($"Ngữ cảnh:\n{contextText}");
+                promptBuilder.AppendLine();
+                promptBuilder.AppendLine($"Câu hỏi: {question}");
+                promptBuilder.AppendLine();
+                foreach (var candidate in candidates)
+                {
+                    promptBuilder.AppendLine($"--- Câu trả lời của {candidate.ProviderKey} ---");
+                    promptBuilder.AppendLine(candidate.Answer);
+                    promptBuilder.AppendLine();
                 }
 
-                score = Math.Clamp(score, 1, 10);
+                var judge = new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger, JudgeModel);
+                var judgeResponse = await judge.GenerateAnswerAsync(promptBuilder.ToString());
 
-                var reasonMatch = Regex.Match(judgeResponse, @"Lý do:\s*(.+)", RegexOptions.Singleline);
-                var reasoning = reasonMatch.Success ? reasonMatch.Groups[1].Value.Trim() : null;
-
-                return (score, reasoning);
+                foreach (var candidate in candidates)
+                {
+                    var pattern = $@"^{Regex.Escape(candidate.ProviderKey)}:\s*Điểm:\s*(\d{{1,2}}).*?Lý do:\s*(.+)$";
+                    var match = Regex.Match(judgeResponse, pattern, RegexOptions.Multiline);
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out var score))
+                    {
+                        result[candidate.ProviderKey] = (Math.Clamp(score, 1, 10), match.Groups[2].Value.Trim());
+                    }
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Judge scoring failed, skipping quality score for this result.");
-                return (null, null);
+                _logger.LogWarning(ex, "Comparative judge scoring failed, skipping quality scores for this run.");
             }
+
+            return result;
         }
 
         private ILlmService? CreateProvider(string providerKey)
@@ -310,7 +338,8 @@ namespace RagChatbotSystem.Business.Services
             return providerKey switch
             {
                 "Groq" => new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger),
-                "Gemini" => new LlmService(_httpClientFactory.CreateClient("ModelComparison.Gemini"), _configuration),
+                "Qwen" => new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger, QwenModel),
+                // "Gemini" => new LlmService(_httpClientFactory.CreateClient("ModelComparison.Gemini"), _configuration),
                 _ => null
             };
         }

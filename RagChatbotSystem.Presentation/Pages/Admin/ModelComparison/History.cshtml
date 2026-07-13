@@ -7,7 +7,8 @@
     string ProviderLabel(string key) => key switch
     {
         "Groq" => "Groq (Llama 3.3 70B)",
-        "Gemini" => "Google Gemini",
+        "Qwen" => "Groq (Qwen 32B)",
+        // "Gemini" => "Google Gemini",
         _ => key
     };
 
@@ -15,6 +16,7 @@
     var statLabels = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => ProviderLabel(s.ProviderKey)));
     var statLatency = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgLatencyMs, 0)));
     var statScore = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgQualityScore.HasValue ? Math.Round(s.AvgQualityScore.Value, 1) : (double?)null));
+    var statTokens = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgTotalTokens, 0)));
 }
 
 <section class="admin-page" data-admin-page>
@@ -49,6 +51,7 @@
         @if (hasStats)
         {
             <div class="mc-history-chart-grid">
+                <div class="mc-history-chart-frame"><canvas id="tokensChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="latencyChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="scoreChart"></canvas></div>
             </div>
@@ -132,6 +135,26 @@
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 const labels = @Html.Raw(statLabels);
+
+                const tokensCanvas = document.getElementById("tokensChart");
+                if (tokensCanvas && typeof Chart !== "undefined") {
+                    new Chart(tokensCanvas, {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: "Token trung bình / lần trả lời",
+                                data: @Html.Raw(statTokens),
+                                backgroundColor: "#d97706"
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { title: { display: true, text: "Token trung bình theo model (chi phí)" } }
+                        }
+                    });
+                }
 
                 const latencyCanvas = document.getElementById("latencyChart");
                 if (latencyCanvas && typeof Chart !== "undefined") {
