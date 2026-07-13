@@ -34,12 +34,12 @@ namespace RagChatbotSystem.Business.Services
         public string? LastErrorMessage => _lastErrorMessage;
         public string ModelName => _model;
 
-        public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger)
+        public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger, string? modelOverride = null)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _model = configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
-            // Kiểm tra API key đã được cấu hình ở DI level 
+            _model = modelOverride ?? configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
+            // Kiểm tra API key đã được cấu hình ở DI level
             _hasApiKey = !string.IsNullOrWhiteSpace(configuration["Groq:ApiKey"]);
         }
 

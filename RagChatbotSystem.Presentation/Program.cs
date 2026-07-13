@@ -109,6 +109,26 @@ namespace RagChatbotSystem.Presentation
                 }
             });
 
+            // Named HttpClients dùng riêng cho tính năng so sánh model (Admin/ModelComparison),
+            // tách khỏi HttpClient đã đăng ký cho ILlmService để không ảnh hưởng luồng chat chính.
+            builder.Services.AddHttpClient("ModelComparison.Groq", client =>
+            {
+                client.BaseAddress = new Uri("https://api.groq.com/openai/v1/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+
+                var apiKey = builder.Configuration["Groq:ApiKey"];
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    client.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+                }
+            });
+
+            builder.Services.AddHttpClient("ModelComparison.Gemini", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+
             builder.Services.AddHttpClient<IPayOsService, PayOsService>(client =>
             {
                 client.BaseAddress = new Uri("https://api-merchant.payos.vn/");
@@ -132,6 +152,7 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<ICreditService, CreditService>();
             builder.Services.AddScoped<ICreditPurchaseService, CreditPurchaseService>();
             builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+            builder.Services.AddScoped<IModelComparisonService, ModelComparisonService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
             builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();

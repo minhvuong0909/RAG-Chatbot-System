@@ -1,0 +1,151 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.ModelComparison.IndexModel
+@{
+    ViewData["Title"] = "So sánh mô hình AI";
+
+    string ProviderLabel(string key) => key switch
+    {
+        "Groq" => "Groq (Llama 3.3 70B)",
+        "Gemini" => "Google Gemini",
+        _ => key
+    };
+}
+
+<section class="admin-page" data-admin-page>
+    <header class="admin-page-header">
+        <div>
+            <p class="eyebrow">Quản trị</p>
+            <h1>So sánh mô hình AI</h1>
+            <p class="helper-text">Chạy thử cùng một câu hỏi trên nhiều mô hình AI khác nhau để so sánh chất lượng câu trả lời, thời gian phản hồi và số Token sử dụng.</p>
+        </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Khu vực quản trị">
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Index">Tổng quan</a>
+            <a asp-page="/Admin/Datasets/Index">Môn học</a>
+            <a asp-page="/Admin/Reports">Báo cáo</a>
+            <a asp-page="/Admin/Credits/Index">Credit</a>
+        }
+        <a class="active" asp-page="/Admin/ModelComparison/Index" aria-current="page">So sánh mô hình</a>
+        <a asp-page="/Admin/ModelComparison/History">Lịch sử &amp; Báo cáo</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-page="/Admin/Settings">Cài đặt</a>
+        }
+    </nav>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <section class="admin-section">
+        <div class="section-title">
+            <h2>Chạy thử nghiệm</h2>
+        </div>
+
+        <form method="post" class="admin-form model-comparison-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+
+            <div class="form-group">
+                <label asp-for="Input.DatasetId">Môn học</label>
+                <select asp-for="Input.DatasetId">
+                    <option value="">Chọn môn học</option>
+                    @foreach (var dataset in Model.Datasets)
+                    {
+                        <option value="@dataset.DatasetId">@dataset.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="Input.DatasetId" class="text-danger small"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Input.Question">Câu hỏi thử nghiệm</label>
+                <textarea asp-for="Input.Question" rows="3" placeholder="Nhập câu hỏi để thử nghiệm trên các mô hình..."></textarea>
+                <span asp-validation-for="Input.Question" class="text-danger small"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Chọn mô hình để thử nghiệm</label>
+                <div class="model-comparison-providers">
+                    @foreach (var provider in Model.AvailableProviders)
+                    {
+                        <label class="model-comparison-provider-check">
+                            <input type="checkbox" name="Input.Providers" value="@provider" checked />
+                            @ProviderLabel(provider)
+                        </label>
+                    }
+                </div>
+                <span asp-validation-for="Input.Providers" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Chạy thử nghiệm</button>
+        </form>
+    </section>
+
+    @if (Model.Result != null)
+    {
+        <section class="admin-section">
+            <div class="section-title">
+                <h2>Kết quả so sánh</h2>
+                <span>@Model.Result.RetrievedChunkCount đoạn ngữ cảnh · Retrieval @Model.Result.RetrievalLatencyMs ms</span>
+            </div>
+
+            <p class="helper-text"><strong>Câu hỏi:</strong> @Model.Result.Question</p>
+
+            <div class="model-comparison-results">
+                @foreach (var result in Model.Result.Results)
+                {
+                    <div class="model-comparison-card @(result.IsSuccess ? "" : "model-comparison-card-error")">
+                        <div class="model-comparison-card-header">
+                            <strong>@ProviderLabel(result.ProviderKey)</strong>
+                            <span class="status-pill @(result.IsSuccess ? "dataset-approved-pill" : "processing")">
+                                @(result.IsSuccess ? "Thành công" : "Lỗi")
+                            </span>
+                        </div>
+                        <div class="model-comparison-card-meta">
+                            <span><strong>Model:</strong> @result.ModelName</span>
+                            <span><strong>Thời gian:</strong> @result.LatencyMs ms</span>
+                            <span><strong>Token:</strong> @result.InputTokens vào / @result.OutputTokens ra / @result.TotalTokens tổng</span>
+                            @if (result.QualityScore.HasValue)
+                            {
+                                <span><strong>Điểm chất lượng (AI chấm):</strong> @result.QualityScore/10</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
+                        {
+                            <div class="model-comparison-card-judge">@result.QualityReasoning</div>
+                        }
+                        @if (result.IsSuccess)
+                        {
+                            <div class="model-comparison-card-answer">@result.Answer</div>
+                        }
+                        else
+                        {
+                            <div class="model-comparison-card-answer model-comparison-card-answer-error">@result.ErrorMessage</div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</section>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <style>
+        .model-comparison-form .form-group { margin-bottom: 16px; }
+        .model-comparison-providers { display: flex; flex-wrap: wrap; gap: 12px; }
+        .model-comparison-provider-check { align-items: center; display: flex; gap: 6px; font-weight: 400; }
+        .model-comparison-results { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+        .model-comparison-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 10px; padding: 14px; }
+        .model-comparison-card-error { border-color: #e0554f; }
+        .model-comparison-card-header { align-items: center; display: flex; justify-content: space-between; }
+        .model-comparison-card-meta { color: var(--muted); display: grid; font-size: .78rem; gap: 3px; }
+        .model-comparison-card-answer { border-top: 1px solid var(--line); font-size: .88rem; line-height: 1.5; padding-top: 10px; white-space: pre-wrap; }
+        .model-comparison-card-answer-error { color: #e0554f; }
+        .model-comparison-card-judge { background: var(--surface-muted); border-radius: 6px; color: var(--muted); font-size: .78rem; font-style: italic; padding: 8px 10px; }
+    </style>
+}

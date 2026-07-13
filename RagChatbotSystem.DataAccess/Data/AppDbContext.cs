@@ -31,6 +31,8 @@ namespace RagChatbotSystem.DataAccess.Data
         public DbSet<CreditPackage> CreditPackages { get; set; } = null!;
         public DbSet<CreditPurchase> CreditPurchases { get; set; } = null!;
         public DbSet<CreditBlockedAttempt> CreditBlockedAttempts { get; set; } = null!;
+        public DbSet<ModelComparisonRun> ModelComparisonRuns { get; set; } = null!;
+        public DbSet<ModelComparisonResult> ModelComparisonResults { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -491,6 +493,37 @@ namespace RagChatbotSystem.DataAccess.Data
                     .WithMany()
                     .HasForeignKey(b => b.ChatSessionId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<ModelComparisonRun>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Question).IsRequired().HasMaxLength(1000);
+                entity.HasIndex(e => new { e.DatasetId, e.CreatedAt });
+                entity.HasIndex(e => new { e.RunByUserId, e.CreatedAt });
+
+                entity.HasOne(r => r.Dataset)
+                    .WithMany()
+                    .HasForeignKey(r => r.DatasetId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(r => r.RunByUser)
+                    .WithMany()
+                    .HasForeignKey(r => r.RunByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ModelComparisonResult>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ProviderKey).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ModelName).IsRequired().HasMaxLength(120);
+                entity.HasIndex(e => new { e.ProviderKey, e.ModelComparisonRunId });
+
+                entity.HasOne(res => res.Run)
+                    .WithMany(r => r.Results)
+                    .HasForeignKey(res => res.ModelComparisonRunId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
