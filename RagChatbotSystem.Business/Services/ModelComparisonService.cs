@@ -18,6 +18,9 @@ namespace RagChatbotSystem.Business.Services
 {
     public class ModelComparisonService : IModelComparisonService
     {
+        // Model riêng cho giám khảo, khác dòng huấn luyện với Llama (Groq) và Gemini để giảm thiên vị tự chấm.
+        private const string JudgeModel = "openai/gpt-oss-120b";
+
         private readonly IRagApiClient _ragApiClient;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
@@ -279,7 +282,7 @@ namespace RagChatbotSystem.Business.Services
                     $"Câu hỏi: {question}\n\n" +
                     $"Câu trả lời cần chấm: {candidateAnswer}\n";
 
-                var judge = new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger);
+                var judge = new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger, JudgeModel);
                 var judgeResponse = await judge.GenerateAnswerAsync(judgePrompt);
 
                 var scoreMatch = Regex.Match(judgeResponse, @"Điểm:\s*(\d{1,2})");
