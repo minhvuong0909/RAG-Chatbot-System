@@ -11,10 +11,13 @@
             <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Không gian học tập</p>
             <h2 class="fw-bold m-0" style="color: var(--ink);">Quản lý môn học</h2>
         </div>
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại trang quản trị</a>
-        }
+        <div class="d-flex gap-2">
+            <a asp-page="/Admin/ModelComparison/Index" class="btn btn-outline-primary" style="border-radius: 8px; font-weight: 600;">So sánh mô hình</a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-page="/Admin/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại trang quản trị</a>
+            }
+        </div>
     </div>
 
     <!-- Alert Messages -->
