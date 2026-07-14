@@ -14,5 +14,6 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<ChatSessionDto> CreateSessionAsync(CreateChatSessionRequest request, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<ChatMessageDto>> GetMessageHistoryAsync(Guid sessionId, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<CitationDto>> GetCitationsAsync(Guid messageId, CancellationToken cancellationToken = default);
+        Task<bool> CanUserAccessDocumentEvidenceAsync(Guid userId, Guid documentId, CancellationToken cancellationToken = default);
     }
 }

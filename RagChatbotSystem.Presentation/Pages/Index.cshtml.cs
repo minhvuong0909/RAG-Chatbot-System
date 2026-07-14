@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using RagChatbotSystem.Business.DTOs;
+using RagChatbotSystem.Business.Exceptions;
 using RagChatbotSystem.Business.Interfaces;
 using RagChatbotSystem.Presentation.Helpers;
 using RagChatbotSystem.Presentation.Realtime;
@@ -30,6 +31,7 @@ namespace RagChatbotSystem.Presentation.Pages
         private readonly IRealtimeNotifier _realtimeNotifier;
         private readonly ITokenUsageService _tokenUsageService;
         private readonly ISystemSettingService _systemSettingService;
+        private readonly ICreditService _creditService;
         private readonly ILogger<IndexModel> _logger;
 
         public IndexModel(
@@ -42,6 +44,7 @@ namespace RagChatbotSystem.Presentation.Pages
             IRealtimeNotifier realtimeNotifier,
             ITokenUsageService tokenUsageService,
             ISystemSettingService systemSettingService,
+            ICreditService creditService,
             ILogger<IndexModel> logger)
         {
             _userService = userService;
@@ -53,6 +56,7 @@ namespace RagChatbotSystem.Presentation.Pages
             _realtimeNotifier = realtimeNotifier;
             _tokenUsageService = tokenUsageService;
             _systemSettingService = systemSettingService;
+            _creditService = creditService;
             _logger = logger;
         }
 
@@ -74,6 +78,7 @@ namespace RagChatbotSystem.Presentation.Pages
         public string? SuccessMessage { get; set; }
         public int DailyTokensUsed { get; set; }
         public int DailyTokenLimit { get; set; }
+        public CreditBalanceDto? CreditBalance { get; set; }
 
         public async Task<IActionResult> OnGetAsync(
             Guid? datasetId = null,
@@ -115,13 +120,14 @@ namespace RagChatbotSystem.Presentation.Pages
                 {
                     DailyTokensUsed = await _tokenUsageService.GetDailyUsageAsync(currentUserId, HttpContext.RequestAborted);
                     DailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync(HttpContext.RequestAborted);
+                    CreditBalance = await _creditService.GetStudentCreditSummaryAsync(currentUserId, HttpContext.RequestAborted);
                 }
 
                 SelectedUser = await _userService.GetUserAsync(currentUserId, HttpContext.RequestAborted);
                 if (SelectedUser == null)
                 {
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    TempData["ErrorMessage"] = "Your login session is no longer valid. Please sign in again.";
+                    TempData["ErrorMessage"] = "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại.";
                     return RedirectToPage("/Account/Login");
                 }
 
@@ -133,9 +139,16 @@ namespace RagChatbotSystem.Presentation.Pages
                     if (SelectedDataset != null)
                     {
                         var hasAccess = currentUserRole == "Admin" || Datasets.Any(d => d.DatasetId == datasetId.Value);
+                        if (!hasAccess && SelectedDataset.IsArchived && sessionId.HasValue)
+                        {
+                            var historicalSession = await _chatSessionService.GetSessionAsync(sessionId.Value, HttpContext.RequestAborted);
+                            hasAccess = historicalSession != null
+                                && historicalSession.DatasetId == datasetId.Value
+                                && (currentUserRole == "Admin" || historicalSession.UserId == currentUserId);
+                        }
                         if (!hasAccess)
                         {
-                            return RedirectToPage("/Index", new { error = "You do not have permission to access this dataset." });
+                            return RedirectToPage("/Index", new { error = "Bạn không có quyền truy cập môn học này." });
                         }
 
                         Documents = await _documentService.GetDocumentsByDatasetAsync(datasetId.Value, HttpContext.RequestAborted);
@@ -150,7 +163,7 @@ namespace RagChatbotSystem.Presentation.Pages
                     {
                         if (currentUserRole != "Admin" && SelectedSession.UserId != currentUserId)
                         {
-                            return RedirectToPage("/Index", new { datasetId, error = "Access denied to this chat session." });
+                            return RedirectToPage("/Index", new { datasetId, error = "Bạn không có quyền truy cập cuộc trò chuyện này." });
                         }
 
                         MessageHistory = await _chatSessionService.GetMessageHistoryAsync(sessionId.Value, HttpContext.RequestAborted);
@@ -173,7 +186,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading workspace data.");
-                ErrorMessage = $"System error: {ex.Message}";
+                ErrorMessage = "Không thể tải không gian học tập. Vui lòng thử lại sau.";
             }
 
             return Page();
@@ -197,25 +210,25 @@ namespace RagChatbotSystem.Presentation.Pages
                 var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
                 if (!allowedDatasets.Any(d => d.DatasetId == datasetId))
                 {
-                    return RedirectToPage("/Index", new { error = "You do not have access to this subject." });
+                    return RedirectToPage("/Index", new { error = "Bạn không có quyền truy cập môn học này." });
                 }
 
                 if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
                 {
-                    return RedirectToPage("/Index", new { datasetId, error = "This subject does not have any indexed documents yet. Please upload a document before starting chat." });
+                    return RedirectToPage("/Index", new { datasetId, error = "Môn học này chưa có tài liệu đã xử lý. Vui lòng tải tài liệu lên trước khi bắt đầu trò chuyện." });
                 }
 
                 var session = await _chatSessionService.CreateSessionAsync(
-                    new CreateChatSessionRequest(currentUserId, datasetId, title),
+                    new CreateChatSessionRequest(currentUserId, datasetId, string.IsNullOrWhiteSpace(title) ? "Trò chuyện mới" : title.Trim()),
                     HttpContext.RequestAborted);
 
                 await _realtimeNotifier.ChatSessionChangedAsync(currentUserId, datasetId, session, "created", HttpContext.RequestAborted);
 
-                return RedirectToPage("/Index", new { datasetId, sessionId = session.SessionId, success = "Chat session created successfully." });
+                return RedirectToPage("/Index", new { datasetId, sessionId = session.SessionId, success = "Đã tạo cuộc trò chuyện mới." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return RedirectToPage("/Index", new { datasetId, error = $"Could not create chat session: {ex.Message}" });
+                return RedirectToPage("/Index", new { datasetId, error = "Không thể tạo cuộc trò chuyện mới. Vui lòng thử lại." });
             }
         }
 
@@ -223,10 +236,10 @@ namespace RagChatbotSystem.Presentation.Pages
         {
             if (string.IsNullOrWhiteSpace(question))
             {
-                return RedirectToPage("/Index", new { datasetId, sessionId, error = "Question cannot be empty." });
+                return RedirectToPage("/Index", new { datasetId, sessionId, error = "Câu hỏi không được để trống." });
             }
 
-            if (!TryGetCurrentUser(out var currentUserId, out _))
+            if (!TryGetCurrentUser(out var currentUserId, out var role))
             {
                 return Challenge();
             }
@@ -241,17 +254,22 @@ namespace RagChatbotSystem.Presentation.Pages
                 var session = await _chatSessionService.GetSessionAsync(sessionId, HttpContext.RequestAborted);
                 if (session == null || session.UserId != currentUserId)
                 {
-                    return RedirectToPage("/Index", new { datasetId, error = "You do not have permission to send messages in this chat session." });
+                    return RedirectToPage("/Index", new { datasetId, error = "Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này." });
                 }
 
                 if (session.DatasetId != datasetId)
                 {
-                    return RedirectToPage("/Index", new { datasetId, error = "This chat session does not belong to the selected subject." });
+                    return RedirectToPage("/Index", new { datasetId, error = "Cuộc trò chuyện này không thuộc môn học đã chọn." });
+                }
+
+                if (!await _datasetService.CanAccessActiveDatasetAsync(currentUserId, role, datasetId, HttpContext.RequestAborted))
+                {
+                    return RedirectToPage("/Index", new { error = "Môn học đã được lưu trữ hoặc quyền truy cập của bạn đã bị thu hồi." });
                 }
 
                 if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
                 {
-                    return RedirectToPage("/Index", new { datasetId, sessionId, error = "This subject does not have any indexed documents yet. Please upload a document before starting chat." });
+                    return RedirectToPage("/Index", new { datasetId, sessionId, error = "Môn học này chưa có tài liệu đã xử lý. Vui lòng tải tài liệu lên trước khi bắt đầu trò chuyện." });
                 }
 
                 var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
@@ -261,7 +279,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send chat message.");
-                return RedirectToPage("/Index", new { datasetId, sessionId, error = $"Send message failed: {ex.Message}" });
+                return RedirectToPage("/Index", new { datasetId, sessionId, error = "Không thể gửi câu hỏi. Vui lòng thử lại sau." });
             }
         }
 
@@ -269,7 +287,7 @@ namespace RagChatbotSystem.Presentation.Pages
         {
             if (string.IsNullOrWhiteSpace(question))
             {
-                return new BadRequestObjectResult(new { error = "Question cannot be empty." });
+                return new BadRequestObjectResult(new { error = "Câu hỏi không được để trống." });
             }
 
             if (!TryGetCurrentUser(out var currentUserId, out var currentUserRole))
@@ -282,7 +300,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 if (!await IsCurrentUserStillValidAsync(currentUserId))
                 {
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                    return new UnauthorizedObjectResult(new { error = "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại." });
                 }
 
                 var session = await _chatSessionService.GetSessionAsync(sessionId, HttpContext.RequestAborted);
@@ -293,12 +311,17 @@ namespace RagChatbotSystem.Presentation.Pages
 
                 if (session.DatasetId != datasetId)
                 {
-                    return new BadRequestObjectResult(new { error = "This chat session does not belong to the selected subject." });
+                    return new BadRequestObjectResult(new { error = "Cuộc trò chuyện này không thuộc môn học đã chọn." });
+                }
+
+                if (!await _datasetService.CanAccessActiveDatasetAsync(currentUserId, currentUserRole, datasetId, HttpContext.RequestAborted))
+                {
+                    return new ForbidResult();
                 }
 
                 if (!await _documentService.HasCompletedDocumentsAsync(datasetId, HttpContext.RequestAborted))
                 {
-                    return new BadRequestObjectResult(new { error = "This subject does not have any indexed documents yet. Please upload a document before starting chat." });
+                    return new BadRequestObjectResult(new { error = "Môn học này chưa có tài liệu đã xử lý. Vui lòng tải tài liệu lên trước khi bắt đầu trò chuyện." });
                 }
 
                 var response = await _chatService.SendChatMessageAsync(sessionId, question, HttpContext.RequestAborted);
@@ -306,10 +329,12 @@ namespace RagChatbotSystem.Presentation.Pages
 
                 int? dailyTokensUsed = null;
                 int? dailyTokenLimit = null;
+                CreditBalanceDto? creditBalance = response.CreditBalance;
                 if (currentUserRole == "Student")
                 {
                     dailyTokensUsed = await _tokenUsageService.GetDailyUsageAsync(currentUserId, HttpContext.RequestAborted);
                     dailyTokenLimit = await _systemSettingService.GetDailyTokenLimitAsync(HttpContext.RequestAborted);
+                    creditBalance ??= await _creditService.GetStudentCreditSummaryAsync(currentUserId, HttpContext.RequestAborted);
                 }
 
                 return new JsonResult(new
@@ -336,16 +361,46 @@ namespace RagChatbotSystem.Presentation.Pages
                         quoteText = c.QuoteText,
                         sourceLabel = c.SourceLabel,
                         documentId = c.DocumentId,
-                        chunkId = c.ChunkId
+                        chunkId = c.ChunkId,
+                        fileType = c.FileType,
+                        chunkIndex = c.ChunkIndex
                     }),
                     dailyTokensUsed,
-                    dailyTokenLimit
+                    dailyTokenLimit,
+                    creditBalance = creditBalance == null ? null : new
+                    {
+                        freeCredits = creditBalance.FreeCredits,
+                        paidCredits = creditBalance.PaidCredits,
+                        totalCredits = creditBalance.TotalCredits
+                    },
+                    creditSpend = response.CreditSpend == null ? null : new
+                    {
+                        calculatedCredits = response.CreditSpend.CalculatedCredits,
+                        chargedCredits = response.CreditSpend.ChargedCredits,
+                        freeCreditsUsed = response.CreditSpend.FreeCreditsUsed,
+                        paidCreditsUsed = response.CreditSpend.PaidCreditsUsed,
+                        wasInsufficientBalance = response.CreditSpend.WasInsufficientBalance,
+                        wasActualTokenUsage = response.CreditSpend.WasActualTokenUsage,
+                        modelName = response.CreditSpend.ModelName
+                    }
                 });
+            }
+            catch (ChatRequestBlockedException ex)
+            {
+                _logger.LogInformation(ex, "Blocked AJAX chat request for session {SessionId}: {Reason}.", sessionId, ex.Reason);
+                var statusCode = ex.Reason == ChatBlockReason.InsufficientCredits
+                    ? StatusCodes.Status402PaymentRequired
+                    : StatusCodes.Status429TooManyRequests;
+                return new ObjectResult(new
+                {
+                    error = ex.Message,
+                    code = ex.Reason.ToString()
+                }) { StatusCode = statusCode };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send AJAX chat message.");
-                return new ObjectResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status500InternalServerError };
+                return new ObjectResult(new { error = "Không thể gửi câu hỏi. Vui lòng thử lại sau." }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
@@ -361,7 +416,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 if (!await IsCurrentUserStillValidAsync(currentUserId))
                 {
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                    return new UnauthorizedObjectResult(new { error = "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại." });
                 }
 
                 var session = await _chatSessionService.GetSessionForMessageAsync(messageId, HttpContext.RequestAborted);
@@ -374,7 +429,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 var canAccessDataset = allowedDatasets.Any(d => d.DatasetId == session.DatasetId);
                 var hasAccess = role == "Admin"
                     || (role == "Teacher" && canAccessDataset)
-                    || (session.UserId == currentUserId && canAccessDataset);
+                    || session.UserId == currentUserId;
                 if (!hasAccess)
                 {
                     return new ForbidResult();
@@ -389,13 +444,15 @@ namespace RagChatbotSystem.Presentation.Pages
                     quoteText = c.QuoteText,
                     sourceLabel = c.SourceLabel,
                     documentId = c.DocumentId,
-                    chunkId = c.ChunkId
+                    chunkId = c.ChunkId,
+                    fileType = c.FileType,
+                    chunkIndex = c.ChunkIndex
                 }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to get citations for message {MessageId}", messageId);
-                return new ObjectResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status500InternalServerError };
+                return new ObjectResult(new { error = "Không thể tải nguồn trích dẫn. Vui lòng thử lại sau." }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
@@ -412,7 +469,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 if (!await IsCurrentUserStillValidAsync(currentUserId))
                 {
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                    return new UnauthorizedObjectResult(new { error = "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại." });
                 }
 
                 var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
@@ -431,7 +488,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to generate suggested questions for dataset {DatasetId}.", datasetId);
-                return new ObjectResult(new { error = $"Could not generate suggested questions: {ex.Message}" }) { StatusCode = StatusCodes.Status500InternalServerError };
+                return new ObjectResult(new { error = "Không thể tạo gợi ý câu hỏi. Vui lòng thử lại sau." }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
@@ -447,7 +504,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 if (!await IsCurrentUserStillValidAsync(currentUserId))
                 {
                     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                    return new UnauthorizedObjectResult(new { error = "Your login session is no longer valid. Please sign in again." });
+                    return new UnauthorizedObjectResult(new { error = "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại." });
                 }
 
                 var doc = await _documentService.GetDocumentAsync(documentId, HttpContext.RequestAborted);
@@ -457,7 +514,8 @@ namespace RagChatbotSystem.Presentation.Pages
                 }
 
                 var allowedDatasets = await _datasetService.GetDatasetsForUserAsync(currentUserId, role, HttpContext.RequestAborted);
-                if (!allowedDatasets.Any(d => d.DatasetId == doc.DatasetId))
+                var ownsHistoricalEvidence = await _chatSessionService.CanUserAccessDocumentEvidenceAsync(currentUserId, documentId, HttpContext.RequestAborted);
+                if (!allowedDatasets.Any(d => d.DatasetId == doc.DatasetId) && role != "Admin" && !ownsHistoricalEvidence)
                 {
                     return new ForbidResult();
                 }
@@ -479,7 +537,7 @@ namespace RagChatbotSystem.Presentation.Pages
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to get document chunks for {DocumentId}", documentId);
-                return new ObjectResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status500InternalServerError };
+                return new ObjectResult(new { error = "Không thể tải nội dung tài liệu. Vui lòng thử lại sau." }) { StatusCode = StatusCodes.Status500InternalServerError };
             }
         }
 
@@ -498,7 +556,7 @@ namespace RagChatbotSystem.Presentation.Pages
         private async Task<IActionResult> SignOutStaleUserAsync()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            TempData["ErrorMessage"] = "Your login session is no longer valid. Please sign in again.";
+            TempData["ErrorMessage"] = "Phiên đăng nhập không còn hiệu lực. Vui lòng đăng nhập lại.";
             return RedirectToPage("/Account/Login");
         }
     }

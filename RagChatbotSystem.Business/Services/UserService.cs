@@ -131,7 +131,7 @@ namespace RagChatbotSystem.Business.Services
 
             if (!user.IsApproved)
             {
-                throw new InvalidOperationException("Tai khoan cua ban dang bi khoa hoac chua duoc phe duyet.");
+                throw new InvalidOperationException("Tài khoản của bạn đang bị khóa hoặc chưa được phê duyệt.");
             }
 
             user.LastLoginAt = DateTime.UtcNow;

@@ -40,14 +40,14 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
 
             if (!ModelState.IsValid)
             {
-                ErrorMessage = "Please review the form and correct any errors.";
+                ErrorMessage = "Vui lòng kiểm tra và sửa các trường chưa hợp lệ.";
                 return Page();
             }
 
             try
             {
                 await _systemSettingService.UpdateSettingsAsync(Input.ChunkSize, Input.ChunkOverlap, Input.DailyTokenLimit);
-                SuccessMessage = "Settings updated successfully.";
+                SuccessMessage = "Đã cập nhật cài đặt hệ thống.";
             }
             catch (System.ArgumentOutOfRangeException ex)
             {
@@ -60,17 +60,17 @@ namespace RagChatbotSystem.Presentation.Pages.Admin
         public class SettingsInput
         {
             [Required]
-            [Range(300, 700, ErrorMessage = "Chunk Size must be between 300 and 700.")]
+            [Range(300, 700, ErrorMessage = "Kích thước chunk phải từ 300 đến 700.")]
             [Display(Name = "Chunk Size")]
             public int ChunkSize { get; set; } = 500;
 
             [Required]
-            [Range(100, 350, ErrorMessage = "Chunk Overlap must be between 100 and 350.")]
+            [Range(100, 350, ErrorMessage = "Độ chồng lấn chunk phải từ 100 đến 350.")]
             [Display(Name = "Chunk Overlap")]
             public int ChunkOverlap { get; set; } = 100;
 
             [Required]
-            [Range(1000, 10000000, ErrorMessage = "Daily Token Limit must be between 1,000 and 10,000,000.")]
+            [Range(1000, 10000000, ErrorMessage = "Giới hạn token hằng ngày phải từ 1.000 đến 10.000.000.")]
             [Display(Name = "Daily Token Limit")]
             public int DailyTokenLimit { get; set; } = 50000;
         }

@@ -1,16 +1,22 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Datasets.IndexModel
 @{
-    ViewData["Title"] = User.IsInRole("Teacher") ? "Subjects & Documents" : "Manage Subjects";
+    ViewData["Title"] = "Quản lý môn học";
 }
 
 <div class="container py-4">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">@(User.IsInRole("Teacher") ? "Teaching Resources" : "Workspace Settings")</p>
-            <h2 class="fw-bold m-0" style="color: var(--ink);">@(User.IsInRole("Teacher") ? "Subjects & Documents" : "Subjects Management")</h2>
-            <p class="text-muted mb-0 mt-1">@(User.IsInRole("Teacher") ? "Manage source documents for assigned subjects. Use chat only when you need to test retrieval and citations." : "Create, archive, and review subject workspaces.")</p>
+            <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Không gian học tập</p>
+            <h2 class="fw-bold m-0" style="color: var(--ink);">Quản lý môn học</h2>
+        </div>
+        <div class="d-flex gap-2">
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-page="/Admin/ModelComparison/Index" class="btn btn-outline-primary" style="border-radius: 8px; font-weight: 600;">So sánh mô hình</a>
+                <a asp-page="/Admin/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại trang quản trị</a>
+            }
         </div>
     </div>
 
@@ -19,14 +25,14 @@
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 8px;">
             @Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
         </div>
     }
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px;">
             @Model.SuccessMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
         </div>
     }
 
@@ -35,27 +41,27 @@
         @if (User.IsInRole("Admin"))
         {
             <div class="col-lg-4">
-                <div class="prem-card">
-                    <div style="padding: 24px; border-bottom: 1px solid var(--line); background: var(--surface-muted);">
-                        <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--ink); margin: 0;">Create Subject</h4>
-                        <p class="text-muted small m-0 mt-1">Add a new dataset for document grounding.</p>
+                <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <h4 class="fw-bold m-0" style="color: var(--ink);">Tạo môn học</h4>
+                        <p class="text-muted small m-0 mt-1">Thêm môn học mới để tổ chức tài liệu cho RAG.</p>
                     </div>
-                    <div style="padding: 24px;">
+                    <div class="card-body px-4 pb-4 pt-2">
                         <form method="post" asp-page-handler="CreateDataset">
                             @Html.AntiForgeryToken()
                             <div class="mb-3">
-                                <label class="form-label small fw-bold" style="color: var(--ink-soft);">Subject Name</label>
-                                <input name="name" type="text" class="form-control" placeholder="e.g. PRN222 C# programming" required style="border-radius: 8px; border-color: var(--line);" />
+                                <label class="form-label small fw-bold" style="color: var(--ink-soft);">Tên môn học</label>
+                                <input name="name" type="text" class="form-control" placeholder="Ví dụ: PRN222 Lập trình C#" required style="border-radius: 8px; border-color: var(--line);" />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small fw-bold" style="color: var(--ink-soft);">Description</label>
-                                <textarea name="description" rows="3" class="form-control" placeholder="Brief explanation of subject content..." style="border-radius: 8px; border-color: var(--line);"></textarea>
+                                <label class="form-label small fw-bold" style="color: var(--ink-soft);">Mô tả</label>
+                                <textarea name="description" rows="3" class="form-control" placeholder="Mô tả ngắn về nội dung môn học..." style="border-radius: 8px; border-color: var(--line);"></textarea>
                             </div>
                             <div class="mb-4 d-flex align-items-center gap-2">
                                 <input type="checkbox" name="isPublic" id="isPublic" value="true" checked class="form-check-input" style="cursor: pointer;" />
-                                <label for="isPublic" class="form-check-label small text-muted" style="cursor: pointer; user-select: none;">Make subject public to all students</label>
+                                <label for="isPublic" class="form-check-label small text-muted" style="cursor: pointer; user-select: none;">Cho phép tất cả sinh viên đã được duyệt truy cập</label>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100" style="border-radius: 8px; font-weight: 600; background: var(--prem-gradient-primary); border: none; box-shadow: var(--prem-shadow-glow);">Create Subject</button>
+                            <button type="submit" class="btn btn-primary w-100" style="border-radius: 8px; font-weight: 600; background: var(--accent); border: none;">Tạo môn học</button>
                         </form>
                     </div>
                 </div>
@@ -64,87 +70,76 @@
 
         <!-- Subjects List -->
         <div class="@(User.IsInRole("Admin") ? "col-lg-8" : "col-12")">
-            <div class="prem-card">
-                <div style="padding: 24px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; background: var(--surface-muted);">
+            <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--ink); margin: 0;">Assigned Subjects</h4>
-                        <p class="text-muted small m-0 mt-1">Manage teaching materials first; chat is available as a test tool per subject.</p>
+                        <h4 class="fw-bold m-0" style="color: var(--ink);">Danh sách môn học</h4>
+                        <p class="text-muted small m-0 mt-1">Các môn học bạn có thể quản lý tài liệu và sử dụng với AI.</p>
                     </div>
-                    <span class="badge" data-dataset-count style="border-radius: 20px; padding: 6px 12px; font-weight: 800; background: var(--prem-gradient-secondary); color: white; box-shadow: var(--prem-shadow-soft);">
-                        @Model.Datasets.Count subject(s)
+                    <span class="badge bg-secondary" data-dataset-count style="border-radius: 20px; padding: 6px 12px; font-weight: 600; background: var(--bg-elevated) !important; color: var(--ink-soft) !important;">
+                        @Model.Datasets.Count môn học
                     </span>
                 </div>
-                <div>
+                <div class="card-body px-4 pb-4 pt-2">
                     @if (Model.Datasets.Count == 0)
                     {
-                        <div class="text-center py-5" data-dataset-empty-state>
+                        <div class="text-center py-5">
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
-                            <p class="text-muted">No subjects assigned or created yet.</p>
+                            <p class="text-muted">Chưa có môn học nào được phân công hoặc tạo mới.</p>
                         </div>
                     }
-                    <div class="prem-table-container" style="border: none; border-radius: 0; box-shadow: none; @(Model.Datasets.Count == 0 ? "display:none;" : "")" data-dataset-table>
-                        <table class="prem-table">
-                            <thead>
-                                <tr>
-                                    <th>Subject Info</th>
-                                    <th>Visibility</th>
-                                    <th>Status</th>
-                                    <th>Documents</th>
-                                    <th style="text-align: right;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody data-dataset-list>
-                                @if (Model.Datasets.Count > 0)
-                                {
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle" style="margin: 0;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--line);">
+                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Môn học</th>
+                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Phạm vi truy cập</th>
+                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Tài liệu</th>
+                                        <th scope="col" class="pb-3 text-muted small text-uppercase text-end" style="font-weight: 700;">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody data-dataset-list>
                                     @foreach (var ds in Model.Datasets)
                                     {
-                                        <tr data-dataset-id="@ds.DatasetId">
-                                            <td>
-                                                <div class="dataset-name" style="font-weight: 700; color: var(--ink);">@ds.Name</div>
+                                        <tr data-dataset-id="@ds.DatasetId" style="border-bottom: 1px solid var(--line);">
+                                            <td class="py-3">
+                                                <div class="dataset-name fw-bold" style="color: var(--ink);">@ds.Name</div>
                                                 @if (!string.IsNullOrWhiteSpace(ds.Description))
                                                 {
                                                     <div class="dataset-description text-muted small text-truncate" style="max-width: 250px;" title="@ds.Description">@ds.Description</div>
                                                 }
-                                                <div class="dataset-created text-muted small" style="font-size: 0.75rem;">Created: @ds.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                                                <div class="text-muted small" style="font-size: 0.75rem;">Tạo lúc: @ds.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
                                             </td>
-                                            <td>
+                                            <td class="py-3">
                                                 @if (ds.IsPublic)
                                                 {
-                                                    <span class="dataset-visibility badge" style="background: var(--success-soft); color: var(--success); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Public</span>
+                                                    <span class="badge" style="background: var(--success-soft); color: var(--success); font-weight: 600; border-radius: 4px; padding: 4px 8px;">Công khai</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="dataset-visibility badge" style="background: var(--bg-elevated); color: var(--muted); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Private</span>
+                                                    <span class="badge" style="background: var(--bg-elevated); color: var(--muted); font-weight: 600; border-radius: 4px; padding: 4px 8px;">Riêng tư</span>
                                                 }
                                             </td>
-                                            <td>
-                                                @if (ds.IsApproved)
-                                                {
-                                                    <span class="dataset-status badge" style="background: var(--info-soft); color: var(--info); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Approved</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="dataset-status badge" style="background: var(--warning-soft); color: var(--warning); font-weight: 700; border-radius: 6px; padding: 4px 10px;">Pending</span>
-                                                }
+                                            <td class="py-3">
+                                                <span class="dataset-document-count fw-semibold" style="color: var(--ink-soft);">@ds.DocumentCount</span>
                                             </td>
-                                            <td>
-                                                <span class="dataset-document-count" style="font-weight: 800; color: var(--ink-soft);">@ds.DocumentCount</span>
-                                            </td>
-                                            <td style="text-align: right;">
+                                            <td class="py-3 text-end">
                                                 <div class="d-flex justify-content-end gap-2">
-                                                    <a asp-page="/Documents/Index" asp-route-datasetId="@ds.DatasetId" class="btn btn-sm" style="border-radius: 6px; font-weight: 700; background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(37,99,235,0.2);">
-                                                        Manage Docs
+                                                    <a asp-page="/Index" asp-route-datasetId="@ds.DatasetId" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
+                                                        Trò chuyện
                                                     </a>
-                                                    <a asp-page="/Index" asp-route-datasetId="@ds.DatasetId" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-weight: 700; border-color: var(--line); color: var(--ink-soft);">
-                                                        Test Chat
+                                                    <a asp-page="/Documents/Index" asp-route-datasetId="@ds.DatasetId" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-weight: 600; border-color: var(--line); color: var(--ink-soft);">
+                                                        Tài liệu
                                                     </a>
-                                                    @if (User.IsInRole("Admin") || ds.CreatedBy == Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ""))
+                                                    @if (User.IsInRole("Admin") || ds.CreatedBy == Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? ""))
                                                     {
-                                                        <form method="post" asp-page-handler="DeleteDataset" class="d-inline" onsubmit="return confirm('Archive this subject? Existing documents, chunks, and trace data will be kept.');">
+                                                        <form method="post" asp-page-handler="DeleteDataset" class="d-inline" onsubmit="return confirm('Ngừng sử dụng môn học này? Tài liệu, chunk và dữ liệu truy vết hiện có sẽ được giữ lại.');">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="id" value="@ds.DatasetId" />
-                                                            <button type="submit" class="btn btn-sm" style="border-radius: 6px; font-weight: 700; background: var(--danger-soft); color: var(--danger); border: 1px solid rgba(220,53,69,0.2);">
-                                                                Archive
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
+                                                                Ngừng sử dụng
                                                             </button>
                                                         </form>
                                                     }
@@ -152,10 +147,10 @@
                                             </td>
                                         </tr>
                                     }
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </div>
             </div>
         </div>

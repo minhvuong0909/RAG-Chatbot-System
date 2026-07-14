@@ -1,24 +1,19 @@
 @page "{id:guid}"
 @model RagChatbotSystem.Presentation.Pages.Admin.Datasets.PermissionsModel
 @{
-    ViewData["Title"] = "Subject Permissions";
+    ViewData["Title"] = "Phân quyền môn học";
 }
 
 <section class="admin-page permission-page">
     <header class="admin-page-header">
         <div>
-            <p class="eyebrow">Admin / Subjects / Permissions</p>
+            <p class="eyebrow">Quản trị / Môn học / Phân quyền</p>
             <h1>@Model.Dataset.Name</h1>
-            <p class="helper-text">Grant or revoke explicit student access to this subject.</p>
+            <p class="helper-text">Cấp hoặc thu hồi quyền truy cập trực tiếp của sinh viên vào môn học này.</p>
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Admin sections">
-        <a asp-page="/Admin/Index">Overview</a>
-        <a class="active" asp-page="/Admin/Datasets/Index" aria-current="page">Subjects</a>
-        <a asp-page="/Admin/Reports">Reports</a>
-        <span>@Model.Dataset.Name / Permissions</span>
-    </nav>
+    <partial name="_AdminTabs" />
 
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
     {
@@ -31,44 +26,44 @@
 
     @if (Model.Dataset.IsPublic)
     {
-        <div class="alert alert-info">This subject is public, so approved users already have access without an explicit permission.</div>
+        <div class="alert alert-info">Môn học này công khai, vì vậy người dùng đã được duyệt có thể truy cập mà không cần cấp quyền riêng.</div>
     }
 
     <div class="permission-grid">
         <section class="admin-section">
-            <div class="section-title"><h2>Grant access</h2></div>
+            <div class="section-title"><h2>Cấp quyền truy cập</h2></div>
             <form method="post" asp-page-handler="Grant" asp-route-id="@Model.Dataset.DatasetId" class="admin-form">
-                <label for="userId">Student</label>
+                <label for="userId">Sinh viên</label>
                 <select id="userId" name="userId" required disabled="@(Model.Dataset.IsPublic || Model.AvailableStudents.Count == 0)">
-                    <option value="">Select student</option>
+                    <option value="">Chọn sinh viên</option>
                     @foreach (var student in Model.AvailableStudents)
                     {
                         <option value="@student.UserId">@student.FullName (@student.Email)</option>
                     }
                 </select>
-                <button type="submit" disabled="@(Model.Dataset.IsPublic || Model.AvailableStudents.Count == 0)">Grant permission</button>
+                <button type="submit" disabled="@(Model.Dataset.IsPublic || Model.AvailableStudents.Count == 0)">Cấp quyền</button>
             </form>
         </section>
 
         <section class="admin-section">
-            <div class="section-title"><h2>Users with explicit access</h2><span>@Model.PermittedUsers.Count</span></div>
+            <div class="section-title"><h2>Người dùng có quyền truy cập riêng</h2><span>@Model.PermittedUsers.Count</span></div>
             <div class="table-responsive">
                 <table class="table align-middle admin-table">
-                    <thead><tr><th>User</th><th>Role</th><th class="text-end">Action</th></tr></thead>
+                    <thead><tr><th>Người dùng</th><th>Vai trò</th><th class="text-end">Thao tác</th></tr></thead>
                     <tbody>
                         @if (Model.PermittedUsers.Count == 0)
                         {
-                            <tr><td colspan="3" class="text-center text-muted py-4">No explicit permissions granted.</td></tr>
+                            <tr><td colspan="3" class="text-center text-muted py-4">Chưa có quyền truy cập riêng nào được cấp.</td></tr>
                         }
                         @foreach (var user in Model.PermittedUsers)
                         {
                             <tr>
                                 <td><strong>@user.FullName</strong><small>@user.Email</small></td>
-                                <td><span class="status-pill">@user.Role</span></td>
+                                <td><span class="status-pill">@(user.Role == "Student" ? "Sinh viên" : user.Role == "Teacher" ? "Giảng viên" : user.Role == "Admin" ? "Quản trị viên" : user.Role)</span></td>
                                 <td class="text-end">
-                                    <form method="post" asp-page-handler="Revoke" asp-route-id="@Model.Dataset.DatasetId" onsubmit="return confirm('Revoke this permission?');">
+                                    <form method="post" asp-page-handler="Revoke" asp-route-id="@Model.Dataset.DatasetId" onsubmit="return confirm('Thu hồi quyền truy cập của người dùng này?');">
                                         <input type="hidden" name="userId" value="@user.UserId" />
-                                        <button type="submit" class="dataset-danger-button">Revoke</button>
+                                        <button type="submit" class="dataset-danger-button">Thu hồi</button>
                                     </form>
                                 </td>
                             </tr>

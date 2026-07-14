@@ -207,22 +207,33 @@ class HybridRetrieverService:
             print(f"Cache load failed: {e}")
             return False
 
-    def semantic_search(self, query: str, k: int = 10) -> list[tuple[Document, float]]:
+    def semantic_search(self, query: str, k: int = 10, dataset_id: str | None = None) -> list[tuple[Document, float]]:
         """Tìm kiếm tương đồng ngữ nghĩa bằng FAISS.
         Chuyển đổi khoảng cách L2 sang điểm tương đồng."""
         if not self.vectorstore:
             return []
-        docs_and_scores = self.vectorstore.similarity_search_with_score(query, k=k)
+        metadata_filter = {"dataset_id": dataset_id} if dataset_id else None
+        docs_and_scores = self.vectorstore.similarity_search_with_score(query, k=k, filter=metadata_filter)
         # Chuyển L2 distance -> similarity score trong 1 list comprehension (nhanh hơn append)
         return [(doc, 1.0 / (1.0 + score)) for doc, score in docs_and_scores]
 
-    def lexical_search(self, query: str, k: int = 10) -> list[tuple[Document, float]]:
+    def lexical_search(self, query: str, k: int = 10, dataset_id: str | None = None) -> list[tuple[Document, float]]:
         """Tìm kiếm từ khóa bằng BM25.
         Dùng np.argpartition để lấy top-k nhanh hơn O(n log n) sort."""
         if not self.bm25 or not self.documents:
             return []
         tokenized_query = self._tokenize(query)
         scores = self.bm25.get_scores(tokenized_query)
+
+        if dataset_id:
+            eligible = np.array([
+                str(doc.metadata.get("dataset_id", "")).lower() == dataset_id.lower()
+                for doc in self.documents
+            ], dtype=bool)
+            if not eligible.any():
+                return []
+            scores = np.where(eligible, scores, -np.inf)
+            k = min(k, int(eligible.sum()))
 
         # Dùng argpartition O(n) thay vì sort O(n log n) cho corpus lớn
         if len(scores) <= k:
@@ -292,6 +303,7 @@ def get_retriever(
 
 def hybrid_retrieve(
     query: str,
+    dataset_id: str | None = None,
     top_k: int = 3,
     semantic_weight: float = 0.7,
     lexical_weight: float = 0.3,
@@ -306,8 +318,8 @@ def hybrid_retrieve(
     k_candidates = top_k * 4
 
     # Thực hiện 2 luồng tìm kiếm song song về mặt logic
-    semantic = retriever.semantic_search(query, k=k_candidates)
-    lexical = retriever.lexical_search(query, k=k_candidates)
+    semantic = retriever.semantic_search(query, k=k_candidates, dataset_id=dataset_id)
+    lexical = retriever.lexical_search(query, k=k_candidates, dataset_id=dataset_id)
 
     # Hằng số RRF (k=60 là giá trị chuẩn quốc tế)
     rrf_k = 60
@@ -335,7 +347,7 @@ def hybrid_retrieve(
     merged.sort(key=lambda x: x[1], reverse=True)
     results = merged[:k_candidates]
 
-    trace = ["Retrieval(Hybrid-RRF)", "Merge"]
+    trace = ["Retrieval(Hybrid-RRF)", "DatasetFilter" if dataset_id else "AllDatasets", "Merge"]
 
     # Xếp hạng lại bằng CrossEncoder (Rerank) nếu được bật
     if enable_rerank:

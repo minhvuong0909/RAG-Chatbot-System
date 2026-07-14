@@ -67,6 +67,7 @@ namespace RagChatbotSystem.Presentation.Services
                         { "document_id", c.DocumentId.ToString() },
                         { "dataset_id", c.DatasetId.ToString() },
                         { "file_name", c.Document.FileName },
+                        { "file_type", c.Document.FileType },
                         { "page_number", c.PageNumber },
                         { "chunk_index", c.ChunkIndex }
                     }

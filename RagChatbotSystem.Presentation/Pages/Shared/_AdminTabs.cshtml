@@ -1,0 +1,22 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
+    var tabs = new[]
+    {
+        new { Page = "/Admin/Index", Label = "Tổng quan", IsActive = currentPage == "/Admin/Index" },
+        new { Page = "/Admin/Datasets/Index", Label = "Môn học", IsActive = currentPage.StartsWith("/Admin/Datasets", StringComparison.Ordinal) || currentPage == "/Admin/Permissions" },
+        new { Page = "/Admin/Reports", Label = "Báo cáo", IsActive = currentPage == "/Admin/Reports" },
+        new { Page = "/Admin/Credits/Index", Label = "Credit", IsActive = currentPage.StartsWith("/Admin/Credits", StringComparison.Ordinal) },
+        new { Page = "/Admin/ModelComparison/Index", Label = "So sánh mô hình", IsActive = currentPage == "/Admin/ModelComparison/Index" },
+        new { Page = "/Admin/ModelComparison/History", Label = "Lịch sử & Báo cáo", IsActive = currentPage == "/Admin/ModelComparison/History" },
+        new { Page = "/Admin/Settings", Label = "Cài đặt", IsActive = currentPage == "/Admin/Settings" }
+    };
+}
+
+<nav class="admin-tabs" aria-label="Khu vực quản trị">
+    @foreach (var tab in tabs)
+    {
+        <a class="@(tab.IsActive ? "active" : null)"
+           asp-page="@tab.Page"
+           aria-current="@(tab.IsActive ? "page" : null)">@tab.Label</a>
+    }
+</nav>

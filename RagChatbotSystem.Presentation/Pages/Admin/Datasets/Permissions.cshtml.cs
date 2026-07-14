@@ -53,9 +53,15 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                     return NotFound();
                 }
 
+                if (dataset.IsArchived)
+                {
+                    ErrorMessage = "Môn học đã được lưu trữ và không thể thay đổi quyền truy cập.";
+                    return RedirectToPage(new { id });
+                }
+
                 if (dataset.IsPublic)
                 {
-                    ErrorMessage = "Public subjects do not require explicit permissions.";
+                    ErrorMessage = "Môn học công khai không cần cấp quyền truy cập riêng.";
                     return RedirectToPage(new { id });
                 }
 
@@ -66,12 +72,12 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
 
                 await _datasetService.GrantPermissionAsync(id, userId, cancellationToken);
                 await _realtimeNotifier.DatasetAccessChangedAsync(userId, "granted", dataset, cancellationToken);
-                SuccessMessage = $"Access granted to {user.FullName}.";
+                SuccessMessage = $"Đã cấp quyền truy cập cho {user.FullName}.";
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to grant dataset {DatasetId} access to user {UserId}.", id, userId);
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể cấp quyền truy cập. Vui lòng thử lại.";
             }
 
             return RedirectToPage(new { id });
@@ -87,20 +93,26 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
                     return NotFound();
                 }
 
+                if (dataset.IsArchived)
+                {
+                    ErrorMessage = "Môn học đã được lưu trữ và không thể thay đổi quyền truy cập.";
+                    return RedirectToPage(new { id });
+                }
+
                 var revoked = await _datasetService.RevokePermissionAsync(id, userId, cancellationToken);
                 if (!revoked)
                 {
-                    ErrorMessage = "Permission was not found.";
+                    ErrorMessage = "Không tìm thấy quyền truy cập.";
                     return RedirectToPage(new { id });
                 }
 
                 await _realtimeNotifier.DatasetAccessChangedAsync(userId, "revoked", dataset, cancellationToken);
-                SuccessMessage = "Permission revoked successfully.";
+                SuccessMessage = "Đã thu hồi quyền truy cập.";
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to revoke dataset {DatasetId} access from user {UserId}.", id, userId);
-                ErrorMessage = ex.Message;
+                ErrorMessage = "Không thể thu hồi quyền truy cập. Vui lòng thử lại.";
             }
 
             return RedirectToPage(new { id });
@@ -109,7 +121,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Datasets
         private async Task<bool> LoadPageAsync(Guid id, CancellationToken cancellationToken)
         {
             var dataset = await _datasetService.GetDatasetAsync(id, cancellationToken);
-            if (dataset == null)
+            if (dataset == null || dataset.IsArchived)
             {
                 return false;
             }

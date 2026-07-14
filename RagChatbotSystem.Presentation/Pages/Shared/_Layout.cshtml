@@ -1,5 +1,15 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
+    var localizedRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value switch
+    {
+        "Student" => "Sinh viên",
+        "Teacher" => "Giảng viên",
+        "Admin" => "Quản trị viên",
+        var role => role
+    };
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,11 +21,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/premium.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/RagChatbotSystem.Presentation.styles.css" asp-append-version="true" />
 </head>
-@{
-    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
-}
 <body>
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm app-navbar">
@@ -42,7 +48,7 @@
                     </a>
                 }
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                        aria-expanded="false" aria-label="Mở hoặc đóng điều hướng">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
@@ -52,7 +58,7 @@
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-danger fw-bold" asp-page="/Admin/Index">Admin</a>
+                                    <a class="nav-link text-danger fw-bold" asp-page="/Admin/Index">Quản trị</a>
                                 </li>
                             }
                             else
@@ -60,16 +66,16 @@
                                 @if (User.IsInRole("Teacher"))
                                 {
                                     <li class="nav-item">
-                                        <a class="nav-link @(currentPage.StartsWith("/Datasets", StringComparison.Ordinal) || currentPage.StartsWith("/Documents", StringComparison.Ordinal) ? "active" : "")" asp-page="/Datasets/Index">Subjects &amp; Docs</a>
+                                        <a class="nav-link @(currentPage.StartsWith("/Datasets", StringComparison.Ordinal) || currentPage.StartsWith("/Documents", StringComparison.Ordinal) ? "active" : "")" asp-page="/Datasets/Index">Môn học và tài liệu</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link @(currentPage.StartsWith("/Teacher/Analytics", StringComparison.Ordinal) ? "active" : "")" asp-page="/Teacher/Analytics">Learning Analytics</a>
+                                        <a class="nav-link @(currentPage.StartsWith("/Teacher/Analytics", StringComparison.Ordinal) ? "active" : "")" asp-page="/Teacher/Analytics">Phân tích học tập</a>
                                     </li>
                                 }
                                 else
                                 {
                                     <li class="nav-item">
-                                        <a class="nav-link @(currentPage == "/Index" ? "active" : "")" asp-page="/Index">Chat Workspace</a>
+                                        <a class="nav-link @(currentPage == "/Index" ? "active" : "")" asp-page="/Index">Không gian học tập</a>
                                     </li>
                                 }
                             }
@@ -82,17 +88,17 @@
                                 <span style="display:inline-block; width:8px; height:8px; background:var(--accent-strong); border-radius:50%; box-shadow:0 0 10px var(--accent-strong);"></span>
                                 <div class="text-start lh-sm">
                                     <div class="fw-bold small" style="color: var(--ink);">@User.Identity.Name</div>
-                                    <div class="text-muted small text-uppercase" style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px;">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
+                                    <div class="text-muted small" style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px;">@localizedRole</div>
                                 </div>
                             </div>
                             <form asp-page="/Account/Logout" method="post" class="m-0">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: rgba(255,255,255,0.15); color: var(--ink);">Sign Out</button>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: rgba(255,255,255,0.15); color: var(--ink);">Đăng xuất</button>
                             </form>
                         }
                         else
                         {
-                            <a asp-page="/Account/Login" class="btn btn-outline-primary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: var(--accent-strong); color: var(--accent-strong);">Sign In</a>
+                            <a asp-page="/Account/Login" class="btn btn-outline-primary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: var(--accent-strong); color: var(--accent-strong);">Đăng nhập</a>
                         }
                     </div>
                 </div>
@@ -114,12 +120,12 @@
             </div>
             
             <div class="footer-links">
-                <a href="#" class="footer-link">Docs</a>
-                <a href="#" class="footer-link">Security</a>
-                <a href="#" class="footer-link">Terms</a>
+                <a href="#" class="footer-link">Tài liệu</a>
+                <a href="#" class="footer-link">Bảo mật</a>
+                <a href="#" class="footer-link">Điều khoản</a>
                 <div class="footer-status">
                     <span class="footer-status-dot"></span>
-                    <span>System Operational</span>
+                    <span>Hệ thống đang hoạt động</span>
                 </div>
             </div>
         </div>
@@ -136,3 +142,4 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

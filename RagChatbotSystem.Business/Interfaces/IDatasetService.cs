@@ -13,7 +13,7 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<DatasetDto?> GetDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default);
         Task<DatasetDto> CreateDatasetAsync(CreateDatasetRequest request, CancellationToken cancellationToken = default);
         Task<bool> UpdateDatasetAsync(Guid datasetId, string name, string? description, bool isPublic, CancellationToken cancellationToken = default);
-        Task<bool> DeleteDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default);
+        Task<bool> ArchiveDatasetAsync(Guid datasetId, bool archived, Guid changedBy, CancellationToken cancellationToken = default);
         Task<bool> ApproveDatasetAsync(Guid datasetId, bool approve, CancellationToken cancellationToken = default);
         Task<bool> GrantPermissionAsync(Guid datasetId, Guid userId, CancellationToken cancellationToken = default);
         Task<bool> RevokePermissionAsync(Guid datasetId, Guid userId, CancellationToken cancellationToken = default);
@@ -22,6 +22,7 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<bool> UnassignTeacherFromDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<TeacherSubjectAssignmentDto>> GetTeacherAssignmentsAsync(CancellationToken cancellationToken = default);
         Task<bool> CanManageDatasetAsync(Guid userId, string role, Guid datasetId, CancellationToken cancellationToken = default);
+        Task<bool> CanAccessActiveDatasetAsync(Guid userId, string role, Guid datasetId, CancellationToken cancellationToken = default);
     }
 }
 

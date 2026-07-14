@@ -1,24 +1,19 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Admin.SettingsModel
 @{
-    ViewData["Title"] = "System Settings";
+    ViewData["Title"] = "Cài đặt hệ thống";
 }
 
 <section class="admin-page" data-admin-page>
     <header class="admin-page-header">
         <div>
-            <p class="eyebrow">Administration</p>
-            <h1>System Settings</h1>
-            <p class="helper-text">Configure document chunking parameters applied to all future uploads.</p>
+            <p class="eyebrow">Quản trị</p>
+            <h1>Cài đặt hệ thống</h1>
+            <p class="helper-text">Điều chỉnh cấu hình RAG và giới hạn Token cho các lượt sử dụng sau này.</p>
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Admin sections">
-        <a asp-page="/Admin/Index">Overview</a>
-        <a asp-page="/Admin/Datasets/Index">Subjects</a>
-        <a asp-page="/Admin/Reports">Reports</a>
-        <a class="active" asp-page="/Admin/Settings" aria-current="page">Settings</a>
-    </nav>
+    <partial name="_AdminTabs" />
 
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
     {
@@ -29,46 +24,60 @@
         <div class="alert alert-danger">@Model.ErrorMessage</div>
     }
 
-    <section class="admin-section">
+    <section class="settings-overview" aria-label="Nhóm cài đặt">
+        <div><strong>AI/RAG</strong><span>Chunk và lập chỉ mục cho tài liệu mới.</span></div>
+        <div><strong>Token kỹ thuật</strong><span>Giới hạn dùng Token hằng ngày cho sinh viên.</span></div>
+        <a asp-page="/Admin/Credits/Index"><strong>Credit</strong><span>Quản lý số dư và điều chỉnh Credit.</span></a>
+        <div><strong>Hệ thống</strong><span>Provider, Model và API Key được cấu hình theo môi trường triển khai.</span></div>
+    </section>
+
+    <section class="admin-section settings-section">
         <div class="section-title">
-            <h2>Chunking configuration</h2>
+            <h2>Thiết lập RAG</h2>
+            <span>Áp dụng cho tài liệu tải lên sau khi lưu</span>
         </div>
 
-        <form method="post" class="admin-form">
+        <form method="post" class="admin-form settings-form">
             <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
 
-            <div class="form-group">
-                <label asp-for="Input.ChunkSize">
-                    Chunk Size
-                    <span class="helper-text">Maximum characters per chunk (300 – 700)</span>
-                </label>
-                <input asp-for="Input.ChunkSize" id="chunkSizeInput" type="number" min="300" max="700" step="50" />
-                <span asp-validation-for="Input.ChunkSize" class="text-danger small"></span>
+            <div class="settings-field-grid">
+                <div class="form-group">
+                    <label asp-for="Input.ChunkSize">
+                        Kích thước Chunk
+                        <span class="helper-text">Số ký tự tối đa mỗi chunk (300 - 700)</span>
+                    </label>
+                    <input asp-for="Input.ChunkSize" id="chunkSizeInput" type="number" min="300" max="700" step="50" />
+                    <span asp-validation-for="Input.ChunkSize" class="text-danger small"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.ChunkOverlap">
+                        Phần chồng lấp Chunk
+                        <span class="helper-text">Số ký tự trùng giữa các chunk (100 - một nửa kích thước Chunk)</span>
+                    </label>
+                    <input asp-for="Input.ChunkOverlap" id="chunkOverlapInput" type="number" min="100" max="350" step="25" />
+                    <span asp-validation-for="Input.ChunkOverlap" class="text-danger small"></span>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Input.ChunkOverlap">
-                    Chunk Overlap
-                    <span class="helper-text">Overlapping characters between chunks (100 – ChunkSize / 2)</span>
-                </label>
-                <input asp-for="Input.ChunkOverlap" id="chunkOverlapInput" type="number" min="100" max="350" step="25" />
-                <span asp-validation-for="Input.ChunkOverlap" class="text-danger small"></span>
+            <div class="settings-token-group">
+                <h3>Giới hạn Token kỹ thuật</h3>
+                <p class="helper-text">Token là đơn vị kỹ thuật đo lượng văn bản AI đọc và tạo ra. Credit là đơn vị sử dụng của hệ thống, được quy đổi từ Token theo cấu hình và trừ vào số dư sinh viên. Giới hạn này là hàng rào kỹ thuật, độc lập với số dư Credit.</p>
+                <div class="form-group">
+                    <label asp-for="Input.DailyTokenLimit">
+                        Giới hạn Token hằng ngày (Sinh viên)
+                        <span class="helper-text">Số Token tối đa mỗi sinh viên dùng trong ngày (1.000 - 10.000.000)</span>
+                    </label>
+                    <input asp-for="Input.DailyTokenLimit" id="dailyTokenLimitInput" type="number" min="1000" max="10000000" step="1000" />
+                    <span asp-validation-for="Input.DailyTokenLimit" class="text-danger small"></span>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Input.DailyTokenLimit">
-                    Daily Token Limit (Student)
-                    <span class="helper-text">Maximum tokens a student can use per day (1,000 – 10,000,000)</span>
-                </label>
-                <input asp-for="Input.DailyTokenLimit" id="dailyTokenLimitInput" type="number" min="1000" max="10000000" step="1000" />
-                <span asp-validation-for="Input.DailyTokenLimit" class="text-danger small"></span>
+            <div class="alert alert-warning settings-note">
+                Thay đổi chunk chỉ áp dụng cho tài liệu được tải lên <strong>sau</strong> khi lưu. Tài liệu hiện có không bị thay đổi.
             </div>
 
-            <div class="alert alert-warning" style="margin-top: 0.5rem;">
-                Chunking changes only apply to documents uploaded <strong>after</strong> saving. Existing documents are not affected. Daily token limits apply immediately.
-            </div>
-
-            <button type="submit" class="btn btn-primary">Save settings</button>
+            <button type="submit" class="btn btn-primary">Lưu cài đặt</button>
         </form>
     </section>
 </section>
@@ -86,4 +95,19 @@
         chunkSize.addEventListener('input', updateOverlapMax);
         updateOverlapMax();
     </script>
+    <style>
+        .settings-overview { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .settings-overview > div, .settings-overview > a { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: inherit; display: grid; gap: 4px; min-height: 88px; padding: 14px; text-decoration: none; }
+        .settings-overview a:hover { border-color: var(--accent); color: inherit; }
+        .settings-overview strong { color: var(--ink); font-size: .88rem; }
+        .settings-overview span { color: var(--muted); font-size: .76rem; line-height: 1.45; }
+        .settings-section { border-top: 0; padding-top: 2px; }
+        .settings-field-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .settings-form label .helper-text { display: block; margin-top: 3px; }
+        .settings-token-group { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 16px; }
+        .settings-token-group h3 { color: var(--ink); font-size: 1rem; font-weight: 700; margin: 0; }
+        .settings-token-group .helper-text { margin: 3px 0 12px; }
+        .settings-note { margin: 0; }
+        @@media (max-width: 760px) { .settings-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } .settings-field-grid { grid-template-columns: 1fr; } .settings-section .section-title { align-items: flex-start; display: grid; gap: 6px; } .settings-section .section-title > span { margin-left: 0; white-space: normal; } }
+    </style>
 }

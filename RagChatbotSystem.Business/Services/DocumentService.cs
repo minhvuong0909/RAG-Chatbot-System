@@ -165,19 +165,14 @@ namespace RagChatbotSystem.Business.Services
                 .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileHash == fileHash && !d.IsDeleted, cancellationToken);
             if (duplicate != null)
             {
-                throw new InvalidOperationException("This document already exists in this subject.");
+                throw new InvalidOperationException("Tài liệu này đã tồn tại trong môn học.");
             }
 
             var existingDoc = await _documentRepository.GetQueryable()
                 .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.FileName.ToLower() == fileName.ToLower() && !d.IsDeleted, cancellationToken);
             if (existingDoc != null)
             {
-                if (!overwriteExistingFileName)
-                {
-                    throw new InvalidOperationException("A document with this file name already exists. Confirm overwrite to replace it.");
-                }
-
-                // Do NOT delete the old document here. Wait until the new document is successfully processed.
+                throw new InvalidOperationException("Môn học đã có tài liệu cùng tên. Vui lòng đổi tên tệp hoặc xóa tài liệu cũ trước khi tải lên.");
             }
 
             bufferedStream.Position = 0;
@@ -376,6 +371,7 @@ namespace RagChatbotSystem.Business.Services
             return await _documentRepository.GetQueryable()
                 .AsNoTracking()
                 .AnyAsync(d => d.DatasetId == datasetId &&
+                    !d.Dataset.IsArchived &&
                     !d.IsDeleted &&
                     d.Status == "Completed", cancellationToken);
         }
@@ -556,6 +552,7 @@ namespace RagChatbotSystem.Business.Services
                         { "document_id", document.DocumentId.ToString() },
                         { "dataset_id", document.DatasetId.ToString() },
                         { "file_name", document.FileName },
+                        { "file_type", document.FileType },
                         { "page_number", textChunk.PageNumber },
                         { "chunk_index", chunkIndex }
                     }

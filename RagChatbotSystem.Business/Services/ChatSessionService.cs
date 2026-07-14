@@ -94,7 +94,7 @@ namespace RagChatbotSystem.Business.Services
                 throw new InvalidOperationException("User was not found.");
             }
 
-            var datasetExists = await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == request.DatasetId, cancellationToken);
+            var datasetExists = await _datasetRepository.GetQueryable().AnyAsync(d => d.DatasetId == request.DatasetId && !d.IsArchived, cancellationToken);
             if (!datasetExists)
             {
                 throw new InvalidOperationException("Dataset was not found.");
@@ -149,6 +149,7 @@ namespace RagChatbotSystem.Business.Services
             return await _citationRepository.GetQueryable()
                 .AsNoTracking()
                 .Include(c => c.Document)
+                .Include(c => c.Chunk)
                 .Where(c => c.MessageId == messageId)
                 .OrderBy(c => c.CreatedAt)
                 .Select(c => new CitationDto(
@@ -160,8 +161,16 @@ namespace RagChatbotSystem.Business.Services
                     c.PageNumber,
                     c.QuoteText,
                     c.SourceLabel,
-                    c.CreatedAt))
+                    c.CreatedAt,
+                    c.Document.FileType,
+                    c.Chunk.ChunkIndex))
                 .ToListAsync(cancellationToken);
+        }
+
+        public Task<bool> CanUserAccessDocumentEvidenceAsync(Guid userId, Guid documentId, CancellationToken cancellationToken = default)
+        {
+            return _citationRepository.GetQueryable().AsNoTracking()
+                .AnyAsync(c => c.DocumentId == documentId && c.ChatMessage.ChatSession.UserId == userId, cancellationToken);
         }
 
         private static ChatSessionDto ToDto(ChatSession session)

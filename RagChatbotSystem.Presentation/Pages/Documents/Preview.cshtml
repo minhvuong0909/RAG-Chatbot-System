@@ -1,72 +1,99 @@
 @page
 @model RagChatbotSystem.Presentation.Pages.Documents.PreviewModel
 @{
-    ViewData["Title"] = "Document Preview";
+    ViewData["Title"] = "Xem trước tài liệu";
 }
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-start mb-4">
-        <div>
-            <p class="eyebrow">Document Preview</p>
-            <h2 class="fw-bold">@Model.FileName</h2>
-            <p class="text-muted mb-0">@Model.DatasetName - @Model.FileType.ToUpper() - @Math.Ceiling(Model.FileSize / 1024.0) KB - @Model.Status</p>
+@functions {
+    private static string StatusLabel(string? status) => status?.ToLowerInvariant() switch
+    {
+        "uploaded" or "pending" => "Đang chờ",
+        "processing" => "Đang xử lý",
+        "completed" => "Đã xử lý",
+        "failed" => "Xử lý thất bại",
+        "deleted" => "Đã xóa",
+        _ => "Đang chờ"
+    };
+}
+
+<div class="container py-4 document-preview-page">
+    <header class="document-preview-header">
+        <div class="min-w-0">
+            <p class="eyebrow">Xem trước tài liệu</p>
+            <h1 title="@Model.FileName">@Model.FileName</h1>
+            <p class="text-muted mb-0">@Model.DatasetName <span aria-hidden="true">·</span> @Model.FileType.ToUpperInvariant() <span aria-hidden="true">·</span> @Math.Ceiling(Model.FileSize / 1024.0) KB <span aria-hidden="true">·</span> @StatusLabel(Model.Status)</p>
         </div>
-        <a asp-page="/Documents/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-outline-secondary">Back</a>
-    </div>
+        <a asp-page="/Documents/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-outline-secondary">Quay lại tài liệu</a>
+    </header>
 
     @if (Model.Preview.IsDeleted)
     {
-        <div class="alert alert-secondary">
-            This document has been hidden from chat and is kept only for traceability.
-        </div>
+        <div class="alert alert-secondary">Tài liệu này đã bị xóa khỏi danh sách sử dụng của chatbot và chỉ được giữ lại để truy vết.</div>
     }
 
     @if (!Model.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
     {
-        <div class="alert alert-warning">
-            This document is not completed yet. Current status: <strong>@Model.Status</strong>.
-        </div>
+        <div class="alert alert-warning">Tài liệu chưa xử lý hoàn tất. Trạng thái hiện tại: <strong>@StatusLabel(Model.Status)</strong>.</div>
     }
 
     @if (!string.IsNullOrWhiteSpace(Model.Preview.ProcessError))
     {
-        <div class="alert alert-warning">
-            @Model.Preview.ProcessError
-        </div>
+        <div class="alert alert-warning">Không thể xử lý tài liệu này. Vui lòng thử lại hoặc tải lên tệp khác.</div>
     }
 
-    <div class="card border-0" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-        <div class="card-header bg-transparent border-0 pt-4 px-4">
-            <h4 class="fw-bold m-0">Indexed Chunks</h4>
-            <p class="text-muted small m-0 mt-1">@Model.Chunks.Count chunk(s) extracted from this document.</p>
-        </div>
-        <div class="card-body px-4 pb-4">
+    <section class="card border-0 shadow-soft document-preview-card">
+        <div class="card-body p-4">
+            <div class="document-preview-heading">
+                <div>
+                    <h2 class="h4 fw-bold mb-1">Các chunk đã lập chỉ mục</h2>
+                    <p class="text-muted small mb-0">@Model.Chunks.Count chunk được trích xuất từ tài liệu này.</p>
+                </div>
+            </div>
             @if (Model.Chunks.Count == 0)
             {
-                <p class="text-muted">No chunks are available for this document.</p>
+                <div class="document-preview-empty">Chưa có chunk nào để xem trước.</div>
             }
             else
             {
                 <div class="d-flex flex-column gap-3">
                     @foreach (var chunk in Model.Chunks)
                     {
-                        <div id="chunk-@chunk.ChunkId" data-chunk-id="@chunk.ChunkId" data-chunk-index="@chunk.ChunkIndex" class="p-3" style="border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted);">
-                            <div class="d-flex justify-content-between gap-3 mb-2">
+                        <article id="chunk-@chunk.ChunkId" data-chunk-id="@chunk.ChunkId" data-chunk-index="@chunk.ChunkIndex" class="document-chunk">
+                            <div class="document-chunk-header">
                                 <strong>Chunk #@chunk.ChunkIndex</strong>
-                                <span class="text-muted small">Page @chunk.PageNumber</span>
+                                <span>Trang @chunk.PageNumber</span>
                             </div>
-                            <pre style="white-space: pre-wrap; color: var(--ink); margin: 0; font-family: inherit;">@chunk.Content</pre>
+                            <pre>@chunk.Content</pre>
                             @if (!string.IsNullOrWhiteSpace(chunk.MetadataJson))
                             {
-                                <details class="mt-2">
-                                    <summary class="text-muted small">Metadata</summary>
+                                <details>
+                                    <summary>Siêu dữ liệu</summary>
                                     <code>@chunk.MetadataJson</code>
                                 </details>
                             }
-                        </div>
+                        </article>
                     }
                 </div>
             }
         </div>
-    </div>
+    </section>
 </div>
+
+@section Scripts {
+    <style>
+        .document-preview-page { max-width: 1080px; }
+        .document-preview-header, .document-preview-heading, .document-chunk-header { align-items: flex-start; display: flex; gap: 1rem; justify-content: space-between; }
+        .document-preview-header { margin-bottom: 1.5rem; }
+        .document-preview-header h1 { color: var(--ink); font-size: 1.65rem; font-weight: 700; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .document-preview-card { background: var(--surface); border: 1px solid var(--line) !important; border-radius: 8px; }
+        .document-preview-empty { color: var(--muted); min-height: 160px; padding-top: 3rem; text-align: center; }
+        .document-chunk { background: var(--surface-muted); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
+        .document-chunk-header strong { color: var(--ink); }
+        .document-chunk-header span { color: var(--muted); font-size: .825rem; white-space: nowrap; }
+        .document-chunk pre { color: var(--ink); font-family: inherit; margin: .75rem 0 0; white-space: pre-wrap; word-break: break-word; }
+        .document-chunk details { margin-top: .75rem; }
+        .document-chunk summary { color: var(--muted); cursor: pointer; font-size: .825rem; }
+        .document-chunk code { display: block; margin-top: .5rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+        @@media (max-width: 575.98px) { .document-preview-header { flex-direction: column; } .document-preview-header .btn { width: 100%; } .document-preview-heading, .document-chunk-header { gap: .5rem; } }
+    </style>
+}

@@ -1,0 +1,280 @@
+@page
+@using System.Globalization
+@using RagChatbotSystem.Business.DTOs
+@using RagChatbotSystem.DataAccess.Models
+@model RagChatbotSystem.Presentation.Pages.CreditsModel
+@{
+    ViewData["Title"] = "Số dư Credit";
+    var vietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    var packagesById = Model.Packages.ToDictionary(package => package.Id);
+
+    string FormatCurrency(decimal amount, string currency) =>
+        string.Equals(currency, "VND", StringComparison.OrdinalIgnoreCase)
+            ? $"{amount.ToString("N0", vietnameseCulture)} ₫"
+            : $"{amount.ToString("N0", vietnameseCulture)} {currency}";
+
+    string LedgerTypeLabel(CreditLedgerType type) => type switch
+    {
+        CreditLedgerType.DAILY_RESET => "Đặt lại Credit hằng ngày",
+        CreditLedgerType.FREE_GRANT => "Tặng Credit miễn phí",
+        CreditLedgerType.PURCHASE => "Nạp Credit",
+        CreditLedgerType.ADMIN_GRANT => "Quản trị viên cấp Credit",
+        CreditLedgerType.ADJUSTMENT => "Điều chỉnh",
+        CreditLedgerType.SPEND => "Sử dụng",
+        CreditLedgerType.REFUND => "Hoàn Credit",
+        CreditLedgerType.EXPIRED => "Hết hạn",
+        _ => type.ToString()
+    };
+
+    string PurchaseStatusLabel(CreditPurchaseStatus status) => status switch
+    {
+        CreditPurchaseStatus.PENDING => "Đang chờ",
+        CreditPurchaseStatus.COMPLETED => "Hoàn tất",
+        CreditPurchaseStatus.FAILED => "Thất bại",
+        CreditPurchaseStatus.CANCELLED => "Đã hủy",
+        CreditPurchaseStatus.REFUNDED => "Đã hoàn",
+        _ => status.ToString()
+    };
+
+    string PackageLabel(CreditPurchaseDto purchase) =>
+        purchase.PackageId.HasValue && packagesById.TryGetValue(purchase.PackageId.Value, out var package)
+            ? PackageDisplayName(package)
+            : "Nạp Credit thủ công";
+
+    string PackageDisplayName(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói học cơ bản",
+        "Study Plus" => "Gói học nâng cao",
+        "Exam Boost" => "Gói ôn thi",
+        "Final Sprint" => "Gói nước rút",
+        _ => package.Name
+    };
+
+    string PackageDescription(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói nhỏ cho nhu cầu học tập thường xuyên.",
+        "Study Plus" => "Giá trị tốt hơn cho nhu cầu học tập thường xuyên.",
+        "Exam Boost" => "Phù hợp cho ôn tập kiểm tra hoặc thi cuối kỳ.",
+        "Final Sprint" => "Giá trị tốt cho giai đoạn ôn thi nước rút.",
+        _ => package.Description
+    };
+
+    string LedgerNote(CreditLedgerDto entry) => entry.Note switch
+    {
+        "Initial daily free credit reset." => "Credit miễn phí được khởi tạo theo hạn mức hằng ngày.",
+        "Daily free credits reset to fixed amount." => "Credit miễn phí được đặt lại theo hạn mức hằng ngày.",
+        _ => entry.Note ?? "-"
+    };
+}
+
+<section class="admin-page credit-page">
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success" role="status">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+    }
+    <header class="admin-page-heading">
+        <div>
+            <p class="eyebrow">Credit</p>
+            <h1>Số dư Credit</h1>
+            <p>Credit chỉ được trừ sau khi AI trả lời thành công. Credit miễn phí được đặt lại mỗi ngày và không cộng dồn.</p>
+        </div>
+        <a class="button-link button-link-secondary" asp-page="/Index">Quay lại không gian học tập</a>
+    </header>
+
+    <section class="row g-4 mb-5" aria-label="Tóm tắt số dư Credit">
+        <div class="col-md-6 col-xl-3">
+            <article class="prem-card prem-stat-card h-100">
+                <div class="prem-stat-icon primary flex-shrink-0">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div>
+                    <div class="prem-stat-label">Tổng số dư</div>
+                    <div class="prem-stat-value">@Model.Balance.TotalCredits.ToString("N0", vietnameseCulture)</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <article class="prem-card prem-stat-card h-100">
+                <div class="prem-stat-icon success flex-shrink-0">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                </div>
+                <div>
+                    <div class="prem-stat-label">Miễn phí</div>
+                    <div class="prem-stat-value">@Model.Balance.FreeCredits.ToString("N0", vietnameseCulture)</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <article class="prem-card prem-stat-card h-100">
+                <div class="prem-stat-icon warning flex-shrink-0">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                </div>
+                <div>
+                    <div class="prem-stat-label">Đã mua</div>
+                    <div class="prem-stat-value">@Model.Balance.PaidCredits.ToString("N0", vietnameseCulture)</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <article class="prem-card prem-stat-card h-100">
+                <div class="prem-stat-icon secondary flex-shrink-0">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </div>
+                <div>
+                    <div class="prem-stat-label">Mỗi ngày</div>
+                    <div class="prem-stat-value">@Model.Balance.Settings.DailyFreeCredits.ToString("N0", vietnameseCulture)</div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="admin-section credit-package-section">
+        <div class="admin-section-heading">
+            <div>
+                <p class="eyebrow">Nạp Credit</p>
+            <h2>Các gói Credit</h2>
+            <p>Chọn gói và thanh toán chuyển khoản an toàn qua PayOS.</p>
+            </div>
+            <span class="credit-notice">@(Model.IsPayOsConfigured ? "Thanh toán qua PayOS" : "PayOS chưa được cấu hình")</span>
+        </div>
+
+        <div class="row g-4 mb-5">
+            @foreach (var package in Model.Packages)
+            {
+                <div class="col-md-6 col-lg-3">
+                    <article class="prem-card p-4 h-100 d-flex flex-column">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h3 class="h5 fw-bold mb-1" title="@PackageDisplayName(package)">@PackageDisplayName(package)</h3>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(PackageDescription(package)))
+                            {
+                                <p class="text-muted small mb-0 mt-2" title="@PackageDescription(package)">@PackageDescription(package)</p>
+                            }
+                        </div>
+                        <dl class="d-flex justify-content-between mb-4 small rounded p-2" style="background: var(--surface-muted);">
+                            <div class="text-center"><dt class="text-muted fw-normal mb-1">Cơ bản</dt><dd class="fw-bold mb-0">@package.BaseCredits.ToString("N0", vietnameseCulture)</dd></div>
+                            <div class="text-center"><dt class="text-muted fw-normal mb-1">Tặng thêm</dt><dd class="fw-bold mb-0">@package.BonusCredits.ToString("N0", vietnameseCulture)</dd></div>
+                            <div class="text-center"><dt class="text-muted fw-normal mb-1">Tổng</dt><dd class="fw-bold mb-0 text-primary">@package.TotalCredits.ToString("N0", vietnameseCulture)</dd></div>
+                        </dl>
+                        <div class="mt-auto">
+                            <div class="fw-bold fs-4 text-primary mb-3">@FormatCurrency(package.Price, package.Currency)</div>
+                            <form method="post" asp-page-handler="Buy">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="packageId" value="@package.Id" />
+                                <button type="submit" class="btn btn-primary w-100 justify-content-center border-0 shadow-sm rounded-pill py-2" @(Model.IsPayOsConfigured ? "" : "disabled")>
+                                    Thanh toán qua PayOS
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+            }
+        </div>
+        @if (!Model.IsPayOsConfigured)
+        {
+            <p class="credit-admin-contact">Quản trị viên cần bổ sung cấu hình PayOS trước khi mở thanh toán.</p>
+        }
+    </section>
+
+    <section class="admin-section">
+        <div class="admin-section-heading">
+            <div>
+                <p class="eyebrow">LỊCH SỬ HOẠT ĐỘNG</p>
+                <h2>Chi tiết biến động và đơn hàng</h2>
+                <p>Theo dõi sự thay đổi của số dư Credit và trạng thái các đơn nạp tiền.</p>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-4" id="creditHistoryTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-pane" type="button" role="tab" aria-controls="ledger-pane" aria-selected="true" style="color: var(--text-primary);">Biến động số dư</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="purchase-tab" data-bs-toggle="tab" data-bs-target="#purchase-pane" type="button" role="tab" aria-controls="purchase-pane" aria-selected="false" style="color: var(--text-primary);">Lịch sử đơn hàng nạp</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="creditHistoryTabsContent">
+            <div class="tab-pane fade show active" id="ledger-pane" role="tabpanel" aria-labelledby="ledger-tab" tabindex="0">
+                @if (Model.Ledger.Any())
+                {
+                    <div class="prem-table-container mb-5" tabindex="0" aria-label="Bảng lịch sử giao dịch Credit">
+                        <table class="prem-table">
+                            <thead>
+                                <tr><th>Thời gian</th><th>Loại giao dịch</th><th>Đã cộng</th><th>Đã dùng</th><th>Số dư sau</th><th>Ghi chú</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in Model.Ledger)
+                                {
+                                    <tr>
+                                        <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td><span class="badge bg-secondary">@LedgerTypeLabel(entry.Type)</span></td>
+                                        <td class="text-success fw-bold">@((entry.FreeCreditsAdded + entry.PaidCreditsAdded) > 0 ? "+" + (entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture) : "0")</td>
+                                        <td class="text-danger fw-bold">@((entry.FreeCreditsUsed + entry.PaidCreditsUsed) > 0 ? "-" + (entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture) : "0")</td>
+                                        <td class="fw-bold">@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</td>
+                                        <td class="text-muted small" style="max-width:250px; overflow:hidden; text-overflow:ellipsis;" title="@LedgerNote(entry)">@LedgerNote(entry)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="credit-empty-state mb-5">
+                        <strong>Chưa có biến động số dư</strong>
+                        <p>Các lần nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
+                    </div>
+                }
+            </div>
+
+            <div class="tab-pane fade" id="purchase-pane" role="tabpanel" aria-labelledby="purchase-tab" tabindex="0">
+                @if (Model.Purchases.Any())
+                {
+                    <div class="prem-table-container mb-5" tabindex="0" aria-label="Bảng lịch sử nạp Credit">
+                        <table class="prem-table">
+                            <thead>
+                                <tr><th>Thời gian</th><th>Gói Credit</th><th>Cơ bản</th><th>Tặng thêm</th><th>Tổng cộng</th><th>Giá</th><th>Trạng thái</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var purchase in Model.Purchases)
+                                {
+                                    <tr>
+                                        <td>@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td title="@PackageLabel(purchase)">@PackageLabel(purchase)</td>
+                                        <td>@purchase.BaseCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td>@purchase.BonusCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="text-primary fw-bold">@purchase.TotalCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="fw-bold">@FormatCurrency(purchase.Amount, purchase.Currency)</td>
+                                        <td><span class="badge bg-secondary">@PurchaseStatusLabel(purchase.Status)</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="credit-empty-state mb-5">
+                        <strong>Chưa có đơn hàng nạp Credit</strong>
+                        <p>Thông tin nạp Credit sẽ xuất hiện tại đây sau khi bạn tạo yêu cầu nạp.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</section>
+
+@section Scripts {
+    <style>
+        .credit-page { gap: 1.35rem; }
+        .credit-empty-state { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1.25rem; color: #475569; text-align: center; }
+        .credit-empty-state strong { color: #0f172a; }
+        .credit-empty-state p { margin: .35rem 0 0; }
+    </style>
+}

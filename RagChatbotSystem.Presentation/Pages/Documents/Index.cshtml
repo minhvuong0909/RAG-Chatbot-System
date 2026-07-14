@@ -2,172 +2,190 @@
 @using System.Text.Encodings.Web
 @model RagChatbotSystem.Presentation.Pages.Documents.IndexModel
 @{
-    ViewData["Title"] = "Manage Documents";
+    ViewData["Title"] = "Quản lý tài liệu";
+    var hasCompletedDocument = Model.Documents.Any(document => document.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase));
 }
 
-<!-- The data-rag-app and data-selected-dataset-id attributes trigger the SignalR connection to join this dataset group for progress notifications -->
-<div id="documents-workspace" data-rag-app data-selected-dataset-id="@Model.DatasetId" class="container py-4">
-    <!-- Header / Breadcrumbs -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">
-                <a asp-page="/Datasets/Index" style="text-decoration: none; color: var(--muted);">Subjects</a> &gt; 
-                <span style="color: var(--ink-soft);">@Model.Dataset.Name</span>
-            </p>
-            <h2 class="fw-bold m-0" style="color: var(--ink);">Documents Management</h2>
-        </div>
-        <div class="d-flex gap-2">
-            <a asp-page="/Datasets/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Subjects List</a>
-            <a asp-page="/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-primary" style="border-radius: 8px; font-weight: 600; background: var(--accent); border: none;">Start Chat</a>
-        </div>
-    </div>
+@functions {
+    private static string StatusLabel(string? status) => status?.ToLowerInvariant() switch
+    {
+        "uploaded" or "pending" => "Đang chờ",
+        "processing" => "Đang xử lý",
+        "completed" => "Đã xử lý",
+        "failed" => "Xử lý thất bại",
+        "deleted" => "Đã xóa",
+        _ => "Đang chờ"
+    };
 
-    <!-- Alert Messages -->
+    private static string StatusClass(string? status) => status?.ToLowerInvariant() switch
+    {
+        "uploaded" or "pending" => "pending",
+        "processing" => "processing",
+        "completed" => "completed",
+        "failed" => "failed",
+        "deleted" => "deleted",
+        _ => "pending"
+    };
+}
+
+<div id="documents-workspace" data-rag-app data-selected-dataset-id="@Model.DatasetId" class="container py-4 document-workspace">
+    <header class="document-page-header">
+        <div>
+            <p class="eyebrow"><a asp-page="/Datasets/Index">Môn học</a> <span aria-hidden="true">/</span> <span title="@Model.Dataset.Name">@Model.Dataset.Name</span></p>
+            <h1>Quản lý tài liệu</h1>
+            <p class="helper-text">Tài liệu đã xử lý sẽ được dùng làm nguồn tham khảo khi chatbot trả lời cho môn học này.</p>
+        </div>
+        <div class="document-header-actions">
+            <a asp-page="/Datasets/Index" class="btn btn-outline-secondary">Danh sách môn học</a>
+            <a asp-page="/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-primary">Mở trò chuyện</a>
+        </div>
+    </header>
+
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 8px;">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
             @Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
         </div>
     }
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px;">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
             @Model.SuccessMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
         </div>
     }
 
-    <div class="row g-4">
-        <!-- Document Upload Card (Drag & Drop) -->
+    @if (!hasCompletedDocument)
+    {
+        <div class="document-readiness-notice" role="status">
+            Chatbot chưa thể trả lời dựa trên môn học này vì chưa có tài liệu đã xử lý.
+        </div>
+    }
+
+    <div class="row g-4 align-items-start">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h4 class="fw-bold m-0" style="color: var(--ink);">Upload Documents</h4>
-                    <p class="text-muted small m-0 mt-1">Add files to build the subject knowledge base.</p>
-                </div>
-                <div class="card-body px-4 pb-4 pt-2">
+            <section class="card border-0 shadow-soft document-upload-card">
+                <div class="card-body p-4">
+                    <h2 class="h4 fw-bold mb-1">Tải tài liệu lên</h2>
+                    <p class="text-muted small mb-3">Tải từng tệp để hệ thống trích xuất nội dung, tạo chunk và lập chỉ mục RAG.</p>
+
                     <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="upload-doc-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.DatasetId" />
-                        <input type="hidden" id="overwrite-existing-file-name" name="overwriteExistingFileName" value="false" />
-                        
-                        <div id="upload-dropzone" 
-                             style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed var(--line); border-radius: 12px; padding: 40px 20px; background: var(--surface-muted); text-align: center; cursor: pointer; transition: all 0.2s;" 
-                             onclick="if(!this.dataset.uploading) document.getElementById('file-upload').click();">
-                            
-                            <div id="upload-idle-state" style="display: flex; flex-direction: column; align-items: center;">
-                                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: var(--shadow-soft);">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                </div>
-                                <span style="font-weight: 700; font-size: 1rem; color: var(--ink);">Drag &amp; drop files here</span>
-                                <span style="font-size: 0.8rem; color: var(--muted); margin-top: 6px;">or click to select from folder</span>
-                                <span style="font-size: 0.7rem; color: var(--muted); margin-top: 12px;">Supports PDF, TXT, DOCX (Max 50MB)</span>
-                            </div>
 
-                            <div id="upload-loading-state" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0;">
-                                <div class="spinner-border text-primary mb-3" role="status" style="width: 2rem; height: 2rem;"></div>
-                                <span style="font-weight: 700; font-size: 0.95rem; color: var(--accent);">Uploading &amp; Processing...</span>
-                                <span style="font-size: 0.75rem; color: var(--muted); margin-top: 6px;">AI is extracting text, splitting chunks, and creating embeddings.</span>
+                        <div id="upload-dropzone" class="upload-dropzone" role="button" tabindex="0" aria-describedby="upload-support-text" onclick="if (!this.dataset.uploading) document.getElementById('file-upload').click();">
+                            <div id="upload-idle-state">
+                                <div class="upload-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                </div>
+                                <span class="upload-primary">Kéo và thả tệp vào đây</span>
+                                <span class="upload-secondary">hoặc bấm để chọn tệp</span>
                             </div>
-                            
-                            <input id="file-upload" name="file" type="file" accept=".pdf,.txt,.docx" required style="display: none;" onchange="triggerUpload();" />
+                            <div id="upload-loading-state" class="upload-loading-state" aria-live="polite">
+                                <div class="spinner-border text-primary mb-3" role="status"></div>
+                                <span class="upload-primary">Đang tải lên và xử lý...</span>
+                                <span class="upload-secondary">Hệ thống đang trích xuất nội dung và lập chỉ mục RAG.</span>
+                            </div>
+                            <input id="file-upload" name="file" type="file" accept=".pdf,.txt,.docx" required hidden onchange="triggerUpload();" />
                         </div>
+                        <p id="upload-support-text" class="upload-support-text mb-0">Hỗ trợ PDF, DOCX, TXT. Dung lượng tối đa 50 MB.</p>
                     </form>
                 </div>
-            </div>
+            </section>
         </div>
 
-        <!-- Documents List Card -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="fw-bold m-0" style="color: var(--ink);">Dataset Documents</h4>
-                        <p class="text-muted small m-0 mt-1">Currently indexed files grounding the AI.</p>
+            <section class="card border-0 shadow-soft document-list-card">
+                <div class="card-body p-4">
+                    <div class="document-list-heading">
+                        <div>
+                            <h2 class="h4 fw-bold mb-1">Tài liệu của môn học</h2>
+                            <p class="text-muted small mb-0">Chỉ các tài liệu đã xử lý mới được chatbot sử dụng để trả lời.</p>
+                        </div>
+                        <span class="document-count" data-document-count>@Model.Documents.Count tệp</span>
                     </div>
-                    <span class="badge bg-secondary" style="border-radius: 20px; padding: 6px 12px; font-weight: 600; background: var(--bg-elevated) !important; color: var(--ink-soft) !important;">
-                        @Model.Documents.Count file(s)
-                    </span>
-                </div>
-                <div class="card-body px-4 pb-4 pt-2">
-                    <div id="document-list" class="d-flex flex-column gap-3" data-document-list>
+
+                    <div id="document-list" class="document-list" data-document-list>
                         @if (Model.Documents.Count == 0)
                         {
-                            <div class="text-center py-5" id="documents-empty-state">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                <p class="text-muted">No documents uploaded to this subject yet.</p>
+                            <div class="document-empty-state" id="documents-empty-state">
+                                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                <p>Chưa có tài liệu nào trong môn học này.</p>
+                                <span>Tải lên một tệp để chatbot có nguồn tham khảo.</span>
                             </div>
                         }
                         else
                         {
                             @foreach (var doc in Model.Documents)
                             {
-                                <div class="p-3" data-document-id="@doc.DocumentId" style="border: 1px solid var(--line); border-radius: 10px; background: var(--surface-muted); transition: all 0.2s;">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <strong class="text-truncate d-inline-block" style="max-width: 320px; color: var(--ink);" title="@doc.FileName">@doc.FileName</strong>
-                                            <div class="text-muted small">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</div>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge status-badge @doc.Status.ToLower()" data-document-status style="font-size: 0.8rem; border-radius: 4px; padding: 4px 8px;">@doc.Status</span>
+                                <article class="document-item" data-document-id="@doc.DocumentId">
+                                    <div class="document-item-main">
+                                        <div class="document-file-icon" aria-hidden="true">@doc.FileType.ToUpperInvariant()</div>
+                                        <div class="document-file-details">
+                                            <strong class="document-file-name" title="@doc.FileName">@doc.FileName</strong>
+                                            <span>@Math.Ceiling(doc.FileSize / 1024.0) KB <span aria-hidden="true">·</span> Tải lên @doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Progress Bar -->
-                                    <div class="progress mb-3" style="height: 6px; border-radius: 3px; background: var(--line);">
-                                        <div class="progress-bar" data-document-progress role="progressbar" 
-                                             style="width: @(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55%" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100%" : "0%"); background: var(--accent);" 
-                                             aria-valuenow="@(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100" : "0")" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="document-item-status">
+                                        <span class="status-badge @StatusClass(doc.Status)" data-document-status>@StatusLabel(doc.Status)</span>
+                                        <div class="progress" aria-label="Tiến độ xử lý tài liệu">
+                                            <div class="progress-bar" data-document-progress role="progressbar" style="width: @(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55%" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100%" : "0%")" aria-valuenow="@(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100" : "0")" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
                                     </div>
-                                    
-                                    <!-- Actions Row -->
                                     @if (!string.IsNullOrWhiteSpace(doc.ProcessError))
                                     {
-                                        <div class="alert alert-warning py-2 px-3 mb-3" style="border-radius: 8px; font-size: 0.8rem;">
-                                            @doc.ProcessError
-                                        </div>
+                                        <p class="document-processing-error mb-0">Không thể xử lý tài liệu này. Vui lòng thử lại hoặc tải lên tệp khác.</p>
                                     }
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="text-muted small" style="font-size: 0.75rem;">Uploaded: @doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
-                                        <div class="d-flex gap-2">
-                                            <a asp-page="/Documents/Preview" asp-route-documentId="@doc.DocumentId" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
-                                                Preview Chunks
-                                            </a>
-                                            <form method="post" asp-page-handler="DeleteDocument" class="d-inline" onsubmit="return confirm('This document will be deleted from chat and removed from the RAG index. Continue?');">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="datasetId" value="@Model.DatasetId" />
-                                                <input type="hidden" name="documentId" value="@doc.DocumentId" />
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </div>
+                                    <div class="document-item-actions">
+                                        <a asp-page="/Documents/Preview" asp-route-documentId="@doc.DocumentId" class="btn btn-sm btn-outline-secondary">Xem chunk</a>
+                                        <form method="post" asp-page-handler="DeleteDocument" class="d-inline" data-delete-document data-file-name="@doc.FileName">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="datasetId" value="@Model.DatasetId" />
+                                            <input type="hidden" name="documentId" value="@doc.DocumentId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                                        </form>
                                     </div>
-                                </div>
+                                </article>
                             }
                         }
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>
 
-<!-- Modal Processing Overlay -->
-<div id="documentProcessingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.65); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center; color: white; flex-direction: column;">
-    <div class="spinner-border text-light mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-    <h3 style="font-weight: 700;">Processing document...</h3>
-    <p style="color: rgba(255,255,255,0.85); font-size: 0.95rem; max-width: 400px; text-align: center; margin-top: 8px;">AI is extracting text, splitting chunks, and indexing this file. Please keep this page open.</p>
+<div id="documentProcessingOverlay" class="document-processing-overlay" hidden aria-live="polite">
+    <div class="document-processing-panel">
+        <div class="spinner-border text-primary" role="status"></div>
+        <h2>Đang xử lý tài liệu</h2>
+        <p>Hệ thống đang trích xuất nội dung, tạo chunk và lập chỉ mục RAG. Vui lòng giữ trang này mở cho đến khi hoàn tất.</p>
+    </div>
+</div>
+
+<div id="deleteDocumentModal" class="document-modal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteDocumentTitle">
+    <div class="document-modal-backdrop" data-modal-dismiss></div>
+    <div class="document-modal-panel" role="document">
+        <h2 id="deleteDocumentTitle">Xóa tài liệu</h2>
+        <p>Bạn có chắc muốn xóa <strong id="delete-document-file-name"></strong>?</p>
+        <p class="text-muted small mb-0">Tài liệu sẽ không còn được chatbot sử dụng để trả lời. Bản ghi được giữ lại để truy vết.</p>
+        <div class="document-modal-actions">
+            <button type="button" class="btn btn-outline-secondary" data-modal-dismiss>Hủy</button>
+            <button type="button" class="btn btn-outline-danger" id="confirm-delete-document">Xóa tài liệu</button>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
         const uploadDocForm = document.getElementById("upload-doc-form");
         const fileUploadInput = document.getElementById("file-upload");
-        const overwriteExistingFileNameInput = document.getElementById("overwrite-existing-file-name");
         const dropzone = document.getElementById("upload-dropzone");
         const processingOverlay = document.getElementById("documentProcessingOverlay");
+        const deleteModal = document.getElementById("deleteDocumentModal");
+        const deleteFileName = document.getElementById("delete-document-file-name");
+        let pendingDeleteForm = null;
         const existingDocumentNames = new Set([
             @foreach (var doc in Model.Documents)
             {
@@ -175,187 +193,169 @@
             }
         ]);
 
-        // Show overlay on form submit
-        if (uploadDocForm && processingOverlay) {
-            uploadDocForm.addEventListener("submit", function () {
-                processingOverlay.style.display = "flex";
-            });
+        function statusInfo(status) {
+            const normalized = String(status || "Uploaded").toLowerCase();
+            const labels = {
+                uploaded: "Đang chờ", pending: "Đang chờ", processing: "Đang xử lý",
+                completed: "Đã xử lý", failed: "Xử lý thất bại", deleted: "Đã xóa"
+            };
+            const classes = { uploaded: "pending", pending: "pending", processing: "processing", completed: "completed", failed: "failed", deleted: "deleted" };
+            return { label: labels[normalized] || "Đang chờ", cssClass: classes[normalized] || "pending" };
         }
 
-        // Trigger submit when file is selected
+        function showModal(modal) {
+            if (!modal) return;
+            modal.hidden = false;
+            modal.querySelector("button")?.focus();
+        }
+
+        function hideModal(modal) {
+            if (modal) modal.hidden = true;
+        }
+
+        function showProcessing() {
+            document.getElementById("upload-idle-state").style.display = "none";
+            document.getElementById("upload-loading-state").style.display = "flex";
+            dropzone.dataset.uploading = "true";
+            processingOverlay.hidden = false;
+        }
+
+        function submitUpload() {
+            showProcessing();
+            uploadDocForm.submit();
+        }
+
+        function showUploadNotice(message) {
+            const notice = document.createElement("div");
+            notice.className = "alert alert-warning mt-3 auto-dismiss-alert";
+            notice.setAttribute("role", "alert");
+            notice.textContent = message;
+            uploadDocForm.after(notice);
+            window.setTimeout(() => notice.remove(), 5000);
+        }
+
         function triggerUpload() {
-            if (fileUploadInput.files.length > 0 && uploadDocForm) {
-                const selectedFileName = fileUploadInput.files[0].name.toLowerCase();
-                if (overwriteExistingFileNameInput) {
-                    overwriteExistingFileNameInput.value = "false";
-                }
-
-                if (existingDocumentNames.has(selectedFileName)) {
-                    const confirmed = confirm("A document with this file name already exists. Do you want to replace it? The current document will be hidden from chat and kept as trace data.");
-                    if (!confirmed) {
-                        fileUploadInput.value = "";
-                        return;
-                    }
-
-                    if (overwriteExistingFileNameInput) {
-                        overwriteExistingFileNameInput.value = "true";
-                    }
-                }
-
-                // Change UI state inside dropzone to loading
-                document.getElementById("upload-idle-state").style.display = "none";
-                document.getElementById("upload-loading-state").style.display = "flex";
-                dropzone.dataset.uploading = "true";
-                uploadDocForm.submit();
+            if (!fileUploadInput.files.length || !uploadDocForm) return;
+            const selectedFileName = fileUploadInput.files[0].name.toLowerCase();
+            if (existingDocumentNames.has(selectedFileName)) {
+                showUploadNotice("Môn học đã có tài liệu cùng tên. Vui lòng đổi tên tệp hoặc xóa tài liệu cũ trước khi tải lên.");
+                fileUploadInput.value = "";
+                return;
             }
+            submitUpload();
         }
 
-        // Drag & Drop visual effects
+        document.getElementById("confirm-delete-document")?.addEventListener("click", () => {
+            if (pendingDeleteForm) {
+                pendingDeleteForm.dataset.confirmed = "true";
+                pendingDeleteForm.requestSubmit();
+            }
+        });
+        document.querySelectorAll("[data-modal-dismiss]").forEach(button => button.addEventListener("click", () => {
+            hideModal(deleteModal);
+            pendingDeleteForm = null;
+        }));
+
+        document.addEventListener("submit", event => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || !form.matches("[data-delete-document]")) return;
+            if (form.dataset.confirmed === "true") {
+                form.dataset.confirmed = "false";
+                return;
+            }
+            event.preventDefault();
+            pendingDeleteForm = form;
+            deleteFileName.textContent = form.dataset.fileName || "tài liệu này";
+            showModal(deleteModal);
+        });
+
+        if (uploadDocForm && processingOverlay) {
+            uploadDocForm.addEventListener("submit", () => {
+                if (!dropzone.dataset.uploading) showProcessing();
+            });
+        }
+
         if (dropzone) {
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropzone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    if (dropzone.dataset.uploading) return;
-                    dropzone.style.borderColor = 'var(--accent)';
-                    dropzone.style.background = 'var(--accent-soft)';
-                }, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropzone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    if (dropzone.dataset.uploading) return;
-                    dropzone.style.borderColor = 'var(--line)';
-                    dropzone.style.background = 'var(--surface-muted)';
-                }, false);
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                if (dropzone.dataset.uploading) return;
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files.length > 0) {
-                    fileUploadInput.files = files;
-                    triggerUpload();
+            dropzone.addEventListener("keydown", event => {
+                if ((event.key === "Enter" || event.key === " ") && !dropzone.dataset.uploading) {
+                    event.preventDefault();
+                    fileUploadInput.click();
                 }
-            }, false);
+            });
+            ["dragenter", "dragover"].forEach(eventName => dropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                if (!dropzone.dataset.uploading) dropzone.classList.add("is-dragging");
+            }));
+            ["dragleave", "drop"].forEach(eventName => dropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                dropzone.classList.remove("is-dragging");
+            }));
+            dropzone.addEventListener("drop", event => {
+                if (dropzone.dataset.uploading || !event.dataTransfer.files.length) return;
+                fileUploadInput.files = event.dataTransfer.files;
+                triggerUpload();
+            });
         }
 
-        // Escape HTML helper
-        function escapeHtml(str) {
-            if (!str) return "";
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+        function escapeHtml(value) {
+            return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
-        // Anti-forgery input helper
         function antiForgeryInput() {
             const token = document.querySelector('input[name="__RequestVerificationToken"]');
             return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
         }
 
-        // Create document row dynamically if progress event comes for a new file
         function createDocumentRow(payload) {
-            const item = document.createElement("div");
-            item.className = "p-3";
+            const item = document.createElement("article");
+            item.className = "document-item";
             item.dataset.documentId = payload.documentId;
-            item.style.border = "1px solid var(--line)";
-            item.style.borderRadius = "10px";
-            item.style.background = "var(--surface-muted)";
-            item.style.transition = "all 0.2s";
-            
-            const status = payload.status || "Uploaded";
+            const status = statusInfo(payload.status || payload.action);
             const percent = Math.max(0, Math.min(100, payload.percentComplete || 0));
             const sizeKb = Math.ceil((payload.fileSize || 0) / 1024);
-            const dateStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
-
+            const dateStr = new Date().toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
             item.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <strong class="text-truncate d-inline-block" style="max-width: 320px; color: var(--ink);" title="${escapeHtml(payload.fileName)}">${escapeHtml(payload.fileName)}</strong>
-                        <div class="text-muted small">${escapeHtml(payload.fileType).toUpperCase()} - ${sizeKb} KB</div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge status-badge ${escapeHtml(status.toLowerCase())}" data-document-status style="font-size: 0.8rem; border-radius: 4px; padding: 4px 8px;">${escapeHtml(status)}</span>
-                    </div>
-                </div>
-                <div class="progress mb-3" style="height: 6px; border-radius: 3px; background: var(--line);">
-                    <div class="progress-bar" data-document-progress role="progressbar" style="width: ${percent}%; background: var(--accent);" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small" style="font-size: 0.75rem;">Uploaded: ${dateStr}</span>
-                    <div class="d-flex gap-2">
-                        <a href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
-                            Preview Chunks
-                        </a>
-                        <form method="post" action="?handler=DeleteDocument" class="d-inline" onsubmit="return confirm('This document will be deleted from chat and removed from the RAG index. Continue?');">
-                            ${antiForgeryInput()}
-                            <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
-                            <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
-                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
-                                Delete
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            `;
+                <div class="document-item-main"><div class="document-file-icon" aria-hidden="true">${escapeHtml(String(payload.fileType || "").toUpperCase())}</div><div class="document-file-details"><strong class="document-file-name" title="${escapeHtml(payload.fileName)}">${escapeHtml(payload.fileName)}</strong><span>${sizeKb} KB <span aria-hidden="true">·</span> Tải lên ${dateStr}</span></div></div>
+                <div class="document-item-status"><span class="status-badge ${status.cssClass}" data-document-status>${status.label}</span><div class="progress" aria-label="Tiến độ xử lý tài liệu"><div class="progress-bar" data-document-progress role="progressbar" style="width:${percent}%" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div></div></div>
+                <div class="document-item-actions"><a href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" class="btn btn-sm btn-outline-secondary">Xem chunk</a><form method="post" action="?handler=DeleteDocument" class="d-inline" data-delete-document data-file-name="${escapeHtml(payload.fileName)}">${antiForgeryInput()}<input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" /><input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" /><button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button></form></div>`;
             return item;
         }
 
-        // SignalR: Document Progress listener
-        window.addEventListener("rag:document-progress", function (event) {
+        function showEmptyState(docList) {
+            docList.innerHTML = `<div class="document-empty-state" id="documents-empty-state"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg><p>Chưa có tài liệu nào trong môn học này.</p><span>Tải lên một tệp để chatbot có nguồn tham khảo.</span></div>`;
+        }
+
+        function updateDocumentCount() {
+            const count = document.querySelector("[data-document-count]");
+            const rows = document.querySelectorAll("[data-document-id]");
+            if (count) count.textContent = `${rows.length} tệp`;
+        }
+
+        window.addEventListener("rag:document-progress", event => {
             const payload = event.detail;
-            if (!payload || !payload.documentId) return;
-
-            // Make sure the event is for this dataset
-            if (payload.datasetId && String(payload.datasetId) !== "@Model.DatasetId") {
-                return;
-            }
-
+            if (!payload || !payload.documentId || (payload.datasetId && String(payload.datasetId) !== "@Model.DatasetId")) return;
             const docList = document.getElementById("document-list");
             const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
-            
             if (payload.action === "deleted") {
-                if (documentRow) {
-                    documentRow.remove();
-                    // Show empty state if list is empty
-                    if (docList && docList.querySelectorAll("[data-document-id]").length === 0) {
-                        docList.innerHTML = `
-                            <div class="text-center py-5" id="documents-empty-state">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                <p class="text-muted">No documents uploaded to this subject yet.</p>
-                            </div>
-                        `;
-                    }
-                }
+                documentRow?.remove();
+                if (docList && !docList.querySelector("[data-document-id]")) showEmptyState(docList);
+                updateDocumentCount();
                 return;
             }
-
             if (!documentRow) {
-                if (docList) {
-                    const emptyState = document.getElementById("documents-empty-state");
-                    if (emptyState) emptyState.remove();
-                    
-                    if (payload.action === "completed" || payload.action === "uploaded" || payload.action === "processing") {
-                        docList.prepend(createDocumentRow(payload));
-                    }
+                if (docList && ["completed", "uploaded", "processing", "failed"].includes(payload.action)) {
+                    document.getElementById("documents-empty-state")?.remove();
+                    docList.prepend(createDocumentRow(payload));
+                    updateDocumentCount();
                 }
                 return;
             }
-
-            // Update status badge class and text
+            const status = statusInfo(payload.status || payload.action);
             const statusBadge = documentRow.querySelector("[data-document-status]");
             if (statusBadge) {
-                const status = payload.status || payload.action || "Updated";
-                statusBadge.textContent = status;
-                statusBadge.className = `badge status-badge ${status.toLowerCase()}`;
+                statusBadge.textContent = status.label;
+                statusBadge.className = `status-badge ${status.cssClass}`;
             }
-
-            // Update progress bar width
             const progressBar = documentRow.querySelector("[data-document-progress]");
             if (progressBar) {
                 const percent = Math.max(0, Math.min(100, payload.percentComplete || 0));
@@ -364,24 +364,60 @@
             }
         });
     </script>
-    
     <style>
-        .status-badge.uploaded {
-            background: var(--bg-elevated) !important;
-            color: var(--ink-soft) !important;
-            border: 1px solid var(--line);
-        }
-        .status-badge.processing {
-            background: var(--warning-soft) !important;
-            color: var(--warning) !important;
-        }
-        .status-badge.completed {
-            background: var(--success-soft) !important;
-            color: var(--success) !important;
-        }
-        .status-badge.failed {
-            background: var(--danger-soft) !important;
-            color: var(--danger) !important;
-        }
+        .document-workspace { max-width: 1280px; }
+        .document-page-header, .document-list-heading, .document-item, .document-item-main, .document-header-actions, .document-modal-actions { display: flex; gap: 1rem; }
+        .document-page-header, .document-list-heading, .document-item { justify-content: space-between; }
+        .document-page-header { align-items: flex-start; margin-bottom: 1.5rem; }
+        .document-page-header .eyebrow a { color: inherit; text-decoration: none; }
+        .document-page-header h1 { color: var(--ink); font-size: 1.65rem; font-weight: 700; margin: 0; }
+        .document-page-header .helper-text { margin: .35rem 0 0; }
+        .document-header-actions { flex-wrap: wrap; }
+        .document-readiness-notice { background: var(--warning-soft); border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent); border-radius: 8px; color: var(--ink-soft); margin-bottom: 1.5rem; padding: .8rem 1rem; }
+        .document-upload-card, .document-list-card { border: 1px solid var(--line) !important; border-radius: 8px; background: var(--surface); }
+        .upload-dropzone { align-items: center; background: var(--surface-muted); border: 2px dashed var(--line); border-radius: 8px; cursor: pointer; display: flex; justify-content: center; min-height: 220px; padding: 1.5rem; text-align: center; transition: border-color .2s, background .2s; }
+        .upload-dropzone.is-dragging { background: var(--accent-soft); border-color: var(--accent); }
+        .upload-icon { align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 50%; color: var(--accent); display: inline-flex; height: 48px; justify-content: center; margin-bottom: .75rem; width: 48px; }
+        .upload-primary, .upload-secondary { display: block; }
+        .upload-primary { color: var(--ink); font-weight: 700; }
+        .upload-secondary, .upload-support-text { color: var(--muted); font-size: .8rem; margin-top: .35rem; }
+        .upload-loading-state { align-items: center; display: none; flex-direction: column; }
+        .upload-loading-state .spinner-border { height: 2rem; width: 2rem; }
+        .upload-support-text { line-height: 1.5; margin-top: .75rem; }
+        .document-list-heading { align-items: flex-start; margin-bottom: 1rem; }
+        .document-count { background: var(--bg-elevated); border-radius: 999px; color: var(--ink-soft); font-size: .825rem; font-weight: 600; padding: .35rem .7rem; white-space: nowrap; }
+        .document-list { display: grid; gap: .75rem; }
+        .document-item { align-items: center; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 8px; flex-wrap: wrap; padding: 1rem; }
+        .document-item-main { align-items: center; flex: 1 1 280px; min-width: 0; }
+        .document-file-icon { align-items: center; background: var(--accent-soft); border-radius: 6px; color: var(--accent); display: flex; flex: 0 0 auto; font-size: .65rem; font-weight: 800; height: 34px; justify-content: center; width: 42px; }
+        .document-file-details { min-width: 0; }
+        .document-file-name { color: var(--ink); display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .document-file-details span { color: var(--muted); display: block; font-size: .75rem; margin-top: .2rem; }
+        .document-item-status { flex: 0 1 150px; min-width: 130px; }
+        .status-badge { border-radius: 999px; display: inline-block; font-size: .75rem; font-weight: 700; margin-bottom: .45rem; padding: .3rem .55rem; }
+        .status-badge.pending { background: var(--bg-elevated); color: var(--ink-soft); }
+        .status-badge.processing { background: var(--warning-soft); color: var(--warning); }
+        .status-badge.completed { background: var(--success-soft); color: var(--success); }
+        .status-badge.failed { background: var(--danger-soft); color: var(--danger); }
+        .status-badge.deleted { background: var(--bg-elevated); color: var(--muted); }
+        .document-item .progress { background: var(--line); height: .35rem; }
+        .document-item .progress-bar { background: var(--accent); }
+        .document-item-actions { display: flex; gap: .5rem; margin-left: auto; }
+        .document-processing-error { background: var(--warning-soft); border-radius: 6px; color: var(--ink-soft); flex-basis: 100%; font-size: .8rem; padding: .6rem .75rem; }
+        .document-empty-state { align-items: center; color: var(--muted); display: flex; flex-direction: column; justify-content: center; min-height: 260px; text-align: center; }
+        .document-empty-state p { color: var(--ink-soft); font-weight: 600; margin: .75rem 0 .25rem; }
+        .document-empty-state span { font-size: .875rem; }
+        .document-processing-overlay, .document-modal { inset: 0; position: fixed; z-index: 1055; }
+        .document-processing-overlay { align-items: center; background: rgba(15, 23, 42, .5); display: flex; justify-content: center; padding: 1rem; }
+        .document-processing-panel, .document-modal-panel { background: var(--surface); border-radius: 8px; box-shadow: var(--shadow-lg); max-width: 460px; padding: 1.5rem; width: min(100%, 460px); }
+        .document-processing-panel { text-align: center; }
+        .document-processing-panel h2, .document-modal-panel h2 { color: var(--ink); font-size: 1.15rem; font-weight: 700; margin: 1rem 0 .5rem; }
+        .document-processing-panel p, .document-modal-panel p { color: var(--ink-soft); margin-bottom: 0; }
+        .document-modal[hidden], .document-processing-overlay[hidden] { display: none; }
+        .document-modal { align-items: center; display: flex; justify-content: center; padding: 1rem; }
+        .document-modal-backdrop { background: rgba(15, 23, 42, .5); inset: 0; position: absolute; }
+        .document-modal-panel { position: relative; }
+        .document-modal-actions { flex-wrap: wrap; justify-content: flex-end; margin-top: 1.5rem; }
+        @@media (max-width: 575.98px) { .document-page-header { flex-direction: column; } .document-header-actions { width: 100%; } .document-header-actions .btn { flex: 1 1 auto; } .document-list-heading { gap: .75rem; } .document-item { align-items: stretch; } .document-item-status { flex-basis: 100%; } .document-item-actions { margin-left: 0; } .document-item-actions .btn { flex: 1 1 auto; } .document-modal-actions { flex-direction: column-reverse; } .document-modal-actions .btn { width: 100%; } }
     </style>
 }

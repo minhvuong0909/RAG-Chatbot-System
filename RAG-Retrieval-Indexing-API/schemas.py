@@ -11,6 +11,7 @@ class IndexRequest(BaseModel):
 
 class RetrieveRequest(BaseModel):
     query: str
+    dataset_id: str | None = None
     top_k: int = 3
     semantic_weight: float = 0.7
     lexical_weight: float = 0.3

@@ -14,6 +14,7 @@ namespace RagChatbotSystem.Business.Interfaces
         Task<List<TopSubjectUsageDto>> GetTopSubjectsByQuestionCountAsync(int limit = 5, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
         Task<List<TopSubjectUsageDto>> GetSubjectLearningActivityByQuestionCountAsync(int limit = 5, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
         Task<List<UserTokenUsageLeaderboardDto>> GetUserLeaderboardAsync(int limit = 10, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
+        Task<CreditReportDto> GetCreditReportAsync(int days = 7, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
         Task<int> GetActiveStudentCountAsync(IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
         Task<List<StudentLearningEngagementDto>> GetStudentEngagementByQuestionCountAsync(int limit = 10, IReadOnlyCollection<Guid>? datasetIds = null, CancellationToken cancellationToken = default);
     }

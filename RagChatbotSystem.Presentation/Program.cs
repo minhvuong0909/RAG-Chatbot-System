@@ -17,6 +17,44 @@ namespace RagChatbotSystem.Presentation
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var groqApiKey = builder.Configuration["Groq:ApiKey"]
+                ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+            if (string.IsNullOrWhiteSpace(groqApiKey) && builder.Environment.IsDevelopment())
+            {
+                var envFile = new[]
+                {
+                    Path.Combine(builder.Environment.ContentRootPath, ".env"),
+                    Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", ".env"))
+                }.FirstOrDefault(File.Exists);
+
+                var keyLine = envFile == null
+                    ? null
+                    : File.ReadLines(envFile).FirstOrDefault(line => line.StartsWith("GROQ_API_KEY=", StringComparison.Ordinal));
+                groqApiKey = keyLine?["GROQ_API_KEY=".Length..].Trim().Trim('"', '\'');
+            }
+            if (!string.IsNullOrWhiteSpace(groqApiKey))
+            {
+                builder.Configuration["Groq:ApiKey"] = groqApiKey;
+            }
+
+            var payOsSettings = new[]
+            {
+                (ConfigKey: "PayOs:ClientId", EnvironmentKey: "PAYOS_CLIENT_ID"),
+                (ConfigKey: "PayOs:ApiKey", EnvironmentKey: "PAYOS_API_KEY"),
+                (ConfigKey: "PayOs:ChecksumKey", EnvironmentKey: "PAYOS_CHECKSUM_KEY"),
+                (ConfigKey: "PayOs:PublicBaseUrl", EnvironmentKey: "PAYOS_PUBLIC_BASE_URL")
+            };
+            foreach (var setting in payOsSettings)
+            {
+                if (!string.IsNullOrWhiteSpace(builder.Configuration[setting.ConfigKey])) continue;
+                var value = Environment.GetEnvironmentVariable(setting.EnvironmentKey);
+                if (string.IsNullOrWhiteSpace(value) && builder.Environment.IsDevelopment())
+                {
+                    value = ReadLocalEnvValue(builder.Environment.ContentRootPath, setting.EnvironmentKey);
+                }
+                if (!string.IsNullOrWhiteSpace(value)) builder.Configuration[setting.ConfigKey] = value;
+            }
+
             builder.Services.AddRazorPages();
             builder.Services.AddSignalR();
 
@@ -71,6 +109,32 @@ namespace RagChatbotSystem.Presentation
                 }
             });
 
+            // Named HttpClients dùng riêng cho tính năng so sánh model (Admin/ModelComparison),
+            // tách khỏi HttpClient đã đăng ký cho ILlmService để không ảnh hưởng luồng chat chính.
+            builder.Services.AddHttpClient("ModelComparison.Groq", client =>
+            {
+                client.BaseAddress = new Uri("https://api.groq.com/openai/v1/");
+                client.Timeout = TimeSpan.FromSeconds(60);
+
+                var apiKey = builder.Configuration["Groq:ApiKey"];
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    client.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+                }
+            });
+
+            builder.Services.AddHttpClient("ModelComparison.Gemini", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
+
+            builder.Services.AddHttpClient<IPayOsService, PayOsService>(client =>
+            {
+                client.BaseAddress = new Uri("https://api-merchant.payos.vn/");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
             // Đăng ký các dịch vụ Data Access Layer
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -85,7 +149,10 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<IQuestionSuggestionService, QuestionSuggestionService>();
             builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
             builder.Services.AddScoped<ITokenUsageService, TokenUsageService>();
+            builder.Services.AddScoped<ICreditService, CreditService>();
+            builder.Services.AddScoped<ICreditPurchaseService, CreditPurchaseService>();
             builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+            builder.Services.AddScoped<IModelComparisonService, ModelComparisonService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
             builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();
@@ -247,6 +314,21 @@ namespace RagChatbotSystem.Presentation
             }
 
             return username;
+        }
+
+        private static string? ReadLocalEnvValue(string contentRootPath, string key)
+        {
+            var envFile = new[]
+            {
+                Path.Combine(contentRootPath, ".env"),
+                Path.GetFullPath(Path.Combine(contentRootPath, "..", ".env"))
+            }.FirstOrDefault(File.Exists);
+            if (envFile == null) return null;
+
+            var prefix = key + "=";
+            var line = File.ReadLines(envFile)
+                .FirstOrDefault(candidate => candidate.StartsWith(prefix, StringComparison.Ordinal));
+            return line?[prefix.Length..].Trim().Trim('"', '\'');
         }
     }
 }
