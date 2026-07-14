@@ -1,4 +1,0 @@
-[     411ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5157/RagChatbotSystem.Presentation.styles.css:0
-[     426ms] [INFO] [2026-07-10T14:33:39.867Z] Information: Normalizing '/hubs/notifications' to 'http://localhost:5157/hubs/notifications'. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
-[     428ms] [LOG] RagChatbotSystem MVC Workspace loaded successfully. @ http://localhost:5157/js/site.js?v=qrvyWFNaXmQt-9YaJ0-_p2aUhCCtqdkeDKsc3DONVZI:2
-[     479ms] [INFO] [2026-07-10T14:33:39.921Z] Information: WebSocket connected to ws://localhost:5157/hubs/notifications?id=xubI8MeDqpxto6LgTc9Viw. @ http://localhost:5157/lib/microsoft/signalr/dist/browser/signalr.min.js:0
