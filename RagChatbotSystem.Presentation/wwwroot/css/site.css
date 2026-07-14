@@ -1865,6 +1865,76 @@ body:has(.workspace) .reference-card p[style] {
   min-height: 46px;
 }
 
+.auth-alert {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.auth-alert-icon {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.auth-alert-success {
+  border-color: rgba(22, 128, 60, 0.2);
+  background: var(--success-soft);
+  color: #05603a;
+}
+
+.auth-alert-success .auth-alert-icon {
+  background: rgba(22, 128, 60, 0.14);
+}
+
+.auth-alert-warning {
+  border-color: rgba(180, 83, 9, 0.22);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.auth-alert-warning .auth-alert-icon {
+  background: rgba(180, 83, 9, 0.14);
+}
+
+.auth-alert-danger {
+  border-color: rgba(180, 35, 24, 0.2);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.auth-alert-danger .auth-alert-icon {
+  background: rgba(180, 35, 24, 0.12);
+}
+
+.auth-alert-message,
+.auth-validation-summary {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.auth-validation-summary ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-validation-summary li + li {
+  margin-top: 4px;
+}
+
 .access-denied-shell {
   min-height: calc(70vh - 104px);
 }

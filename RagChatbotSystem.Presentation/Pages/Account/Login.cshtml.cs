@@ -48,7 +48,7 @@ namespace RagChatbotSystem.Presentation.Pages.Account
 
             if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
-                ModelState.AddModelError(string.Empty, "Username/email and password are required.");
+                ModelState.AddModelError(string.Empty, "Vui lòng nhập tên đăng nhập hoặc email và mật khẩu.");
                 return Page();
             }
 

@@ -14,21 +14,24 @@
 
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success border-0 mb-4" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2) !important; padding: 12px; font-size: 0.85rem; font-weight: 700;">
-                @TempData["SuccessMessage"]
+            <div class="auth-alert auth-alert-success" role="status">
+                <span class="auth-alert-icon" aria-hidden="true">✓</span>
+                <div class="auth-alert-message">@TempData["SuccessMessage"]</div>
             </div>
         }
         @if (TempData["ErrorMessage"] != null)
         {
-            <div class="alert alert-warning border-0 mb-4" style="border-radius: 8px; padding: 12px; font-size: 0.85rem; font-weight: 700;">
-                @TempData["ErrorMessage"]
+            <div class="auth-alert auth-alert-warning" role="alert">
+                <span class="auth-alert-icon" aria-hidden="true">!</span>
+                <div class="auth-alert-message">@TempData["ErrorMessage"]</div>
             </div>
         }
 
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="alert alert-danger border-0 mb-4" style="background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2) !important;">
-                <div asp-validation-summary="All" class="small list-unstyled m-0 fw-bold"></div>
+            <div class="auth-alert auth-alert-danger" role="alert">
+                <span class="auth-alert-icon" aria-hidden="true">!</span>
+                <div asp-validation-summary="All" class="auth-validation-summary"></div>
             </div>
         }
 

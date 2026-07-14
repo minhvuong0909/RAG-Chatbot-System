@@ -11,7 +11,7 @@ using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
 {
-    [Authorize(Roles = "Admin,Teacher")]
+    [Authorize(Roles = "Admin")]
     public class IndexModel : PageModel
     {
         private readonly IModelComparisonService _modelComparisonService;

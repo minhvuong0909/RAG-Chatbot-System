@@ -12,9 +12,9 @@
             <h2 class="fw-bold m-0" style="color: var(--ink);">Quản lý môn học</h2>
         </div>
         <div class="d-flex gap-2">
-            <a asp-page="/Admin/ModelComparison/Index" class="btn btn-outline-primary" style="border-radius: 8px; font-weight: 600;">So sánh mô hình</a>
             @if (User.IsInRole("Admin"))
             {
+                <a asp-page="/Admin/ModelComparison/Index" class="btn btn-outline-primary" style="border-radius: 8px; font-weight: 600;">So sánh mô hình</a>
                 <a asp-page="/Admin/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại trang quản trị</a>
             }
         </div>

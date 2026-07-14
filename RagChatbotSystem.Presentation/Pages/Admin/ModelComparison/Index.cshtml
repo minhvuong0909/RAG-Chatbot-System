@@ -21,21 +21,7 @@
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Khu vực quản trị">
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Index">Tổng quan</a>
-            <a asp-page="/Admin/Datasets/Index">Môn học</a>
-            <a asp-page="/Admin/Reports">Báo cáo</a>
-            <a asp-page="/Admin/Credits/Index">Credit</a>
-        }
-        <a class="active" asp-page="/Admin/ModelComparison/Index" aria-current="page">So sánh mô hình</a>
-        <a asp-page="/Admin/ModelComparison/History">Lịch sử &amp; Báo cáo</a>
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Settings">Cài đặt</a>
-        }
-    </nav>
+    <partial name="_AdminTabs" />
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {

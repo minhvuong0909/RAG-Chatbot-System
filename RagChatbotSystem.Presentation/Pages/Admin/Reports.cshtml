@@ -28,26 +28,18 @@
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Khu vực báo cáo">
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Index">Tổng quan</a>
-            <a asp-page="/Admin/Datasets/Index">Môn học</a>
-        }
-        else
-        {
+    @if (User.IsInRole("Admin"))
+    {
+        <partial name="_AdminTabs" />
+    }
+    else
+    {
+        <nav class="admin-tabs" aria-label="Khu vực báo cáo">
             <a asp-page="/Index">Không gian học tập</a>
             <a asp-page="/Datasets/Index">Môn học</a>
-        }
-        <a class="active" asp-page="/Admin/Reports" aria-current="page">Báo cáo</a>
-        <a asp-page="/Admin/ModelComparison/Index">So sánh mô hình</a>
-        <a asp-page="/Admin/ModelComparison/History">Lịch sử &amp; Báo cáo</a>
-        @if (User.IsInRole("Admin"))
-        {
-            <a asp-page="/Admin/Credits/Index">Credit</a>
-            <a asp-page="/Admin/Settings">Cài đặt</a>
-        }
-    </nav>
+            <a class="active" asp-page="/Admin/Reports" aria-current="page">Báo cáo</a>
+        </nav>
+    }
 
     <section class="report-section report-overview-section" aria-labelledby="overview-heading">
         <div class="report-section-heading">

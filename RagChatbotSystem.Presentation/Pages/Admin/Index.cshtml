@@ -13,15 +13,7 @@
         </div>
     </header>
 
-    <nav class="admin-tabs" aria-label="Khu vực quản trị">
-        <a class="active" asp-page="/Admin/Index" aria-current="page">Tổng quan</a>
-        <a asp-page="/Admin/Datasets/Index">Môn học</a>
-        <a asp-page="/Admin/Reports">Báo cáo</a>
-        <a asp-page="/Admin/Credits/Index">Credit</a>
-        <a asp-page="/Admin/ModelComparison/Index">So sánh mô hình</a>
-        <a asp-page="/Admin/ModelComparison/History">Lịch sử &amp; Báo cáo</a>
-        <a asp-page="/Admin/Settings">Cài đặt</a>
-    </nav>
+    <partial name="_AdminTabs" />
 
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
     {
@@ -185,7 +177,7 @@
                                 {
                                     <form method="post" asp-page-handler="ApproveUser">
                                         <input type="hidden" name="userId" value="@user.UserId" />
-                                        <input type="hidden" name="approve" value="@(!user.IsApproved)" />
+                                        <input type="hidden" name="approve" value="@(user.IsApproved ? "false" : "true")" />
                                         <button type="submit" class="@(user.IsApproved ? "dataset-danger-button" : "secondary-button")">
                                             @(user.IsApproved ? "Khóa tài khoản" : "Kích hoạt")
                                         </button>

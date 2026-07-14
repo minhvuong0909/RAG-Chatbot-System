@@ -59,7 +59,7 @@ public class CreditServiceTests
             UserId = userId,
             FreeCredits = 10,
             PaidCredits = 5,
-            LastFreeCreditResetDate = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-1).Date, DateTimeKind.Utc),
+            LastFreeCreditResetDate = GetTodayInVietnam().AddDays(-1),
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             UpdatedAt = DateTime.UtcNow.AddDays(-1),
             Version = 1
@@ -150,7 +150,7 @@ public class CreditServiceTests
             UserId = userId,
             FreeCredits = 0,
             PaidCredits = 0,
-            LastFreeCreditResetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
+            LastFreeCreditResetDate = GetTodayInVietnam(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             Version = 1
@@ -261,7 +261,7 @@ public class CreditServiceTests
             UserId = userId,
             FreeCredits = freeCredits,
             PaidCredits = paidCredits,
-            LastFreeCreditResetDate = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc),
+            LastFreeCreditResetDate = GetTodayInVietnam(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             Version = 1
@@ -271,6 +271,32 @@ public class CreditServiceTests
     }
 
     private sealed record ChatIds(Guid UserId, Guid DatasetId, Guid SessionId, Guid MessageId);
+
+    private static DateTime GetTodayInVietnam()
+    {
+        var timeZone = ResolveVietnamTimeZone();
+        var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone);
+        return DateTime.SpecifyKind(vietnamNow.Date, DateTimeKind.Utc);
+    }
+
+    private static TimeZoneInfo ResolveVietnamTimeZone()
+    {
+        foreach (var id in new[] { "Asia/Ho_Chi_Minh", "SE Asia Standard Time" })
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(id);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+            }
+            catch (InvalidTimeZoneException)
+            {
+            }
+        }
+
+        return TimeZoneInfo.CreateCustomTimeZone("UTC+07", TimeSpan.FromHours(7), "UTC+07", "UTC+07");
+    }
 
     private sealed class TestAppDbContext : AppDbContext
     {
