@@ -237,81 +237,88 @@
         <section class="admin-section">
             <div class="admin-section-heading">
                 <div>
-                    <p class="eyebrow">GIAO DỊCH</p>
-                    <h2>Lịch sử giao dịch</h2>
-                    <p>Hiển thị 50 giao dịch Credit gần nhất của sinh viên đã chọn.</p>
+                    <p class="eyebrow">LỊCH SỬ HOẠT ĐỘNG</p>
+                    <h2>Chi tiết biến động và đơn hàng</h2>
+                    <p>Theo dõi sự thay đổi của số dư Credit và trạng thái các đơn nạp tiền của sinh viên.</p>
                 </div>
             </div>
-            @if (Model.Ledger.Any())
-            {
-                <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử giao dịch Credit">
-                    <table class="table align-middle admin-table credit-table">
-                        <thead>
-                            <tr><th>Thời gian</th><th>Loại giao dịch</th><th>Đã cộng</th><th>Đã dùng</th><th>Trước / Sau</th><th>Ghi chú</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var entry in Model.Ledger)
-                            {
-                                <tr>
-                                    <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td><span class="credit-status">@LedgerTypeLabel(entry.Type)</span></td>
-                                    <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture))</td>
-                                    <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture))</td>
-                                    <td><strong>@TotalBalanceBefore(entry).ToString("N0", vietnameseCulture) → @((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</strong></td>
-                                    <td class="credit-note" title="@LedgerNote(entry)">@LedgerNote(entry)</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="credit-empty-state">
-                    <strong>Chưa có giao dịch Credit</strong>
-                    <p>Các lần đặt lại, nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
-                </div>
-            }
-        </section>
 
-        <section class="admin-section">
-            <div class="admin-section-heading">
-                <div>
-                    <p class="eyebrow">Nạp Credit</p>
-                    <h2>Lịch sử nạp Credit</h2>
-                    <p>Thể hiện gói Credit, trạng thái giao dịch và người thực hiện.</p>
+            <ul class="nav nav-tabs mb-4" id="adminCreditHistoryTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="admin-ledger-tab" data-bs-toggle="tab" data-bs-target="#admin-ledger-pane" type="button" role="tab" aria-controls="admin-ledger-pane" aria-selected="true" style="color: var(--text-primary);">Biến động số dư</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="admin-purchase-tab" data-bs-toggle="tab" data-bs-target="#admin-purchase-pane" type="button" role="tab" aria-controls="admin-purchase-pane" aria-selected="false" style="color: var(--text-primary);">Lịch sử đơn hàng nạp</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="adminCreditHistoryTabsContent">
+                <div class="tab-pane fade show active" id="admin-ledger-pane" role="tabpanel" aria-labelledby="admin-ledger-tab" tabindex="0">
+                    @if (Model.Ledger.Any())
+                    {
+                        <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử giao dịch Credit">
+                            <table class="table align-middle admin-table credit-table">
+                                <thead>
+                                    <tr><th>Thời gian</th><th>Loại giao dịch</th><th>Đã cộng</th><th>Đã dùng</th><th>Trước / Sau</th><th>Ghi chú</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var entry in Model.Ledger)
+                                    {
+                                        <tr>
+                                            <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td><span class="credit-status">@LedgerTypeLabel(entry.Type)</span></td>
+                                            <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture))</td>
+                                            <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture))</td>
+                                            <td><strong>@TotalBalanceBefore(entry).ToString("N0", vietnameseCulture) → @((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</strong></td>
+                                            <td class="credit-note" title="@LedgerNote(entry)">@LedgerNote(entry)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="credit-empty-state">
+                            <strong>Chưa có biến động số dư</strong>
+                            <p>Các lần đặt lại, nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
+                        </div>
+                    }
+                </div>
+
+                <div class="tab-pane fade" id="admin-purchase-pane" role="tabpanel" aria-labelledby="admin-purchase-tab" tabindex="0">
+                    @if (Model.Purchases.Any())
+                    {
+                        <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử nạp Credit">
+                            <table class="table align-middle admin-table credit-table">
+                                <thead>
+                                    <tr><th>Thời gian</th><th>Gói Credit</th><th>Tổng cộng</th><th>Giá</th><th>Trạng thái giao dịch</th><th>Người thực hiện</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var purchase in Model.Purchases)
+                                    {
+                                        <tr>
+                                            <td>@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td title="@PackageLabel(purchase)">@PackageLabel(purchase)</td>
+                                            <td><strong>@purchase.TotalCredits.ToString("N0", vietnameseCulture)</strong></td>
+                                            <td>@FormatCurrency(purchase.Amount, purchase.Currency)</td>
+                                            <td><span class="credit-status">@PurchaseStatusLabel(purchase.Status)</span></td>
+                                            <td title="@UserLabel(purchase.CreatedByUserId)">@UserLabel(purchase.CreatedByUserId)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="credit-empty-state">
+                            <strong>Chưa có lịch sử nạp Credit</strong>
+                            <p>Các lần nạp Credit thủ công hoặc trực tuyến sẽ xuất hiện tại đây.</p>
+                        </div>
+                    }
                 </div>
             </div>
-            @if (Model.Purchases.Any())
-            {
-                <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử nạp Credit">
-                    <table class="table align-middle admin-table credit-table">
-                        <thead>
-                            <tr><th>Thời gian</th><th>Gói Credit</th><th>Tổng cộng</th><th>Giá</th><th>Trạng thái giao dịch</th><th>Người thực hiện</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var purchase in Model.Purchases)
-                            {
-                                <tr>
-                                    <td>@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                    <td title="@PackageLabel(purchase)">@PackageLabel(purchase)</td>
-                                    <td><strong>@purchase.TotalCredits.ToString("N0", vietnameseCulture)</strong></td>
-                                    <td>@FormatCurrency(purchase.Amount, purchase.Currency)</td>
-                                    <td><span class="credit-status">@PurchaseStatusLabel(purchase.Status)</span></td>
-                                    <td title="@UserLabel(purchase.CreatedByUserId)">@UserLabel(purchase.CreatedByUserId)</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="credit-empty-state">
-                    <strong>Chưa có lịch sử nạp Credit</strong>
-                    <p>Các lần nạp Credit thủ công sẽ xuất hiện sau khi quản trị viên ghi nhận.</p>
-                </div>
-            }
         </section>
     }
 </section>

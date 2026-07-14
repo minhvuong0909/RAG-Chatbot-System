@@ -58,6 +58,10 @@ services:
       - Smtp__FromName=${SMTP_FROM_NAME:-RAG Chatbot System}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID:-}
+      - PAYOS_API_KEY=${PAYOS_API_KEY:-}
+      - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY:-}
+      - PAYOS_PUBLIC_BASE_URL=${PAYOS_PUBLIC_BASE_URL:-}
       - ASPNETCORE_ENVIRONMENT=Production
     volumes:
       - ./google-credentials.json:/app/google-credentials.json:ro

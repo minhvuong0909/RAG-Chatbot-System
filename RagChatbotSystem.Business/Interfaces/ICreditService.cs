@@ -38,6 +38,6 @@ namespace RagChatbotSystem.Business.Interfaces
             int? dailyTokenLimit = null,
             string? note = null,
             CancellationToken cancellationToken = default);
-        Task<IReadOnlyList<CreditLedgerDto>> GetLedgerAsync(Guid? userId = null, int limit = 100, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<CreditLedgerDto>> GetLedgerAsync(Guid? userId = null, int limit = 100, bool excludeDailyReset = false, CancellationToken cancellationToken = default);
     }
 }

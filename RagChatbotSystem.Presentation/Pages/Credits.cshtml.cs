@@ -132,7 +132,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 await _realtimeNotifier.CreditBalanceChangedAsync(userId, Balance, "payos-purchase", cancellationToken);
             }
             Packages = await _purchaseService.GetActivePackagesAsync(cancellationToken);
-            Ledger = await _creditService.GetLedgerAsync(userId, 25, cancellationToken);
+            Ledger = await _creditService.GetLedgerAsync(userId, 25, false, cancellationToken);
             Purchases = await _purchaseService.GetPurchasesAsync(userId, 25, cancellationToken);
             return Page();
         }

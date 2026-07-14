@@ -283,12 +283,16 @@ namespace RagChatbotSystem.Business.Services
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<CreditLedgerDto>> GetLedgerAsync(Guid? userId = null, int limit = 100, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<CreditLedgerDto>> GetLedgerAsync(Guid? userId = null, int limit = 100, bool excludeDailyReset = false, CancellationToken cancellationToken = default)
         {
             var query = _db.CreditLedgers.AsNoTracking();
             if (userId.HasValue)
             {
                 query = query.Where(l => l.UserId == userId.Value);
+            }
+            if (excludeDailyReset)
+            {
+                query = query.Where(l => l.Type != CreditLedgerType.DAILY_RESET);
             }
 
             return await query

@@ -130,7 +130,7 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.Credits
             if (SelectedUserId.HasValue)
             {
                 SelectedBalance = await _creditService.GetStudentCreditSummaryAsync(SelectedUserId.Value, cancellationToken);
-                Ledger = await _creditService.GetLedgerAsync(SelectedUserId.Value, 50, cancellationToken);
+                Ledger = await _creditService.GetLedgerAsync(SelectedUserId.Value, 50, false, cancellationToken);
                 Purchases = await _purchaseService.GetPurchasesAsync(SelectedUserId.Value, 50, cancellationToken);
                 Input.UserId = SelectedUserId.Value;
             }

@@ -37,13 +37,7 @@
         <div><strong>@Model.UnassignedDatasets.Count</strong><span>Môn học chưa phân công</span></div>
     </div>
 
-    <section class="admin-dashboard-links" aria-label="Lối tắt quản trị">
-        <a asp-page="/Admin/Datasets/Index"><strong>Môn học</strong><span>Quản lý môn học và phân quyền.</span></a>
-        <a asp-page="/Datasets/Index"><strong>Tài liệu</strong><span>Chọn môn học để quản lý tài liệu.</span></a>
-        <a asp-page="/Admin/Credits/Index"><strong>Credit</strong><span>Điều chỉnh số dư và xem giao dịch.</span></a>
-        <a asp-page="/Admin/Reports"><strong>Báo cáo</strong><span>Theo dõi lượt hỏi, Token và Credit.</span></a>
-        <a asp-page="/Admin/Settings"><strong>Cài đặt</strong><span>Thiết lập RAG và giới hạn Token.</span></a>
-    </section>
+
 
     <section class="admin-section">
         <div class="section-title">
@@ -220,12 +214,6 @@
         });
     </script>
     <style>
-        .admin-dashboard-links { display: grid; gap: 10px; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-        .admin-dashboard-links a { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: inherit; display: grid; gap: 4px; min-height: 92px; padding: 14px; text-decoration: none; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
-        .admin-dashboard-links a:hover { border-color: var(--accent); box-shadow: var(--shadow-soft); color: inherit; transform: translateY(-1px); }
-        .admin-dashboard-links strong { color: var(--ink); font-size: .9rem; }
-        .admin-dashboard-links span { color: var(--muted); font-size: .78rem; line-height: 1.45; }
-        @@media (max-width: 1050px) { .admin-dashboard-links { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        @@media (max-width: 640px) { .admin-dashboard-links { grid-template-columns: 1fr 1fr; } }
+
     </style>
 }
