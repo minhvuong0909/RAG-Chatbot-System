@@ -1,0 +1,151 @@
+{
+  "benchmark_name": "XQuAD-benchmark",
+  "benchmark_version": "v1",
+  "dataset_id": "183a9dc6-8f85-4fb8-900b-bf5d78765802",
+  "profile_id": "xquad-default",
+  "model": "qwen/qwen3-32b",
+  "prompt_version": "rag-v1",
+  "created_at": "2026-07-17T17:10:26.734942+00:00",
+  "mode": "retrieval-only",
+  "summary": {
+    "total": 4,
+    "completed": 4,
+    "failed": 0,
+    "mean_context_precision": 0.3333,
+    "mean_context_recall": 1.0
+  },
+  "results": [
+    {
+      "sort_order": 17,
+      "is_holdout": true,
+      "question": "Tesla đã hợp tác với ai vào năm 1886?",
+      "reference_answer": "Robert Lane và Benjamin Vail",
+      "expected_chunk_ids": [
+        "633d6d60-8204-4de8-9403-ebbf31237287"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1360,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "633d6d60-8204-4de8-9403-ebbf31237287",
+        "11e44b10-7b5a-4b40-8836-5f177c175d01",
+        "ce797e2a-d539-4033-9d62-5319e5f67c1a"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1360
+    },
+    {
+      "sort_order": 18,
+      "is_holdout": true,
+      "question": "Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?",
+      "reference_answer": "Năm 1900",
+      "expected_chunk_ids": [
+        "ce797e2a-d539-4033-9d62-5319e5f67c1a"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1196,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "ce797e2a-d539-4033-9d62-5319e5f67c1a",
+        "a421b846-b249-4b78-9476-31e4d9079a75",
+        "633d6d60-8204-4de8-9403-ebbf31237287"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1196
+    },
+    {
+      "sort_order": 19,
+      "is_holdout": true,
+      "question": "Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?",
+      "reference_answer": "38",
+      "expected_chunk_ids": [
+        "11e44b10-7b5a-4b40-8836-5f177c175d01"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1133,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "11e44b10-7b5a-4b40-8836-5f177c175d01",
+        "b9a7225c-6753-4d81-b23c-5c421f4f0fa8",
+        "bb12252a-852e-4a4b-ace5-2292d8a37de5"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1133
+    },
+    {
+      "sort_order": 20,
+      "is_holdout": true,
+      "question": "Bài báo nào được xuất bản năm 1937?",
+      "reference_answer": "\"Một cỗ máy để Kết thúc Chiến tranh\",",
+      "expected_chunk_ids": [
+        "38326e3c-d806-43e7-8d26-7d4d746df521"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1294,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "38326e3c-d806-43e7-8d26-7d4d746df521",
+        "11e44b10-7b5a-4b40-8836-5f177c175d01",
+        "68962872-08e2-4103-bf74-1891c568af0c"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1294
+    }
+  ]
+}

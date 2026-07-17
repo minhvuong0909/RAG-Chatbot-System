@@ -1,0 +1,679 @@
+{
+  "benchmark_name": "XQuAD-benchmark",
+  "benchmark_version": "v1",
+  "dataset_id": "0d24ec4e-8f45-442b-8aef-53915a696a74",
+  "profile_id": "xquad-default",
+  "model": "qwen/qwen3-32b",
+  "prompt_version": "rag-v1",
+  "created_at": "2026-07-17T17:05:47.236292+00:00",
+  "mode": "retrieval-only",
+  "summary": {
+    "total": 20,
+    "completed": 20,
+    "failed": 0,
+    "mean_context_precision": 0.3167,
+    "mean_context_recall": 0.95
+  },
+  "results": [
+    {
+      "sort_order": 1,
+      "is_holdout": false,
+      "question": "Đội thủ Panthers đã thua bao nhiêu điểm?",
+      "reference_answer": "308",
+      "expected_chunk_ids": [
+        "f303d7c5-111c-43a2-ba6f-74d8b3d4d671"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1281,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "f303d7c5-111c-43a2-ba6f-74d8b3d4d671",
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1281
+    },
+    {
+      "sort_order": 2,
+      "is_holdout": false,
+      "question": "Ai thua đội Broncos ở vòng bảng?",
+      "reference_answer": "Pittsburgh Steelers",
+      "expected_chunk_ids": [
+        "67270a6e-9285-4da1-832d-e66fc34d7982"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1348,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "67270a6e-9285-4da1-832d-e66fc34d7982",
+        "981a25a5-dac1-4eb9-9ef3-a37ea388130c",
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1348
+    },
+    {
+      "sort_order": 3,
+      "is_holdout": false,
+      "question": "Peyton Manning bao nhiêu tuổi khi anh chơi trong Super Bowl 50?",
+      "reference_answer": "39",
+      "expected_chunk_ids": [
+        "981a25a5-dac1-4eb9-9ef3-a37ea388130c"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1622,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "981a25a5-dac1-4eb9-9ef3-a37ea388130c",
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8",
+        "67270a6e-9285-4da1-832d-e66fc34d7982"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1622
+    },
+    {
+      "sort_order": 4,
+      "is_holdout": false,
+      "question": "Lady Gaga đã giành được bao nhiêu giải Grammy?",
+      "reference_answer": "sáu",
+      "expected_chunk_ids": [
+        "ffe11c9f-ff2c-4178-86d1-0d9e8b73d403"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1431,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "ffe11c9f-ff2c-4178-86d1-0d9e8b73d403",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f",
+        "374092ec-ce43-41ef-9394-cde29c5cb5d9"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1431
+    },
+    {
+      "sort_order": 5,
+      "is_holdout": false,
+      "question": "Carolina đã bắt đầu ở vạch nào khi trận đấu còn 4:51?",
+      "reference_answer": "24",
+      "expected_chunk_ids": [
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1267,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8",
+        "67270a6e-9285-4da1-832d-e66fc34d7982",
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1267
+    },
+    {
+      "sort_order": 6,
+      "is_holdout": false,
+      "question": "Vườn Saxon trong tiếng Ba Lan là gì?",
+      "reference_answer": "Ogród Saski",
+      "expected_chunk_ids": [
+        "95e5bfef-e9b3-45cc-b619-cfc00fbcdde7"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1330,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "95e5bfef-e9b3-45cc-b619-cfc00fbcdde7",
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93",
+        "61f5beae-7a43-494d-a81c-0acae1ddd145"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1331
+    },
+    {
+      "sort_order": 7,
+      "is_holdout": false,
+      "question": "Đội nào đã giành giải vô địch Ekstraklasa vào năm 2000?",
+      "reference_answer": "Polonia Warsaw",
+      "expected_chunk_ids": [
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1003,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "4cd0611d-db3a-4571-a783-774b85110cdd"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1003
+    },
+    {
+      "sort_order": 8,
+      "is_holdout": false,
+      "question": "Warsaw thuộc loại thành phố nào khi còn là một thành phố?",
+      "reference_answer": "đa văn hóa",
+      "expected_chunk_ids": [
+        "bc1a3b70-7426-493f-9923-a6e7031a2093"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1249,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93",
+        "bc1a3b70-7426-493f-9923-a6e7031a2093",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1249
+    },
+    {
+      "sort_order": 9,
+      "is_holdout": false,
+      "question": "Đơn vị cơ bản của phân chia lãnh thổ ở Ba Lan là gì?",
+      "reference_answer": "xã",
+      "expected_chunk_ids": [
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1380,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93",
+        "95e5bfef-e9b3-45cc-b619-cfc00fbcdde7",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1380
+    },
+    {
+      "sort_order": 10,
+      "is_holdout": false,
+      "question": "Sàn giao dịch chứng khoán đầu tiên của Warsaw được thành lập khi nào?",
+      "reference_answer": "năm 1817",
+      "expected_chunk_ids": [
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1174,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f",
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1174
+    },
+    {
+      "sort_order": 11,
+      "is_holdout": false,
+      "question": "Ai khi đến nơi đã cho những người định cư viking ban đầu một bản sắc chung?",
+      "reference_answer": "Rollo",
+      "expected_chunk_ids": [
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1328,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8",
+        "d913c504-5e92-4814-a33b-c7c21cd85a37",
+        "f2df42e4-a34d-4e2e-bc39-3d90f90713d9"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1328
+    },
+    {
+      "sort_order": 12,
+      "is_holdout": false,
+      "question": "Tên của nhà lãnh đạo được Henry III thăng chức quý tộc là gì",
+      "reference_answer": "Drogo",
+      "expected_chunk_ids": [
+        "374092ec-ce43-41ef-9394-cde29c5cb5d9"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1433,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93",
+        "374092ec-ce43-41ef-9394-cde29c5cb5d9",
+        "e8e01a74-71e1-45ba-959d-ccac92e2dd8c"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1433
+    },
+    {
+      "sort_order": 13,
+      "is_holdout": false,
+      "question": "Ai là kẻ thù chính của người Norman ở Ý, Đế quốc Byzantine và Armenia?",
+      "reference_answer": "người Thổ Seljuk",
+      "expected_chunk_ids": [
+        "f2df42e4-a34d-4e2e-bc39-3d90f90713d9"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 947,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "f2df42e4-a34d-4e2e-bc39-3d90f90713d9",
+        "61f5beae-7a43-494d-a81c-0acae1ddd145",
+        "374092ec-ce43-41ef-9394-cde29c5cb5d9"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 947
+    },
+    {
+      "sort_order": 14,
+      "is_holdout": false,
+      "question": "Tên của lâu đài Norman là gì?",
+      "reference_answer": "Afranji",
+      "expected_chunk_ids": [
+        "61f5beae-7a43-494d-a81c-0acae1ddd145"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 693,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "61f5beae-7a43-494d-a81c-0acae1ddd145",
+        "e8e01a74-71e1-45ba-959d-ccac92e2dd8c",
+        "374092ec-ce43-41ef-9394-cde29c5cb5d9"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 693
+    },
+    {
+      "sort_order": 15,
+      "is_holdout": false,
+      "question": "Quần đảo Canaria ngoài khơi lục địa nào?",
+      "reference_answer": "châu Phi",
+      "expected_chunk_ids": [
+        "e8e01a74-71e1-45ba-959d-ccac92e2dd8c"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1399,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "e8e01a74-71e1-45ba-959d-ccac92e2dd8c",
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8",
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1399
+    },
+    {
+      "sort_order": 16,
+      "is_holdout": false,
+      "question": "Tesla chết năm nào?",
+      "reference_answer": "năm 1943",
+      "expected_chunk_ids": [
+        "d913c504-5e92-4814-a33b-c7c21cd85a37"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1110,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0",
+        "6330068d-c01b-48c0-b037-68c922a2f9cb"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1110
+    },
+    {
+      "sort_order": 17,
+      "is_holdout": true,
+      "question": "Tesla đã hợp tác với ai vào năm 1886?",
+      "reference_answer": "Robert Lane và Benjamin Vail",
+      "expected_chunk_ids": [
+        "6330068d-c01b-48c0-b037-68c922a2f9cb"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1210,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "6330068d-c01b-48c0-b037-68c922a2f9cb",
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1210
+    },
+    {
+      "sort_order": 18,
+      "is_holdout": true,
+      "question": "Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?",
+      "reference_answer": "Năm 1900",
+      "expected_chunk_ids": [
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1282,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0",
+        "d913c504-5e92-4814-a33b-c7c21cd85a37",
+        "6330068d-c01b-48c0-b037-68c922a2f9cb"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1282
+    },
+    {
+      "sort_order": 19,
+      "is_holdout": true,
+      "question": "Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?",
+      "reference_answer": "38",
+      "expected_chunk_ids": [
+        "4cd0611d-db3a-4571-a783-774b85110cdd"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1217,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1217
+    },
+    {
+      "sort_order": 20,
+      "is_holdout": true,
+      "question": "Bài báo nào được xuất bản năm 1937?",
+      "reference_answer": "\"Một cỗ máy để Kết thúc Chiến tranh\",",
+      "expected_chunk_ids": [
+        "0c19a3a1-5a9e-403a-bc76-ebd9a6e48ad3"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1199,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "0c19a3a1-5a9e-403a-bc76-ebd9a6e48ad3",
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "95e5bfef-e9b3-45cc-b619-cfc00fbcdde7"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 1199
+    }
+  ]
+}

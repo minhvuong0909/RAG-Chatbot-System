@@ -164,6 +164,7 @@ namespace RagChatbotSystem.Presentation
             builder.Services.AddScoped<ICreditPurchaseService, CreditPurchaseService>();
             builder.Services.AddScoped<IStatisticsService, StatisticsService>();
             builder.Services.AddScoped<IModelComparisonService, ModelComparisonService>();
+            builder.Services.AddScoped<IBenchmarkEvaluationService, BenchmarkEvaluationService>();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
             builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
             builder.Services.AddScoped<IDocumentProgressNotifier, DocumentProgressNotifier>();

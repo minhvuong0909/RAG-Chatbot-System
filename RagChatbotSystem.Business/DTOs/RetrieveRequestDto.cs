@@ -21,5 +21,8 @@ namespace RagChatbotSystem.Business.DTOs
 
         [JsonPropertyName("enable_rerank")]
         public bool EnableRerank { get; set; } = true;
+
+        [JsonPropertyName("profile_id")]
+        public string ProfileId { get; set; } = "default";
     }
 }

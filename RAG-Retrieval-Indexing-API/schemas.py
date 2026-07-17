@@ -8,6 +8,8 @@ class DocumentModel(BaseModel):
 class IndexRequest(BaseModel):
     documents: list[DocumentModel]
     rebuild_cache: bool = False
+    profile_id: str = "default"
+    return_embeddings: bool = True
 
 class RetrieveRequest(BaseModel):
     query: str
@@ -16,6 +18,7 @@ class RetrieveRequest(BaseModel):
     semantic_weight: float = 0.7
     lexical_weight: float = 0.3
     enable_rerank: bool = True
+    profile_id: str = "default"
 
 class RetrieveResponse(BaseModel):
     query: str

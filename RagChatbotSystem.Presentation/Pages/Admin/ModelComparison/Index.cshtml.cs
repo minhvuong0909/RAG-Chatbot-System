@@ -13,7 +13,7 @@ using RagChatbotSystem.Presentation.Services;
 
 namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Teacher")]
     public class IndexModel : PageModel
     {
         private readonly IModelComparisonService _modelComparisonService;
@@ -73,6 +73,11 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
             {
                 ErrorMessage = "Đang có một tiến trình benchmark chạy ngầm. Vui lòng đợi hoàn thành.";
                 return Page();
+            }
+
+            if (!await _datasetService.CanManageDatasetAsync(userId, role, Input.DatasetId))
+            {
+                ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.DatasetId)}", "Bạn không có quyền chạy đánh giá cho môn học này.");
             }
 
             if (Input.Providers == null || Input.Providers.Count == 0)

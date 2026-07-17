@@ -1,0 +1,152 @@
+{
+  "benchmark_name": "XQuAD-benchmark",
+  "benchmark_version": "v1",
+  "dataset_id": "7ae6443e-96f3-594a-b4f4-499b0c12d18f",
+  "profile_id": "xquad-e5-base",
+  "model": "qwen/qwen3-32b",
+  "prompt_version": "rag-v1",
+  "created_at": "2026-07-17T17:55:06.409074+00:00",
+  "mode": "generation",
+  "enable_rerank": true,
+  "summary": {
+    "total": 4,
+    "completed": 4,
+    "failed": 0,
+    "mean_context_precision": 0.3333,
+    "mean_context_recall": 1.0
+  },
+  "results": [
+    {
+      "sort_order": 17,
+      "is_holdout": true,
+      "question": "Tesla đã hợp tác với ai vào năm 1886?",
+      "reference_answer": "Robert Lane và Benjamin Vail",
+      "expected_chunk_ids": [
+        "23442b2b-326c-5bc4-8d25-6e02f1cf5f0c"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1517,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "23442b2b-326c-5bc4-8d25-6e02f1cf5f0c",
+        "10fce57f-c5df-55ce-b206-d1918cb64fbb",
+        "372a9e3a-b309-5bf1-809d-e3c6f9498954"
+      ],
+      "trace": [
+        "Profile(xquad-e5-base)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "input_tokens": 556,
+      "output_tokens": 242,
+      "total_tokens": 798,
+      "answer": "<think>\nOkay, let's see. The user is asking who Tesla collaborated with in 1886. I need to check the provided context for that information.\n\nLooking at the first paragraph of the context: \"Sau khi rời công ty của Edison, Tesla hợp tác với hai doanh nhân vào năm 1886, Robert Lane và Benjamin Vail...\" So it clearly states that in 1886, Tesla partnered with Robert Lane and Benjamin Vail. They were the businessmen who funded his lighting company. \n\nThe other parts of the context talk about later events like patents and the Marconi case, which aren't relevant here. The answer should just be the two names mentioned. I need to make sure there's no other information in the context that might contradict or add more names, but from what's given, it's only Lane and Vail. The user wants the answer in Vietnamese, so I'll present the names as they are, since they're proper nouns. No need to translate them. Just list them as the answer.\n</think>\n\nTesla đã hợp tác với hai doanh nhân là Robert Lane và Benjamin Vail vào năm 1886.",
+      "generation_latency_ms": 1009,
+      "elapsed_ms": 2526
+    },
+    {
+      "sort_order": 18,
+      "is_holdout": true,
+      "question": "Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?",
+      "reference_answer": "Năm 1900",
+      "expected_chunk_ids": [
+        "372a9e3a-b309-5bf1-809d-e3c6f9498954"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1775,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "372a9e3a-b309-5bf1-809d-e3c6f9498954",
+        "02ee320c-eab3-567b-8fc7-36ced01944be",
+        "23442b2b-326c-5bc4-8d25-6e02f1cf5f0c"
+      ],
+      "trace": [
+        "Profile(xquad-e5-base)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "input_tokens": 696,
+      "output_tokens": 199,
+      "total_tokens": 895,
+      "answer": "<think>\nOkay, let's see. The user is asking when Tesla got his patent for the electric generator. I need to look through the provided context to find the answer.\n\nFirst paragraph mentions that in 1900, Tesla was granted a patent for a \"system for transmitting electrical energy\" and \"a generator.\" So the generator patent was in 1900. The other parts talk about Marconi and radio patents in 1901, 1903, 1904, and 1943, but the question is specifically about the generator. The third paragraph talks about Tesla Electric Light & Manufacturing in 1886, but that's about lighting systems and the first patents, not the generator. So the answer should be 1900.\n</think>\n\nTesla đạt được bằng sáng chế cho \"một máy phát điện\" vào năm **1900**, như được ghi nhận trong ngữ cảnh.",
+      "generation_latency_ms": 605,
+      "elapsed_ms": 2380
+    },
+    {
+      "sort_order": 19,
+      "is_holdout": true,
+      "question": "Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?",
+      "reference_answer": "38",
+      "expected_chunk_ids": [
+        "10fce57f-c5df-55ce-b206-d1918cb64fbb"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1974,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "10fce57f-c5df-55ce-b206-d1918cb64fbb",
+        "4d148a17-327e-5046-8b1c-67990dd2bc50",
+        "f713b14d-22b2-5a73-bf07-631f5d73c9e5"
+      ],
+      "trace": [
+        "Profile(xquad-e5-base)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "input_tokens": 656,
+      "output_tokens": 229,
+      "total_tokens": 885,
+      "answer": "<think>\nOkay, let's see. The user is asking how many possible nominations there were for the award in 1915. I need to look at the context provided.\n\nLooking at the first paragraph of the context, it says: \"cả Tesla và Edison đều không giành được giải thưởng (mặc dù Edison đã nhận được một trong 38 đề nghị có thể có vào năm 1915 và Tesla đã nhận được một trong 38 đề nghị có thể có vào năm 1937).\" \n\nSo, the part about 1915 mentions that Edison received one out of 38 possible nominations. That means in 1915, there were 38 possible nominations. The question is specifically about 1915, so the answer should be 38. The other parts of the context talk about different topics like the Normans in Italy and a football game, which aren't relevant here. So the answer is 38.\n</think>\n\nCó 38 đề nghị có thể có cho giải thưởng vào năm 1915.",
+      "generation_latency_ms": 596,
+      "elapsed_ms": 2570
+    },
+    {
+      "sort_order": 20,
+      "is_holdout": true,
+      "question": "Bài báo nào được xuất bản năm 1937?",
+      "reference_answer": "\"Một cỗ máy để Kết thúc Chiến tranh\",",
+      "expected_chunk_ids": [
+        "0a04e5fd-1d9e-51df-8017-f9e7f470e78d"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 1711,
+      "context_precision": 0.3333333333333333,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "0a04e5fd-1d9e-51df-8017-f9e7f470e78d",
+        "10fce57f-c5df-55ce-b206-d1918cb64fbb",
+        "edc4734b-3e8b-554a-a6a6-a9b6f38dbb3f"
+      ],
+      "trace": [
+        "Profile(xquad-e5-base)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "input_tokens": 377,
+      "output_tokens": 256,
+      "total_tokens": 633,
+      "answer": "<think>\nOkay, let's see. The user is asking which article was published in 1937. I need to look through the provided context to find that information.\n\nFirst, I'll scan the text for any mentions of 1937. The first part talks about Tesla's article titled \"Một cỗ máy để Kết thúc Chiến tranh\" published in 1937. Then there's a mention of Edison and Tesla not getting awards, with Tesla receiving a possible nomination in 1937. The rest of the text discusses theaters in Warsaw, like the Summer Theatre and others, but those are from different years, like 1922-26 and the 1930s. \n\nThe key part here is the first paragraph where Tesla's article is specifically named and dated 1937. The other mentions of 1937 are about a possible Nobel nomination, but the question is about an article. So the answer should be Tesla's article titled \"Một cỗ máy để Kết thúc Chiến tranh\".\n</think>\n\nCâu trả lời: Bài báo \"Một cỗ máy để Kết thúc Chiến tranh\" của Tesla được xuất bản năm 1937.",
+      "generation_latency_ms": 893,
+      "elapsed_ms": 2604
+    }
+  ]
+}

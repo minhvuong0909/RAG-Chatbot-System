@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using RagChatbotSystem.DataAccess.Data;
 namespace RagChatbotSystem.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260717164211_AddRblBenchmarkFoundation")]
+    partial class AddRblBenchmarkFoundation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1088,9 +1091,6 @@ namespace RagChatbotSystem.DataAccess.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text");
 
-                    b.Property<double?>("Faithfulness")
-                        .HasColumnType("double precision");
-
                     b.Property<int>("InputTokens")
                         .HasColumnType("integer");
 
@@ -1121,9 +1121,6 @@ namespace RagChatbotSystem.DataAccess.Migrations
 
                     b.Property<int?>("QualityScore")
                         .HasColumnType("integer");
-
-                    b.Property<double?>("Relevance")
-                        .HasColumnType("double precision");
 
                     b.Property<int>("TotalTokens")
                         .HasColumnType("integer");

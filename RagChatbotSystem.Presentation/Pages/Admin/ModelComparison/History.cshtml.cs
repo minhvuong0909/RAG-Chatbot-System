@@ -11,7 +11,7 @@ using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Teacher")]
     public class HistoryModel : PageModel
     {
         // Container chạy giờ UTC nên .ToLocalTime() không quy đổi đúng giờ Việt Nam — quy đổi tường minh như TokenUsageService đã làm.

@@ -33,6 +33,12 @@ namespace RagChatbotSystem.DataAccess.Data
         public DbSet<CreditBlockedAttempt> CreditBlockedAttempts { get; set; } = null!;
         public DbSet<ModelComparisonRun> ModelComparisonRuns { get; set; } = null!;
         public DbSet<ModelComparisonResult> ModelComparisonResults { get; set; } = null!;
+        public DbSet<BenchmarkDefinition> BenchmarkDefinitions { get; set; } = null!;
+        public DbSet<BenchmarkQuestion> BenchmarkQuestions { get; set; } = null!;
+        public DbSet<EvaluationProfile> EvaluationProfiles { get; set; } = null!;
+        public DbSet<EvaluationRun> EvaluationRuns { get; set; } = null!;
+        public DbSet<EvaluationResult> EvaluationResults { get; set; } = null!;
+        public DbSet<EvaluationEvidence> EvaluationEvidence { get; set; } = null!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -524,6 +530,85 @@ namespace RagChatbotSystem.DataAccess.Data
                     .WithMany(r => r.Results)
                     .HasForeignKey(res => res.ModelComparisonRunId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<BenchmarkDefinition>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(160);
+                entity.Property(e => e.Version).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.DatasetId, e.Version }).IsUnique();
+
+                entity.HasOne(e => e.Dataset)
+                    .WithMany()
+                    .HasForeignKey(e => e.DatasetId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<BenchmarkQuestion>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Question).IsRequired().HasMaxLength(2000);
+                entity.Property(e => e.ReferenceAnswer).IsRequired();
+                entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.RelevantChunkIdsJson).HasColumnType("jsonb");
+                entity.HasIndex(e => new { e.BenchmarkDefinitionId, e.SortOrder }).IsUnique();
+                entity.HasOne(e => e.BenchmarkDefinition)
+                    .WithMany(e => e.Questions)
+                    .HasForeignKey(e => e.BenchmarkDefinitionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<EvaluationProfile>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(160);
+                entity.Property(e => e.Slug).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.ChunkingStrategy).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EmbeddingModel).IsRequired().HasMaxLength(255);
+                entity.HasIndex(e => e.Slug).IsUnique();
+            });
+
+            modelBuilder.Entity<EvaluationRun>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ProviderKey).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ModelName).IsRequired().HasMaxLength(160);
+                entity.Property(e => e.PromptVersion).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.DatasetId, e.CreatedAt });
+                entity.HasIndex(e => new { e.BenchmarkDefinitionId, e.EvaluationProfileId, e.CreatedAt });
+
+                entity.HasOne(e => e.Dataset).WithMany().HasForeignKey(e => e.DatasetId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.BenchmarkDefinition).WithMany(e => e.Runs).HasForeignKey(e => e.BenchmarkDefinitionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.EvaluationProfile).WithMany(e => e.Runs).HasForeignKey(e => e.EvaluationProfileId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.RunByUser).WithMany().HasForeignKey(e => e.RunByUserId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<EvaluationResult>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.EvaluationRunId, e.BenchmarkQuestionId }).IsUnique();
+                entity.HasOne(e => e.EvaluationRun).WithMany(e => e.Results).HasForeignKey(e => e.EvaluationRunId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.BenchmarkQuestion).WithMany(e => e.Results).HasForeignKey(e => e.BenchmarkQuestionId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<EvaluationEvidence>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Content).IsRequired();
+                entity.Property(e => e.MetadataJson).HasColumnType("jsonb");
+                entity.HasIndex(e => new { e.EvaluationResultId, e.Rank }).IsUnique();
+                entity.HasOne(e => e.EvaluationResult).WithMany(e => e.Evidence).HasForeignKey(e => e.EvaluationResultId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Chunk).WithMany().HasForeignKey(e => e.ChunkId).OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

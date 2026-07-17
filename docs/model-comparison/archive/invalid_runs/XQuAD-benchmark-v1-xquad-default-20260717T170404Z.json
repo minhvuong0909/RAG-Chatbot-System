@@ -1,0 +1,179 @@
+{
+  "benchmark_name": "XQuAD-benchmark",
+  "benchmark_version": "v1",
+  "dataset_id": "0d24ec4e-8f45-442b-8aef-53915a696a74",
+  "profile_id": "xquad-default",
+  "model": "qwen/qwen3-32b",
+  "prompt_version": "rag-v1",
+  "created_at": "2026-07-17T17:04:04.572911+00:00",
+  "mode": "retrieval-only",
+  "summary": {
+    "total": 4,
+    "completed": 4,
+    "failed": 0,
+    "mean_context_precision": 0.1,
+    "mean_context_recall": 1.0
+  },
+  "results": [
+    {
+      "sort_order": 17,
+      "is_holdout": true,
+      "question": "Tesla đã hợp tác với ai vào năm 1886?",
+      "reference_answer": "Robert Lane và Benjamin Vail",
+      "expected_chunk_ids": [
+        "6330068d-c01b-48c0-b037-68c922a2f9cb"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 2169,
+      "context_precision": 0.1,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "6330068d-c01b-48c0-b037-68c922a2f9cb",
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0",
+        "d913c504-5e92-4814-a33b-c7c21cd85a37",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f",
+        "95e5bfef-e9b3-45cc-b619-cfc00fbcdde7",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "0c19a3a1-5a9e-403a-bc76-ebd9a6e48ad3",
+        "374092ec-ce43-41ef-9394-cde29c5cb5d9",
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 2169
+    },
+    {
+      "sort_order": 18,
+      "is_holdout": true,
+      "question": "Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?",
+      "reference_answer": "Năm 1900",
+      "expected_chunk_ids": [
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 2159,
+      "context_precision": 0.1,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0",
+        "d913c504-5e92-4814-a33b-c7c21cd85a37",
+        "6330068d-c01b-48c0-b037-68c922a2f9cb",
+        "0c19a3a1-5a9e-403a-bc76-ebd9a6e48ad3",
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8",
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "67270a6e-9285-4da1-832d-e66fc34d7982",
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 2159
+    },
+    {
+      "sort_order": 19,
+      "is_holdout": true,
+      "question": "Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?",
+      "reference_answer": "38",
+      "expected_chunk_ids": [
+        "4cd0611d-db3a-4571-a783-774b85110cdd"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 2175,
+      "context_precision": 0.1,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f",
+        "f2df42e4-a34d-4e2e-bc39-3d90f90713d9",
+        "a1eb05af-f129-4703-8e20-e2be31b17ad8",
+        "bc1a3b70-7426-493f-9923-a6e7031a2093",
+        "61f5beae-7a43-494d-a81c-0acae1ddd145",
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8",
+        "ffe11c9f-ff2c-4178-86d1-0d9e8b73d403",
+        "6330068d-c01b-48c0-b037-68c922a2f9cb"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 2175
+    },
+    {
+      "sort_order": 20,
+      "is_holdout": true,
+      "question": "Bài báo nào được xuất bản năm 1937?",
+      "reference_answer": "\"Một cỗ máy để Kết thúc Chiến tranh\",",
+      "expected_chunk_ids": [
+        "0c19a3a1-5a9e-403a-bc76-ebd9a6e48ad3"
+      ],
+      "status": "Completed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 2327,
+      "context_precision": 0.1,
+      "context_recall": 1.0,
+      "retrieved_chunk_ids": [
+        "0c19a3a1-5a9e-403a-bc76-ebd9a6e48ad3",
+        "4cd0611d-db3a-4571-a783-774b85110cdd",
+        "95e5bfef-e9b3-45cc-b619-cfc00fbcdde7",
+        "c99d80d7-af48-45c9-872c-b1ce5a6953b0",
+        "290b4fc4-c90c-48a1-913d-38a0eb0a9e9f",
+        "fe1a414e-d08f-4ab3-9641-d62a80ba67b8",
+        "7c5714b6-458a-4d40-9488-51e31ee0a2bb",
+        "67270a6e-9285-4da1-832d-e66fc34d7982",
+        "86ccdac5-2193-4952-9fbe-475b7b31cc93",
+        "ffe11c9f-ff2c-4178-86d1-0d9e8b73d403"
+      ],
+      "trace": [
+        "Profile(xquad-default)",
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "answer": "",
+      "generation_latency_ms": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "elapsed_ms": 2327
+    }
+  ]
+}
