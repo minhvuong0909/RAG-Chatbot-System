@@ -10,5 +10,8 @@ namespace RagChatbotSystem.Business.DTOs
 
         [JsonPropertyName("rebuild_cache")]
         public bool RebuildCache { get; set; } = false;
+
+        [JsonPropertyName("profile_id")]
+        public string ProfileId { get; set; } = "default";
     }
 }

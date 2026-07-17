@@ -1,0 +1,21 @@
+﻿sort_order,is_holdout,status,question,answer,reference_answer,context_precision,context_recall,retrieval_latency_ms,generation_latency_ms,total_tokens,error
+1,False,Failed,Đội thủ Panthers đã thua bao nhiêu điểm?,,308,0.0,0.0,24,,,GROQ_API_KEY is required to generate benchmark answers.
+2,False,Failed,Jared Allen có bao nhiêu lần vật ngã trong sự nghiệp?,,136,0.0,0.0,20,,,GROQ_API_KEY is required to generate benchmark answers.
+3,False,Failed,Luke Kuechly đã có bao nhiêu cú húc?,,118,0.0,0.0,20,,,GROQ_API_KEY is required to generate benchmark answers.
+4,False,Failed,Josh Norman đã đoạt bóng được bao nhiêu lần?,,bốn lựa chọn,0.0,0.0,18,,,GROQ_API_KEY is required to generate benchmark answers.
+5,False,Failed,Ai có được nhiều lần vật ngã nhất trong đội mùa này?,,Kawann Short,0.0,0.0,22,,,GROQ_API_KEY is required to generate benchmark answers.
+6,False,Failed,Đội thủ Panthers có bao nhiêu lần đoạt bóng trong năm 2015?,,24,0.0,0.0,18,,,GROQ_API_KEY is required to generate benchmark answers.
+7,False,Failed,Ai dẫn đầu Panthers về số lần vật ngã?,,Kawann Short,0.0,0.0,19,,,GROQ_API_KEY is required to generate benchmark answers.
+8,False,Failed,Có bao nhiêu người chơi phòng thủ Panthers đã được chọn vào Pro Bowl?,,bốn lựa chọn,0.0,0.0,19,,,GROQ_API_KEY is required to generate benchmark answers.
+9,False,Failed,Thomas Davis có bao nhiêu lần húc văng bóng?,,bốn lựa chọn,0.0,0.0,21,,,GROQ_API_KEY is required to generate benchmark answers.
+10,False,Failed,Cầu thủ nào có nhiều lần đoạt bóng nhất trong mùa giải?,,Kurt Coleman,0.0,0.0,17,,,GROQ_API_KEY is required to generate benchmark answers.
+11,False,Failed,Đội thủ Panthers có được bao nhiêu lần đoạt bóng trong mùa giải 2015?,,24,0.0,0.0,19,,,GROQ_API_KEY is required to generate benchmark answers.
+12,False,Failed,Ai đã có năm lần vật ngã trong chín trận đấu khi xuất phát cho Carolina Panthers?,,Kony Ealy,0.0,0.0,22,,,GROQ_API_KEY is required to generate benchmark answers.
+13,False,Failed,Ai dẫn đầu số lần húc của Panthers năm 2015?,,Luke Kuechly,0.0,0.0,16,,,GROQ_API_KEY is required to generate benchmark answers.
+14,False,Failed,Josh Norman có bao nhiêu lần đoạt bóng trong năm 2015?,,2,0.0,0.0,20,,,GROQ_API_KEY is required to generate benchmark answers.
+15,False,Failed,Ai thua đội Broncos ở vòng bảng?,,Pittsburgh Steelers,0.0,0.0,17,,,GROQ_API_KEY is required to generate benchmark answers.
+16,False,Failed,Broncos ghi được bao nhiêu đểm trong ba phút cuối của trận đấu với Pittsburgh?,,11,0.0,0.0,21,,,GROQ_API_KEY is required to generate benchmark answers.
+17,True,Failed,Ai đã giành Super Bowl XLIX?,,New England Patriots,0.0,0.0,24,,,GROQ_API_KEY is required to generate benchmark answers.
+18,True,Failed,Điểm số cuối cùng của AFC Championship Game là bao nhiêu?,,20-18,0.0,0.0,21,,,GROQ_API_KEY is required to generate benchmark answers.
+19,True,Failed,Trên đồng hồ còn lại bao nhiêu thời gian khi Broncos thực hiện đánh chặn đã giành được AFC Championship Game?,,17 giây,0.0,0.0,26,,,GROQ_API_KEY is required to generate benchmark answers.
+20,True,Failed,Đội nào là đội chiến thắng ở vòng bảng giữa Broncos và Steelers?,,Broncos,0.0,0.0,21,,,GROQ_API_KEY is required to generate benchmark answers.

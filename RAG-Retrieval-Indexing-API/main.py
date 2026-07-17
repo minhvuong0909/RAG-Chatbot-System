@@ -32,15 +32,21 @@ async def index_documents(request: IndexRequest):
         docs = [Document(page_content=d.page_content, metadata=d.metadata) for d in request.documents]
         
         # Tải lại retriever và gộp tài liệu mới để cập nhật chỉ mục
-        retriever = get_retriever(force_reload=True, documents=docs, rebuild_cache=request.rebuild_cache)
+        retriever = get_retriever(
+            profile_id=request.profile_id,
+            force_reload=True,
+            documents=docs,
+            rebuild_cache=request.rebuild_cache)
         
-        # Tái sử dụng embeddings đã tính sẵn từ _build_index (không tính lại lần 2)
-        embeddings = retriever.get_last_embeddings(docs)
-        
-        return {
-            "message": f"Successfully indexed {len(docs)} documents.",
-            "embeddings": embeddings
+        result = {
+            "message": f"Successfully indexed {len(docs)} documents for profile '{request.profile_id}'.",
+            "embeddings": []
         }
+        # The production .NET indexing flow persists default-profile vectors.
+        # Benchmark profile builds do not need to transfer large vectors over HTTP.
+        if request.return_embeddings:
+            result["embeddings"] = retriever.get_last_embeddings(docs)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -53,7 +59,8 @@ async def retrieve(request: RetrieveRequest):
             top_k=request.top_k,
             semantic_weight=request.semantic_weight,
             lexical_weight=request.lexical_weight,
-            enable_rerank=request.enable_rerank
+            enable_rerank=request.enable_rerank,
+            profile_id=request.profile_id
         )
         
         # Chuyển đổi kết quả tìm kiếm sang dạng response model

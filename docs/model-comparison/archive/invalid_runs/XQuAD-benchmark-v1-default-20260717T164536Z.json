@@ -1,0 +1,491 @@
+{
+  "benchmark_name": "XQuAD-benchmark",
+  "benchmark_version": "v1",
+  "dataset_id": "f4e0969a-e79a-4cb3-b6b4-a322d57a1f6b",
+  "profile_id": "default",
+  "model": "qwen/qwen3-32b",
+  "prompt_version": "rag-v1",
+  "created_at": "2026-07-17T16:45:36.735035+00:00",
+  "results": [
+    {
+      "sort_order": 1,
+      "is_holdout": false,
+      "question": "Đội thủ Panthers đã thua bao nhiêu điểm?",
+      "reference_answer": "308",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 24,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 24
+    },
+    {
+      "sort_order": 2,
+      "is_holdout": false,
+      "question": "Jared Allen có bao nhiêu lần vật ngã trong sự nghiệp?",
+      "reference_answer": "136",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 20,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 20
+    },
+    {
+      "sort_order": 3,
+      "is_holdout": false,
+      "question": "Luke Kuechly đã có bao nhiêu cú húc?",
+      "reference_answer": "118",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 20,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 20
+    },
+    {
+      "sort_order": 4,
+      "is_holdout": false,
+      "question": "Josh Norman đã đoạt bóng được bao nhiêu lần?",
+      "reference_answer": "bốn lựa chọn",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 18,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 18
+    },
+    {
+      "sort_order": 5,
+      "is_holdout": false,
+      "question": "Ai có được nhiều lần vật ngã nhất trong đội mùa này?",
+      "reference_answer": "Kawann Short",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 22,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 22
+    },
+    {
+      "sort_order": 6,
+      "is_holdout": false,
+      "question": "Đội thủ Panthers có bao nhiêu lần đoạt bóng trong năm 2015?",
+      "reference_answer": "24",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 18,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 18
+    },
+    {
+      "sort_order": 7,
+      "is_holdout": false,
+      "question": "Ai dẫn đầu Panthers về số lần vật ngã?",
+      "reference_answer": "Kawann Short",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 19,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 19
+    },
+    {
+      "sort_order": 8,
+      "is_holdout": false,
+      "question": "Có bao nhiêu người chơi phòng thủ Panthers đã được chọn vào Pro Bowl?",
+      "reference_answer": "bốn lựa chọn",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 19,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 19
+    },
+    {
+      "sort_order": 9,
+      "is_holdout": false,
+      "question": "Thomas Davis có bao nhiêu lần húc văng bóng?",
+      "reference_answer": "bốn lựa chọn",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 21,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 21
+    },
+    {
+      "sort_order": 10,
+      "is_holdout": false,
+      "question": "Cầu thủ nào có nhiều lần đoạt bóng nhất trong mùa giải?",
+      "reference_answer": "Kurt Coleman",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 17,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 17
+    },
+    {
+      "sort_order": 11,
+      "is_holdout": false,
+      "question": "Đội thủ Panthers có được bao nhiêu lần đoạt bóng trong mùa giải 2015?",
+      "reference_answer": "24",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 19,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 19
+    },
+    {
+      "sort_order": 12,
+      "is_holdout": false,
+      "question": "Ai đã có năm lần vật ngã trong chín trận đấu khi xuất phát cho Carolina Panthers?",
+      "reference_answer": "Kony Ealy",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 22,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 22
+    },
+    {
+      "sort_order": 13,
+      "is_holdout": false,
+      "question": "Ai dẫn đầu số lần húc của Panthers năm 2015?",
+      "reference_answer": "Luke Kuechly",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 16,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 16
+    },
+    {
+      "sort_order": 14,
+      "is_holdout": false,
+      "question": "Josh Norman có bao nhiêu lần đoạt bóng trong năm 2015?",
+      "reference_answer": "2",
+      "expected_chunk_ids": [
+        "5b6c0aa9-823f-4a6e-b573-bc438447a0f9"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 20,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 20
+    },
+    {
+      "sort_order": 15,
+      "is_holdout": false,
+      "question": "Ai thua đội Broncos ở vòng bảng?",
+      "reference_answer": "Pittsburgh Steelers",
+      "expected_chunk_ids": [
+        "8148ad34-0920-4ce5-bc8c-dac34c15f9ab"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 17,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 17
+    },
+    {
+      "sort_order": 16,
+      "is_holdout": false,
+      "question": "Broncos ghi được bao nhiêu đểm trong ba phút cuối của trận đấu với Pittsburgh?",
+      "reference_answer": "11",
+      "expected_chunk_ids": [
+        "8148ad34-0920-4ce5-bc8c-dac34c15f9ab"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 21,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 21
+    },
+    {
+      "sort_order": 17,
+      "is_holdout": true,
+      "question": "Ai đã giành Super Bowl XLIX?",
+      "reference_answer": "New England Patriots",
+      "expected_chunk_ids": [
+        "8148ad34-0920-4ce5-bc8c-dac34c15f9ab"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 24,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 24
+    },
+    {
+      "sort_order": 18,
+      "is_holdout": true,
+      "question": "Điểm số cuối cùng của AFC Championship Game là bao nhiêu?",
+      "reference_answer": "20-18",
+      "expected_chunk_ids": [
+        "8148ad34-0920-4ce5-bc8c-dac34c15f9ab"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 21,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 21
+    },
+    {
+      "sort_order": 19,
+      "is_holdout": true,
+      "question": "Trên đồng hồ còn lại bao nhiêu thời gian khi Broncos thực hiện đánh chặn đã giành được AFC Championship Game?",
+      "reference_answer": "17 giây",
+      "expected_chunk_ids": [
+        "8148ad34-0920-4ce5-bc8c-dac34c15f9ab"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 26,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 26
+    },
+    {
+      "sort_order": 20,
+      "is_holdout": true,
+      "question": "Đội nào là đội chiến thắng ở vòng bảng giữa Broncos và Steelers?",
+      "reference_answer": "Broncos",
+      "expected_chunk_ids": [
+        "8148ad34-0920-4ce5-bc8c-dac34c15f9ab"
+      ],
+      "status": "Failed",
+      "faithfulness": null,
+      "answer_relevancy": null,
+      "retrieval_latency_ms": 21,
+      "context_precision": 0.0,
+      "context_recall": 0.0,
+      "retrieved_chunk_ids": [],
+      "trace": [
+        "Retrieval(Hybrid-RRF)",
+        "DatasetFilter",
+        "Merge",
+        "Rerank(CrossEncoder)"
+      ],
+      "error": "GROQ_API_KEY is required to generate benchmark answers.",
+      "elapsed_ms": 21
+    }
+  ]
+}

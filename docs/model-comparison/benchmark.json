@@ -1,0 +1,247 @@
+{
+  "name": "XQuAD-benchmark",
+  "version": "v1",
+  "description": "External XQuAD Vietnamese proof-of-concept benchmark; not a subject-domain knowledge benchmark.",
+  "questions": [
+    {
+      "sortOrder": 1,
+      "question": "Đội thủ Panthers đã thua bao nhiêu điểm?",
+      "referenceAnswer": "308",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 0",
+      "relevantChunkIds": [
+        "fe559863-f68b-5e79-a24d-8c2ed1ff813c"
+      ],
+      "evidenceNote": "308",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 2,
+      "question": "Ai thua đội Broncos ở vòng bảng?",
+      "referenceAnswer": "Pittsburgh Steelers",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 1",
+      "relevantChunkIds": [
+        "fbb62fa5-7f03-57e2-8cc3-736304d93df6"
+      ],
+      "evidenceNote": "Pittsburgh Steelers",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 3,
+      "question": "Peyton Manning bao nhiêu tuổi khi anh chơi trong Super Bowl 50?",
+      "referenceAnswer": "39",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 2",
+      "relevantChunkIds": [
+        "90c5d770-0307-5156-bda1-35ac21808d8d"
+      ],
+      "evidenceNote": "39",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 4,
+      "question": "Lady Gaga đã giành được bao nhiêu giải Grammy?",
+      "referenceAnswer": "sáu",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 3",
+      "relevantChunkIds": [
+        "195ff815-2931-5008-812d-bc36f8bb2fdf"
+      ],
+      "evidenceNote": "sáu",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 5,
+      "question": "Carolina đã bắt đầu ở vạch nào khi trận đấu còn 4:51?",
+      "referenceAnswer": "24",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 4",
+      "relevantChunkIds": [
+        "f713b14d-22b2-5a73-bf07-631f5d73c9e5"
+      ],
+      "evidenceNote": "24",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 6,
+      "question": "Vườn Saxon trong tiếng Ba Lan là gì?",
+      "referenceAnswer": "Ogród Saski",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 5",
+      "relevantChunkIds": [
+        "edc4734b-3e8b-554a-a6a6-a9b6f38dbb3f"
+      ],
+      "evidenceNote": "Ogród Saski",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 7,
+      "question": "Đội nào đã giành giải vô địch Ekstraklasa vào năm 2000?",
+      "referenceAnswer": "Polonia Warsaw",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 6",
+      "relevantChunkIds": [
+        "0ae61050-956e-5b49-98ad-ba5944afb05b"
+      ],
+      "evidenceNote": "Polonia Warsaw",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 8,
+      "question": "Warsaw thuộc loại thành phố nào khi còn là một thành phố?",
+      "referenceAnswer": "đa văn hóa",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 7",
+      "relevantChunkIds": [
+        "a271d006-82e3-5755-9160-e557f64ed81f"
+      ],
+      "evidenceNote": "đa văn hóa",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 9,
+      "question": "Đơn vị cơ bản của phân chia lãnh thổ ở Ba Lan là gì?",
+      "referenceAnswer": "xã",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 8",
+      "relevantChunkIds": [
+        "6278bc80-067b-5e1d-918b-83107831c834"
+      ],
+      "evidenceNote": "xã",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 10,
+      "question": "Sàn giao dịch chứng khoán đầu tiên của Warsaw được thành lập khi nào?",
+      "referenceAnswer": "năm 1817",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 9",
+      "relevantChunkIds": [
+        "f6bab62d-18ff-576d-8175-bcb8c0798d99"
+      ],
+      "evidenceNote": "năm 1817",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 11,
+      "question": "Ai khi đến nơi đã cho những người định cư viking ban đầu một bản sắc chung?",
+      "referenceAnswer": "Rollo",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 10",
+      "relevantChunkIds": [
+        "686cdfb9-2d11-522a-bdf9-cd7a746160af"
+      ],
+      "evidenceNote": "Rollo",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 12,
+      "question": "Tên của nhà lãnh đạo được Henry III thăng chức quý tộc là gì",
+      "referenceAnswer": "Drogo",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 11",
+      "relevantChunkIds": [
+        "a0febfb2-e183-5069-bc18-3ecbf26b845d"
+      ],
+      "evidenceNote": "Drogo",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 13,
+      "question": "Ai là kẻ thù chính của người Norman ở Ý, Đế quốc Byzantine và Armenia?",
+      "referenceAnswer": "người Thổ Seljuk",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 12",
+      "relevantChunkIds": [
+        "4d148a17-327e-5046-8b1c-67990dd2bc50"
+      ],
+      "evidenceNote": "người Thổ Seljuk",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 14,
+      "question": "Tên của lâu đài Norman là gì?",
+      "referenceAnswer": "Afranji",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 13",
+      "relevantChunkIds": [
+        "0093af61-846c-528e-bd65-394ffeb59c2f"
+      ],
+      "evidenceNote": "Afranji",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 15,
+      "question": "Quần đảo Canaria ngoài khơi lục địa nào?",
+      "referenceAnswer": "châu Phi",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 14",
+      "relevantChunkIds": [
+        "4cf61070-b5d0-5f8e-8b82-1da52dc4b9fc"
+      ],
+      "evidenceNote": "châu Phi",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 16,
+      "question": "Tesla chết năm nào?",
+      "referenceAnswer": "năm 1943",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 15",
+      "relevantChunkIds": [
+        "02ee320c-eab3-567b-8fc7-36ced01944be"
+      ],
+      "evidenceNote": "năm 1943",
+      "isHoldout": false
+    },
+    {
+      "sortOrder": 17,
+      "question": "Tesla đã hợp tác với ai vào năm 1886?",
+      "referenceAnswer": "Robert Lane và Benjamin Vail",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 16",
+      "relevantChunkIds": [
+        "23442b2b-326c-5bc4-8d25-6e02f1cf5f0c"
+      ],
+      "evidenceNote": "Robert Lane và Benjamin Vail",
+      "isHoldout": true
+    },
+    {
+      "sortOrder": 18,
+      "question": "Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?",
+      "referenceAnswer": "Năm 1900",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 17",
+      "relevantChunkIds": [
+        "372a9e3a-b309-5bf1-809d-e3c6f9498954"
+      ],
+      "evidenceNote": "Năm 1900",
+      "isHoldout": true
+    },
+    {
+      "sortOrder": 19,
+      "question": "Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?",
+      "referenceAnswer": "38",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 18",
+      "relevantChunkIds": [
+        "10fce57f-c5df-55ce-b206-d1918cb64fbb"
+      ],
+      "evidenceNote": "38",
+      "isHoldout": true
+    },
+    {
+      "sortOrder": 20,
+      "question": "Bài báo nào được xuất bản năm 1937?",
+      "referenceAnswer": "\"Một cỗ máy để Kết thúc Chiến tranh\",",
+      "category": "fact",
+      "sourceReference": "xquad.txt, paragraph 19",
+      "relevantChunkIds": [
+        "0a04e5fd-1d9e-51df-8017-f9e7f470e78d"
+      ],
+      "evidenceNote": "\"Một cỗ máy để Kết thúc Chiến tranh\",",
+      "isHoldout": true
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "evaluation_method": "manual_rubric_fallback",
+  "evaluator": "self-annotated (no independent reviewer)",
+  "rubric": {
+    "faithfulness": "0=fabricated info not in context, 1=mostly correct with some gaps, 2=entirely grounded in retrieved context",
+    "answer_relevancy": "0=off-topic, 1=partially answers, 2=directly and precisely answers the question"
+  },
+  "normalized_by": "dividing raw score by 2",
+  "run_id_generation": "5086a755-ef82-4703-9447-3a2e1d558d23",
+  "questions": [
+    {
+      "sort_order": 17,
+      "question": "Tesla đã hợp tác với ai vào năm 1886?",
+      "reference_answer": "Robert Lane và Benjamin Vail",
+      "faithfulness_raw": 2, "faithfulness_note": "Hoàn toàn trích từ context, không bịa.",
+      "answer_relevancy_raw": 2, "answer_relevancy_note": "Đúng tên hai người, trả lời trực tiếp.",
+      "faithfulness": 1.0, "answer_relevancy": 1.0
+    },
+    {
+      "sort_order": 18,
+      "question": "Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?",
+      "reference_answer": "Năm 1900",
+      "faithfulness_raw": 2, "faithfulness_note": "Đúng năm 1900 lấy từ context.",
+      "answer_relevancy_raw": 2, "answer_relevancy_note": "Trả lời đúng câu hỏi.",
+      "faithfulness": 1.0, "answer_relevancy": 1.0
+    },
+    {
+      "sort_order": 19,
+      "question": "Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?",
+      "reference_answer": "38",
+      "faithfulness_raw": 2, "faithfulness_note": "Con số 38 lấy đúng từ context.",
+      "answer_relevancy_raw": 2, "answer_relevancy_note": "Súc tích, đúng trọng tâm.",
+      "faithfulness": 1.0, "answer_relevancy": 1.0
+    },
+    {
+      "sort_order": 20,
+      "question": "Bài báo nào được xuất bản năm 1937?",
+      "reference_answer": "\"Một cỗ máy để Kết thúc Chiến tranh\"",
+      "faithfulness_raw": 2, "faithfulness_note": "Đúng tên bài báo và năm từ context.",
+      "answer_relevancy_raw": 2, "answer_relevancy_note": "Trả lời trực tiếp, chính xác.",
+      "faithfulness": 1.0, "answer_relevancy": 1.0
+    }
+  ],
+  "summary": {
+    "mean_faithfulness": 1.0,
+    "mean_answer_relevancy": 1.0,
+    "note": "All 4 hold-out answers by Qwen-3-32b were fully grounded in retrieved context. Qwen chain-of-thought blocks confirm correct context identification before answering."
+  }
+}

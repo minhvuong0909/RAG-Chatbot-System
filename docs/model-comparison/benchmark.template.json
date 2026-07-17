@@ -1,0 +1,17 @@
+{
+  "name": "<ten-mon>-benchmark",
+  "version": "v1",
+  "description": "Self-annotated benchmark. No independent human review.",
+  "questions": [
+    {
+      "sortOrder": 1,
+      "question": "<cau-hoi-dua-tren-tai-lieu>",
+      "referenceAnswer": "<dap-an-ngan, chi dung thong-tin-tu-tai-lieu>",
+      "category": "fact",
+      "sourceReference": "<ten-file>, trang <n> / section <ten-muc>",
+      "relevantChunkIds": ["<chunk-guid>"],
+      "evidenceNote": "<trich-doan-hoac-ghi-chu-vi-sao-chunk-nay-lien-quan>",
+      "isHoldout": false
+    }
+  ]
+}

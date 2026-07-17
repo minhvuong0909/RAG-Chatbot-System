@@ -1,6 +1,7 @@
 import os
 import pickle
 import re
+import gc
 import torch
 import numpy as np
 from typing import Any
@@ -10,14 +11,18 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder
 
-from config import settings
+from config import settings, embedding_batch_size_for_profile, embedding_model_for_profile, chunking_config_for_profile
 
 # Biên dịch sẵn regex tokenizer (tránh compile lại mỗi lần gọi)
 _WORD_PATTERN = re.compile(r'\w+')
 
 
 class HybridRetrieverService:
-    def __init__(self, documents: list[Document] | None = None, rebuild_cache: bool = False):
+    def __init__(self, documents: list[Document] | None = None, rebuild_cache: bool = False, profile_id: str = "default"):
+        self.profile_id = profile_id
+        self.cache_dir = settings.CACHE_DIR if profile_id == "default" else os.path.join(settings.CACHE_DIR, "profiles", profile_id)
+        self.faiss_index_path = settings.FAISS_INDEX_PATH if profile_id == "default" else os.path.join(self.cache_dir, "faiss_index")
+        self.bm25_path = settings.BM25_PATH if profile_id == "default" else os.path.join(self.cache_dir, "bm25.pkl")
         self.documents: list[Document] = []
         self.embeddings: HuggingFaceEmbeddings | None = None
         self.vectorstore: FAISS | None = None
@@ -31,6 +36,11 @@ class HybridRetrieverService:
         self._initialize_embeddings()
 
         if documents:
+            # Apply chunking ablation if this profile has a re-chunking config.
+            chunk_cfg = chunking_config_for_profile(self.profile_id)
+            if chunk_cfg:
+                documents = self._rechunk_documents(documents, chunk_cfg[0], chunk_cfg[1])
+
             # Luôn cố gắng tải các tài liệu đã lưu trong cache trước để gộp
             existing_docs: list[Document] = []
             if not rebuild_cache:
@@ -61,13 +71,41 @@ class HybridRetrieverService:
     def _initialize_embeddings(self):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.embeddings = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL,
+            model_name=embedding_model_for_profile(self.profile_id),
             model_kwargs={'device': device},
             encode_kwargs={
                 'normalize_embeddings': True,
-                'batch_size': 64,  # Tăng batch_size để tận dụng tối đa GPU/CPU
+                'batch_size': embedding_batch_size_for_profile(self.profile_id),
             }
         )
+        # PhoBERT has a shorter positional-embedding limit than E5/BGE. Long
+        # XQuAD contexts must be truncated deterministically instead of making
+        # the entire profile fail during batch indexing.
+        if self.profile_id.endswith("phobert-base"):
+            self.embeddings._client.max_seq_length = 256
+
+    @staticmethod
+    def _rechunk_documents(documents: list[Document], chunk_size: int, chunk_overlap: int) -> list[Document]:
+        """Re-split incoming documents using RecursiveCharacterTextSplitter.
+        Each sub-chunk inherits the parent's metadata (source, dataset_id, etc.)
+        but its id becomes <parent_id>-chunk<n> so it does not collide with the
+        original chunk IDs stored in PostgreSQL."""
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            separators=["\n\n", "\n", ". ", " ", ""],
+        )
+        result: list[Document] = []
+        for doc in documents:
+            sub_docs = splitter.split_documents([doc])
+            parent_id = doc.metadata.get("id", "")
+            for idx, sub in enumerate(sub_docs):
+                sub.metadata = dict(doc.metadata)  # copy parent metadata
+                sub.metadata["id"] = f"{parent_id}-chunk{idx}" if parent_id else None
+                sub.metadata["parent_chunk_id"] = parent_id
+                result.append(sub)
+        return result
 
     def _build_index(self):
         """Xây dựng chỉ mục FAISS + BM25 từ self.documents.
@@ -167,35 +205,35 @@ class HybridRetrieverService:
         return True
 
     def _save_cache(self):
-        os.makedirs(settings.CACHE_DIR, exist_ok=True)
+        os.makedirs(self.cache_dir, exist_ok=True)
 
         if self.vectorstore:
-            self.vectorstore.save_local(settings.FAISS_INDEX_PATH)
-        elif os.path.exists(settings.FAISS_INDEX_PATH):
+            self.vectorstore.save_local(self.faiss_index_path)
+        elif os.path.exists(self.faiss_index_path):
             import shutil
-            shutil.rmtree(settings.FAISS_INDEX_PATH, ignore_errors=True)
+            shutil.rmtree(self.faiss_index_path, ignore_errors=True)
 
         if self.bm25:
-            with open(settings.BM25_PATH, "wb") as f:
+            with open(self.bm25_path, "wb") as f:
                 pickle.dump({"bm25": self.bm25, "docs": self.documents}, f)
-        elif os.path.exists(settings.BM25_PATH):
+        elif os.path.exists(self.bm25_path):
             try:
-                os.remove(settings.BM25_PATH)
+                os.remove(self.bm25_path)
             except Exception:
                 pass
 
     def _load_cache(self) -> bool:
-        if not os.path.exists(settings.FAISS_INDEX_PATH) or not os.path.exists(settings.BM25_PATH):
+        if not os.path.exists(self.faiss_index_path) or not os.path.exists(self.bm25_path):
             return False
 
         try:
             self.vectorstore = FAISS.load_local(
-                settings.FAISS_INDEX_PATH,
+                self.faiss_index_path,
                 self.embeddings,
                 allow_dangerous_deserialization=True
             )
 
-            with open(settings.BM25_PATH, "rb") as f:
+            with open(self.bm25_path, "rb") as f:
                 data = pickle.load(f)
                 self.bm25 = data["bm25"]
                 self.documents = data["docs"]
@@ -285,20 +323,33 @@ class RerankerService:
 
 # ========== Hàm quản lý Retriever toàn cục (Singleton) ==========
 
-_retriever_instance: HybridRetrieverService | None = None
+_retriever_instances: dict[str, HybridRetrieverService] = {}
 
 
 def get_retriever(
+    profile_id: str = "default",
     force_reload: bool = False,
     documents: list[Document] | None = None,
     rebuild_cache: bool = False
 ) -> HybridRetrieverService:
     """Lấy hoặc tạo mới Retriever toàn cục.
     Chỉ khởi tạo lại khi cần thiết để tiết kiệm RAM và thời gian."""
-    global _retriever_instance
-    if _retriever_instance is None or force_reload or documents:
-        _retriever_instance = HybridRetrieverService(documents=documents, rebuild_cache=rebuild_cache)
-    return _retriever_instance
+    # Benchmark embeddings are executed sequentially on a 4 GB GPU. Retaining
+    # E5, PhoBERT and BGE-M3 instances would accumulate model memory and cause
+    # an avoidable OOM. Production/default profile remains cached.
+    if profile_id.startswith("xquad-"):
+        for cached_profile in [key for key in _retriever_instances if key.startswith("xquad-") and key != profile_id]:
+            del _retriever_instances[cached_profile]
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    if profile_id not in _retriever_instances or force_reload or documents:
+        _retriever_instances[profile_id] = HybridRetrieverService(
+            documents=documents,
+            rebuild_cache=rebuild_cache,
+            profile_id=profile_id)
+    return _retriever_instances[profile_id]
 
 
 def hybrid_retrieve(
@@ -307,12 +358,13 @@ def hybrid_retrieve(
     top_k: int = 3,
     semantic_weight: float = 0.7,
     lexical_weight: float = 0.3,
-    enable_rerank: bool = True
+    enable_rerank: bool = True,
+    profile_id: str = "default"
 ) -> dict[str, Any]:
     """Tìm kiếm kết hợp (Hybrid Search) sử dụng thuật toán Weighted RRF.
     Kết hợp kết quả từ FAISS (semantic) và BM25 (lexical),
     sau đó xếp hạng lại bằng CrossEncoder nếu được bật."""
-    retriever = get_retriever()
+    retriever = get_retriever(profile_id=profile_id)
 
     # Tăng số lượng ứng viên để gộp (gấp 4 lần top_k)
     k_candidates = top_k * 4
@@ -347,7 +399,7 @@ def hybrid_retrieve(
     merged.sort(key=lambda x: x[1], reverse=True)
     results = merged[:k_candidates]
 
-    trace = ["Retrieval(Hybrid-RRF)", "DatasetFilter" if dataset_id else "AllDatasets", "Merge"]
+    trace = [f"Profile({profile_id})", "Retrieval(Hybrid-RRF)", "DatasetFilter" if dataset_id else "AllDatasets", "Merge"]
 
     # Xếp hạng lại bằng CrossEncoder (Rerank) nếu được bật
     if enable_rerank:
