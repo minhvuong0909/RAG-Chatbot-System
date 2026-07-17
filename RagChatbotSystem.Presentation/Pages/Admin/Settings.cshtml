@@ -4,87 +4,168 @@
     ViewData["Title"] = "Cài đặt hệ thống";
 }
 
-<section class="admin-page" data-admin-page>
-    <header class="admin-page-header">
+<div class="space-y-6" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow">Quản trị</p>
-            <h1>Cài đặt hệ thống</h1>
-            <p class="helper-text">Điều chỉnh cấu hình RAG và giới hạn Token cho các lượt sử dụng sau này.</p>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản trị</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Cài đặt hệ thống</h1>
+            <p class="text-sm text-gray-500 mt-1">Điều chỉnh cấu hình RAG và giới hạn Token cho các lượt sử dụng sau này.</p>
         </div>
-    </header>
+    </div>
 
-    <partial name="_AdminTabs" />
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+        <partial name="_AdminTabs" />
+    </div>
 
+    <!-- Alerts -->
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
     {
-        <div class="alert alert-success">@Model.SuccessMessage</div>
+        <div class="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-green-800">@Model.SuccessMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-green-400 hover:text-green-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
     }
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
+        <div class="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-red-800">@Model.ErrorMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-red-400 hover:text-red-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
     }
 
-    <section class="settings-overview" aria-label="Nhóm cài đặt">
-        <div><strong>AI/RAG</strong><span>Chunk và lập chỉ mục cho tài liệu mới.</span></div>
-        <div><strong>Token kỹ thuật</strong><span>Giới hạn dùng Token hằng ngày cho sinh viên.</span></div>
-        <a asp-page="/Admin/Credits/Index"><strong>Credit</strong><span>Quản lý số dư và điều chỉnh Credit.</span></a>
-        <div><strong>Hệ thống</strong><span>Provider, Model và API Key được cấu hình theo môi trường triển khai.</span></div>
-    </section>
+    <!-- Setting Groups Overview -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-all hover:border-indigo-300 hover:shadow-md flex flex-col gap-1.5 cursor-default group">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-accent-strong flex items-center justify-center mb-1 transition-transform group-hover:scale-110">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            </div>
+            <strong class="text-ink font-bold text-sm">AI/RAG</strong>
+            <span class="text-xs text-gray-500 leading-relaxed">Chunk và lập chỉ mục cho tài liệu mới.</span>
+        </div>
+        
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-all hover:border-blue-300 hover:shadow-md flex flex-col gap-1.5 cursor-default group">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-1 transition-transform group-hover:scale-110">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <strong class="text-ink font-bold text-sm">Token kỹ thuật</strong>
+            <span class="text-xs text-gray-500 leading-relaxed">Giới hạn dùng Token hằng ngày cho sinh viên.</span>
+        </div>
+        
+        <a asp-page="/Admin/Credits/Index" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-all hover:border-amber-300 hover:shadow-md flex flex-col gap-1.5 group block">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center mb-1 transition-transform group-hover:scale-110">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <strong class="text-ink font-bold text-sm group-hover:text-amber-600 transition-colors">Credit &rsaquo;</strong>
+            <span class="text-xs text-gray-500 leading-relaxed">Quản lý số dư và điều chỉnh Credit.</span>
+        </a>
+        
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 transition-all hover:border-green-300 hover:shadow-md flex flex-col gap-1.5 cursor-default group">
+            <div class="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-1 transition-transform group-hover:scale-110">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </div>
+            <strong class="text-ink font-bold text-sm">Hệ thống</strong>
+            <span class="text-xs text-gray-500 leading-relaxed">Provider, Model và API Key cấu hình tự động.</span>
+        </div>
+    </div>
 
-    <section class="admin-section settings-section">
-        <div class="section-title">
-            <h2>Thiết lập RAG</h2>
-            <span>Áp dụng cho tài liệu tải lên sau khi lưu</span>
+    <!-- Main Settings Form -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+        <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    </span>
+                    Thiết lập RAG
+                </h2>
+                <p class="text-xs text-gray-500 mt-2 ml-10">Áp dụng cho tài liệu tải lên sau khi lưu</p>
+            </div>
         </div>
 
-        <form method="post" class="admin-form settings-form">
-            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+        <div class="p-6">
+            <form method="post" class="admin-processing-form">
+                <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm mb-6 bg-red-50 p-4 rounded-xl border border-red-100"></div>
 
-            <div class="settings-field-grid">
-                <div class="form-group">
-                    <label asp-for="Input.ChunkSize">
-                        Kích thước Chunk
-                        <span class="helper-text">Số ký tự tối đa mỗi chunk (300 - 700)</span>
-                    </label>
-                    <input asp-for="Input.ChunkSize" id="chunkSizeInput" type="number" min="300" max="700" step="50" />
-                    <span asp-validation-for="Input.ChunkSize" class="text-danger small"></span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
+                        <label asp-for="Input.ChunkSize" class="block text-sm font-bold text-gray-700 mb-1">Kích thước Chunk <span class="text-red-500">*</span></label>
+                        <p class="text-xs text-gray-500 mb-3">Số ký tự tối đa mỗi chunk (300 - 700)</p>
+                        <input asp-for="Input.ChunkSize" id="chunkSizeInput" type="number" min="300" max="700" step="50" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border" />
+                        <span asp-validation-for="Input.ChunkSize" class="text-red-500 text-xs mt-1.5 block"></span>
+                    </div>
+
+                    <div class="bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
+                        <label asp-for="Input.ChunkOverlap" class="block text-sm font-bold text-gray-700 mb-1">Phần chồng lấp Chunk <span class="text-red-500">*</span></label>
+                        <p class="text-xs text-gray-500 mb-3">Số ký tự trùng giữa các chunk (100 - nửa Chunk)</p>
+                        <input asp-for="Input.ChunkOverlap" id="chunkOverlapInput" type="number" min="100" max="350" step="25" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border" />
+                        <span asp-validation-for="Input.ChunkOverlap" class="text-red-500 text-xs mt-1.5 block"></span>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label asp-for="Input.ChunkOverlap">
-                        Phần chồng lấp Chunk
-                        <span class="helper-text">Số ký tự trùng giữa các chunk (100 - một nửa kích thước Chunk)</span>
-                    </label>
-                    <input asp-for="Input.ChunkOverlap" id="chunkOverlapInput" type="number" min="100" max="350" step="25" />
-                    <span asp-validation-for="Input.ChunkOverlap" class="text-danger small"></span>
+                <div class="mb-8 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
+                    <div class="flex items-start gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-ink">Giới hạn Token kỹ thuật</h3>
+                            <p class="text-xs text-gray-500 mt-1 leading-relaxed max-w-3xl">Token là đơn vị kỹ thuật đo lượng văn bản AI đọc và tạo ra. Credit là đơn vị sử dụng của hệ thống, được quy đổi từ Token theo cấu hình và trừ vào số dư sinh viên. Giới hạn này là hàng rào kỹ thuật, độc lập với số dư Credit.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="max-w-md ml-11">
+                        <label asp-for="Input.DailyTokenLimit" class="block text-sm font-bold text-gray-700 mb-1">Giới hạn Token hằng ngày (Sinh viên) <span class="text-red-500">*</span></label>
+                        <p class="text-xs text-gray-500 mb-2">Từ 1.000 đến 10.000.000 Token</p>
+                        <div class="relative">
+                            <input asp-for="Input.DailyTokenLimit" id="dailyTokenLimitInput" type="number" min="1000" max="10000000" step="1000" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border pr-16" />
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">Token</span>
+                            </div>
+                        </div>
+                        <span asp-validation-for="Input.DailyTokenLimit" class="text-red-500 text-xs mt-1.5 block"></span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="settings-token-group">
-                <h3>Giới hạn Token kỹ thuật</h3>
-                <p class="helper-text">Token là đơn vị kỹ thuật đo lượng văn bản AI đọc và tạo ra. Credit là đơn vị sử dụng của hệ thống, được quy đổi từ Token theo cấu hình và trừ vào số dư sinh viên. Giới hạn này là hàng rào kỹ thuật, độc lập với số dư Credit.</p>
-                <div class="form-group">
-                    <label asp-for="Input.DailyTokenLimit">
-                        Giới hạn Token hằng ngày (Sinh viên)
-                        <span class="helper-text">Số Token tối đa mỗi sinh viên dùng trong ngày (1.000 - 10.000.000)</span>
-                    </label>
-                    <input asp-for="Input.DailyTokenLimit" id="dailyTokenLimitInput" type="number" min="1000" max="10000000" step="1000" />
-                    <span asp-validation-for="Input.DailyTokenLimit" class="text-danger small"></span>
+                <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3 mb-6">
+                    <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <p class="text-sm text-amber-800 leading-relaxed">
+                        Thay đổi kích thước Chunk chỉ áp dụng cho tài liệu được tải lên <strong>sau</strong> khi lưu. Các tài liệu hiện có trong hệ thống sẽ không bị ảnh hưởng hay được xử lý lại tự động.
+                    </p>
                 </div>
-            </div>
 
-            <div class="alert alert-warning settings-note">
-                Thay đổi chunk chỉ áp dụng cho tài liệu được tải lên <strong>sau</strong> khi lưu. Tài liệu hiện có không bị thay đổi.
-            </div>
+                <div class="flex justify-end pt-4 border-t border-gray-100">
+                    <button type="submit" class="inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm">
+                        Lưu cài đặt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-            <button type="submit" class="btn btn-primary">Lưu cài đặt</button>
-        </form>
-    </section>
-</section>
+<!-- Processing Overlay -->
+<div id="adminProcessingOverlay" class="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm hidden flex-col items-center justify-center p-4" aria-live="polite">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center animate-bounce-in">
+        <svg class="w-16 h-16 text-accent-strong animate-spin mx-auto mb-6" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <h2 class="text-xl font-bold text-ink mb-2">Đang lưu cài đặt</h2>
+        <p class="text-sm text-gray-500">Vui lòng không đóng hoặc tải lại trang web này...</p>
+    </div>
+</div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
     <script>
+        document.querySelectorAll(".admin-processing-form").forEach(function (form) {
+            form.addEventListener("submit", function () {
+                const overlay = document.getElementById("adminProcessingOverlay");
+                if (overlay && form.checkValidity()) overlay.classList.remove("hidden"), overlay.classList.add("flex");
+            });
+        });
+
         const chunkSize = document.getElementById('chunkSizeInput');
         const chunkOverlap = document.getElementById('chunkOverlapInput');
         function updateOverlapMax() {
@@ -92,22 +173,13 @@
             chunkOverlap.max = max;
             if (parseInt(chunkOverlap.value) > max) chunkOverlap.value = max;
         }
-        chunkSize.addEventListener('input', updateOverlapMax);
-        updateOverlapMax();
+        if(chunkSize && chunkOverlap) {
+            chunkSize.addEventListener('input', updateOverlapMax);
+            updateOverlapMax();
+        }
     </script>
     <style>
-        .settings-overview { display: grid; gap: 10px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        .settings-overview > div, .settings-overview > a { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: inherit; display: grid; gap: 4px; min-height: 88px; padding: 14px; text-decoration: none; }
-        .settings-overview a:hover { border-color: var(--accent); color: inherit; }
-        .settings-overview strong { color: var(--ink); font-size: .88rem; }
-        .settings-overview span { color: var(--muted); font-size: .76rem; line-height: 1.45; }
-        .settings-section { border-top: 0; padding-top: 2px; }
-        .settings-field-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .settings-form label .helper-text { display: block; margin-top: 3px; }
-        .settings-token-group { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 16px; }
-        .settings-token-group h3 { color: var(--ink); font-size: 1rem; font-weight: 700; margin: 0; }
-        .settings-token-group .helper-text { margin: 3px 0 12px; }
-        .settings-note { margin: 0; }
-        @@media (max-width: 760px) { .settings-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } .settings-field-grid { grid-template-columns: 1fr; } .settings-section .section-title { align-items: flex-start; display: grid; gap: 6px; } .settings-section .section-title > span { margin-left: 0; white-space: normal; } }
+        .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @@keyframes bounceIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 }

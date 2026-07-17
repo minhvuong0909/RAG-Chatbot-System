@@ -2,6 +2,7 @@
 @model RagChatbotSystem.Presentation.Pages.IndexModel
 @{
     ViewData["Title"] = "Không gian học tập";
+    ViewData["IsWorkspace"] = true;
     var defaultMobileTab = Model.SelectedMessageId.HasValue ? "reference-panel" : "chat-panel";
     var roleValue = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
     var localizedRole = roleValue switch
@@ -32,93 +33,95 @@
 @if (!Model.SelectedDatasetId.HasValue)
 {
     <!-- Subject Portal Page -->
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-                <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 6px;">CỔNG HỌC TẬP</p>
-                <h1 class="fw-bold m-0" style="color: var(--ink); font-size: 2.2rem; letter-spacing: -0.5px;">Chọn không gian học tập</h1>
-                <p class="text-muted mb-0 mt-1">Chọn môn học để bắt đầu trò chuyện dựa trên nguồn tài liệu đã cung cấp.</p>
+                <p class="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Cổng học tập</p>
+                <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Chọn không gian học tập</h1>
+                <p class="text-gray-500">Chọn môn học để bắt đầu trò chuyện dựa trên nguồn tài liệu đã cung cấp.</p>
             </div>
-            @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
-            {
-                <a asp-page="/Datasets/Index" class="btn btn-outline-primary d-flex align-items-center gap-2" style="border-radius: 8px; font-weight: 600; padding: 10px 18px; border-color: var(--accent); color: var(--accent); text-decoration: none;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    Quản lý môn học
-                </a>
-                @if (User.IsInRole("Admin"))
+            <div class="flex gap-4">
+                @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
                 {
-                    <a asp-page="/Admin/ModelComparison/Index" class="btn btn-outline-primary d-flex align-items-center gap-2" style="border-radius: 8px; font-weight: 600; padding: 10px 18px; border-color: var(--accent); color: var(--accent); text-decoration: none;">
-                        So sánh mô hình
+                    <a asp-page="/Datasets/Index" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-accent-strong text-accent-strong font-semibold hover:bg-accent-strong hover:text-white transition-all shadow-sm">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        Quản lý môn học
                     </a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-page="/Admin/ModelComparison/Index" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-accent-strong text-accent-strong font-semibold hover:bg-accent-strong hover:text-white transition-all shadow-sm">
+                            So sánh mô hình
+                        </a>
+                    }
                 }
-            }
-            @if (User.IsInRole("Student"))
-            {
+                @if (User.IsInRole("Student"))
+                {
                     @if (Model.CreditBalance != null)
                     {
-                        <div class="p-3 shadow-sm border" style="border-radius: 12px; background: var(--surface); min-width: 280px; max-width: 320px;">
-                            <div class="d-flex justify-content-between small">
-                                <span class="text-muted fw-bold">Số dư Credit</span>
-                                <span class="fw-bold" id="creditTotalPortal">@Model.CreditBalance.TotalCredits.ToString("N0")</span>
+                        <div class="p-4 bg-white border border-border rounded-2xl shadow-sm min-w-[280px]">
+                            <div class="flex justify-between items-center text-sm mb-2">
+                                <span class="text-gray-500 font-semibold">Số dư Credit</span>
+                                <span class="text-lg font-bold text-ink">@Model.CreditBalance.TotalCredits.ToString("N0")</span>
                             </div>
-                            <div class="d-flex justify-content-between small mt-1">
-                                <span class="text-muted">Credit miễn phí</span>
-                                <span id="creditFreePortal">@Model.CreditBalance.FreeCredits.ToString("N0")</span>
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <span class="text-gray-400">Credit miễn phí</span>
+                                <span class="font-medium text-gray-600">@Model.CreditBalance.FreeCredits.ToString("N0")</span>
                             </div>
-                            <div class="d-flex justify-content-between small">
-                                <span class="text-muted">Credit đã mua</span>
-                                <span id="creditPaidPortal">@Model.CreditBalance.PaidCredits.ToString("N0")</span>
+                            <div class="flex justify-between items-center text-xs mb-3">
+                                <span class="text-gray-400">Credit đã mua</span>
+                                <span class="font-medium text-gray-600">@Model.CreditBalance.PaidCredits.ToString("N0")</span>
                             </div>
-                            <a asp-page="/Credits" class="small fw-bold d-inline-block mt-2" style="color: var(--accent); text-decoration: none;">Nạp Credit</a>
+                            <a asp-page="/Credits" class="text-sm font-bold text-accent-strong hover:text-indigo-700 transition-colors">Nạp Credit &rarr;</a>
                         </div>
                     }
-            }
+                }
+            </div>
         </div>
 
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
-            <div class="alert alert-danger mb-4" style="border-radius: 8px;">@Model.ErrorMessage</div>
+            <div class="p-4 mb-6 text-red-700 bg-red-50 rounded-xl border border-red-200">@Model.ErrorMessage</div>
         }
         @if (!string.IsNullOrEmpty(Model.SuccessMessage))
         {
-            <div class="alert alert-success mb-4" style="border-radius: 8px;">@Model.SuccessMessage</div>
+            <div class="p-4 mb-6 text-green-700 bg-green-50 rounded-xl border border-green-200">@Model.SuccessMessage</div>
         }
 
-        <div class="row g-4" data-dataset-list>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-dataset-list>
             @if (Model.Datasets.Count == 0)
             {
-                <div class="col-12 text-center py-5">
-                    <div style="width: 64px; height: 64px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
+                <div class="col-span-full text-center py-20">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white border border-border flex items-center justify-center shadow-sm">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
                     </div>
-                    <h3 class="fw-bold" style="color: var(--ink);">Chưa có môn học khả dụng</h3>
-                    <p class="text-muted" style="max-width: 400px; margin: 8px auto 0;">Bạn chưa có quyền truy cập môn học nào. Vui lòng liên hệ quản trị viên hoặc giảng viên.</p>
+                    <h3 class="text-2xl font-bold text-ink mb-2">Chưa có môn học khả dụng</h3>
+                    <p class="text-gray-500 max-w-md mx-auto">Bạn chưa có quyền truy cập môn học nào. Vui lòng liên hệ quản trị viên hoặc giảng viên.</p>
                 </div>
             }
             else
             {
                 @foreach (var ds in Model.Datasets)
                 {
-                    <div class="col-md-6 col-lg-4" data-dataset-id="@ds.DatasetId">
-                        <a href="?datasetId=@ds.DatasetId" class="card h-100 border-0 shadow-soft text-decoration-none subject-portal-card" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important; display: flex; flex-direction: column; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
-                            <div class="card-body p-4 d-flex flex-column h-100">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h4 class="fw-bold m-0 subject-card-title" style="color: var(--ink); line-height: 1.3;">@ds.Name</h4>
+                    <div class="group" data-dataset-id="@ds.DatasetId">
+                        <a href="?datasetId=@ds.DatasetId" class="block h-full bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-soft hover:-translate-y-1 hover:border-accent-light transition-all duration-300">
+                            <div class="flex flex-col h-full">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h4 class="text-xl font-bold text-ink leading-tight group-hover:text-accent-strong transition-colors">@ds.Name</h4>
                                     @if (!ds.IsApproved)
                                     {
-                                        <span class="badge" style="font-size: 0.75rem; border-radius: 4px; background: var(--warning-soft); color: var(--warning); font-weight: 600;">Chờ duyệt</span>
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-50 text-amber-600 border border-amber-200">Chờ duyệt</span>
                                     }
                                 </div>
-                                <p class="dataset-description text-muted small flex-grow-1" style="line-height: 1.5; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                                <p class="text-gray-500 text-sm flex-grow line-clamp-3 mb-6">
                                     @(string.IsNullOrWhiteSpace(ds.Description) ? "Chưa có mô tả." : ds.Description)
                                 </p>
-                                <div class="d-flex justify-content-between align-items-center mt-auto pt-3" style="border-top: 1px solid var(--line);">
-                                <span class="dataset-document-count text-muted small d-flex align-items-center gap-1">
+                                <div class="flex justify-between items-center pt-4 border-t border-gray-100 mt-auto">
+                                    <span class="flex items-center gap-1.5 text-xs font-medium text-gray-500">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                                         @ds.DocumentCount tài liệu
                                     </span>
-                                    <span class="small fw-bold enter-workspace-text" style="color: var(--accent); transition: all 0.2s;">
-                                        Vào không gian học tập &rarr;
+                                    <span class="text-sm font-bold text-accent-strong group-hover:translate-x-1 transition-transform">
+                                        Vào học &rarr;
                                     </span>
                                 </div>
                             </div>
@@ -131,350 +134,371 @@
 }
 else
 {
-    <section class="workspace" data-rag-app data-active-tab="@defaultMobileTab" data-selected-dataset-id="@Model.SelectedDatasetId" data-selected-session-id="@Model.SelectedSessionId">
+    <section class="workspace flex flex-col md:flex-row h-[calc(100vh-64px)] w-full bg-gray-50 overflow-hidden" data-rag-app data-active-tab="@defaultMobileTab" data-selected-dataset-id="@Model.SelectedDatasetId" data-selected-session-id="@Model.SelectedSessionId">
         <!-- Mobile Navigation Tabs (Only visible on mobile screens) -->
-        <div class="mobile-workspace-tabs" aria-label="Điều hướng không gian học tập">
-            <button class="mobile-tab-btn @(defaultMobileTab == "chat-panel" ? "active" : "")" data-target="chat-panel">Trò chuyện</button>
-            <button class="mobile-tab-btn @(defaultMobileTab == "management-panel" ? "active" : "")" data-target="management-panel">Môn học</button>
-            <button class="mobile-tab-btn @(defaultMobileTab == "reference-panel" ? "active" : "")" data-target="reference-panel">
+        <div class="mobile-workspace-tabs flex md:hidden bg-white border-b border-gray-200" aria-label="Điều hướng không gian học tập">
+            <button class="mobile-tab-btn flex-1 py-3 text-sm font-medium text-center border-b-2 @(defaultMobileTab == "chat-panel" ? "border-accent-strong text-accent-strong" : "border-transparent text-gray-500")" data-target="chat-panel">Trò chuyện</button>
+            <button class="mobile-tab-btn flex-1 py-3 text-sm font-medium text-center border-b-2 @(defaultMobileTab == "management-panel" ? "border-accent-strong text-accent-strong" : "border-transparent text-gray-500")" data-target="management-panel">Môn học</button>
+            <button class="mobile-tab-btn flex-1 py-3 text-sm font-medium text-center border-b-2 @(defaultMobileTab == "reference-panel" ? "border-accent-strong text-accent-strong" : "border-transparent text-gray-500")" data-target="reference-panel">
                 Nguồn @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
             </button>
         </div>
 
-        <!-- Cot 1: Bang dieu khien quan ly (Management) -->
-        <aside class="workspace-panel management-panel" aria-label="Quản lý môn học">
-            <div class="panel-header" style="padding: 20px; margin: -16px -16px 16px -16px; border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; background: var(--surface-muted);">
+        <!-- Cột 1: Quản lý môn học (Management Panel) -->
+        <aside class="workspace-panel management-panel w-full md:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto hidden md:flex" aria-label="Quản lý môn học">
+            <div class="p-5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-start sticky top-0 z-10">
                 <div>
-                    <a asp-page="/Index" class="text-decoration-none d-inline-flex align-items-center gap-1 mb-2" style="font-size: 0.8rem; color: var(--muted); font-weight: 600;">
-                        &larr; Quay lại danh sách môn học
+                    <a asp-page="/Index" class="inline-flex items-center gap-1 mb-2 text-xs font-semibold text-gray-500 hover:text-accent-strong transition-colors">
+                        &larr; Quay lại danh sách
                     </a>
-                    <h1 style="font-weight: 700; margin: 0; color: var(--ink); font-size: 1.25rem;">@Model.SelectedDataset?.Name</h1>
-                    <p class="text-muted small mb-0">Không gian học tập</p>
+                    <h1 class="text-xl font-bold text-ink leading-tight truncate max-w-[220px]" title="@Model.SelectedDataset?.Name">@Model.SelectedDataset?.Name</h1>
+                    <p class="text-xs text-gray-500">Không gian học tập</p>
                 </div>
-                <a class="icon-button" href="?datasetId=@Model.SelectedDatasetId&sessionId=@Model.SelectedSessionId" title="Làm mới không gian học tập" aria-label="Làm mới không gian học tập" style="text-decoration: none;">
-                    <span aria-hidden="true">Làm mới</span>
+                <a href="?datasetId=@Model.SelectedDatasetId&sessionId=@Model.SelectedSessionId" class="p-1.5 text-gray-400 hover:text-accent-strong hover:bg-indigo-50 rounded-lg transition-colors" title="Làm mới" aria-label="Làm mới">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
                 </a>
             </div>
 
-            <!-- Thong bao loi hoac thanh cong -->
-            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-            {
-                <div class="alert alert-danger" style="background: rgba(180, 35, 24, 0.1); border: 1px solid rgba(180, 35, 24, 0.2); padding: 0.75rem; border-radius: 8px; color: var(--danger); margin-bottom: 1rem; font-size: 0.84rem; font-weight: 500;">
-                    @Model.ErrorMessage
-                </div>
-            }
-            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-            {
-                <div class="alert alert-success" style="background: rgba(15, 118, 110, 0.1); border: 1px solid rgba(15, 118, 110, 0.2); padding: 0.75rem; border-radius: 8px; color: var(--accent-strong); margin-bottom: 1rem; font-size: 0.84rem; font-weight: 500;">
-                    @Model.SuccessMessage
-                </div>
-            }
-
-            <!-- Thong tin nguoi dung dang nhap -->
-            <div style="border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-muted); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--ink-soft);">
-                        @(Model.SelectedUser?.FullName?.Substring(0,1).ToUpper() ?? "U")
-                    </div>
-                    <div>
-                        <div class="fw-bold" style="color: var(--ink); font-size: 0.95rem;">@Model.SelectedUser?.FullName</div>
-                        <div class="text-muted small" style="font-size: 0.75rem; font-weight: bold;">Vai trò: @localizedRole</div>
-                    </div>
-                </div>
-                @if (User.IsInRole("Student"))
+            <div class="p-5 flex-1 overflow-y-auto">
+                <!-- Thong bao loi hoac thanh cong -->
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
                 {
-                    <div class="credit-summary mt-3 p-3" style="background: rgba(37, 99, 235, 0.04); border: 1px solid rgba(37, 99, 235, 0.12); border-radius: 10px;">
-                        @if (Model.CreditBalance != null)
-                        {
-                            <div>
-                                <div class="credit-summary-row credit-summary-total d-flex justify-content-between align-items-center">
-                                    <span class="small text-muted fw-bold">Số dư Credit</span>
-                                    <span class="small fw-bold" id="creditTotalText" style="color: var(--accent-strong);">@Model.CreditBalance.TotalCredits.ToString("N0")</span>
-                                </div>
-                                <div class="credit-summary-row d-flex justify-content-between small mt-1">
-                                    <span class="text-muted">Credit miễn phí</span>
-                                    <span id="creditFreeText">@Model.CreditBalance.FreeCredits.ToString("N0")</span>
-                                </div>
-                                <div class="credit-summary-row d-flex justify-content-between small">
-                                    <span class="text-muted">Credit đã mua</span>
-                                    <span id="creditPaidText">@Model.CreditBalance.PaidCredits.ToString("N0")</span>
-                                </div>
-                                <a asp-page="/Credits" class="small fw-bold d-inline-block mt-2" style="color: var(--accent); text-decoration: none;">Nạp Credit</a>
-                                <p id="latestCreditChargeText" class="helper-text mt-2 mb-0" style="font-size: 0.7rem; color: var(--muted); line-height: 1.3;"></p>
-                            </div>
-                        }
+                    <div class="p-3 mb-4 text-xs font-medium text-red-700 bg-red-50 rounded-xl border border-red-200">
+                        @Model.ErrorMessage
                     </div>
                 }
-            </div>
-
-            <!-- Quáº£n lÃ½ TÃ i liá»‡u (Documents) -->
-            <div class="section-block">
-                <div class="section-title">
-                    <h2>Tài liệu</h2>
-                    @if (Model.SelectedDatasetId.HasValue && (User.IsInRole("Teacher") || User.IsInRole("Admin")))
-                    {
-                        <a asp-page="/Documents/Index" asp-route-datasetId="@Model.SelectedDatasetId" style="font-size: 0.8rem; font-weight: 500; text-decoration: none; color: var(--accent); margin-left: auto; margin-right: 8px;">Quản lý</a>
-                    }
-                    <span data-document-count>@Model.Documents.Count</span>
-                </div>
-                @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
+                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
                 {
-                    <div class="document-list" aria-live="polite" data-document-list>
-                        @if (Model.Documents.Count == 0)
-                        {
-                            <p class="helper-text">Môn học này chưa có tài liệu. Định dạng hỗ trợ: TXT, PDF, DOCX.</p>
-                        }
-                        @foreach (var doc in Model.Documents)
-                        {
-                            <div class="document-item" data-document-id="@doc.DocumentId">
-                                <div class="document-card-header">
-                                    <div class="document-card-main">
-                                        <strong class="document-name" title="@doc.FileName">@doc.FileName</strong>
-                                        <span class="document-meta">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</span>
+                    <div class="p-3 mb-4 text-xs font-medium text-green-700 bg-green-50 rounded-xl border border-green-200">
+                        @Model.SuccessMessage
+                    </div>
+                }
+
+                <!-- User Info & Credits -->
+                <div class="pb-5 mb-5 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-700 shadow-sm shrink-0">
+                            @(Model.SelectedUser?.FullName?.Substring(0,1).ToUpper() ?? "U")
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="text-sm font-bold text-ink truncate">@Model.SelectedUser?.FullName</div>
+                            <div class="text-xs font-semibold text-gray-500">Vai trò: @localizedRole</div>
+                        </div>
+                    </div>
+                    @if (User.IsInRole("Student") && Model.CreditBalance != null)
+                    {
+                        <div class="mt-4 p-3.5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-indigo-100/50 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-gray-600">Số dư Credit</span>
+                                <span class="text-sm font-bold text-accent-strong" id="creditTotalText">@Model.CreditBalance.TotalCredits.ToString("N0")</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <span class="text-gray-500">Miễn phí</span>
+                                <span class="font-medium text-gray-700" id="creditFreeText">@Model.CreditBalance.FreeCredits.ToString("N0")</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500">Đã mua</span>
+                                <span class="font-medium text-gray-700" id="creditPaidText">@Model.CreditBalance.PaidCredits.ToString("N0")</span>
+                            </div>
+                            <a asp-page="/Credits" class="mt-2 text-xs font-bold text-accent-strong hover:text-indigo-800 transition-colors inline-block">Nạp Credit &rarr;</a>
+                            <p id="latestCreditChargeText" class="text-[10px] text-gray-500 mt-1.5 leading-tight"></p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Tài liệu -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-bold text-ink">Tài liệu</h2>
+                        <div class="flex items-center gap-2">
+                            @if (Model.SelectedDatasetId.HasValue && (User.IsInRole("Teacher") || User.IsInRole("Admin")))
+                            {
+                                <a asp-page="/Documents/Index" asp-route-datasetId="@Model.SelectedDatasetId" class="text-xs font-semibold text-accent-strong hover:underline">Quản lý</a>
+                            }
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-[10px] font-bold text-gray-600">@Model.Documents.Count</span>
+                        </div>
+                    </div>
+                    
+                    @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
+                    {
+                        <div class="space-y-2 document-list" aria-live="polite" data-document-list>
+                            @if (Model.Documents.Count == 0)
+                            {
+                                <p class="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">Môn học này chưa có tài liệu. Định dạng hỗ trợ: TXT, PDF, DOCX.</p>
+                            }
+                            @foreach (var doc in Model.Documents)
+                            {
+                                <div class="document-item p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all group" data-document-id="@doc.DocumentId">
+                                    <div class="flex items-start gap-2">
+                                        <div class="shrink-0 mt-0.5">
+                                            @if(doc.FileType.ToLower() == "pdf") {
+                                                <svg class="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                            } else {
+                                                <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                            }
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-sm font-semibold text-ink truncate" title="@doc.FileName">@doc.FileName</div>
+                                            <div class="text-[11px] text-gray-500">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</div>
+                                            <div class="mt-1.5">
+                                                <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold rounded status-pill @doc.Status.ToLower()" data-document-status>@localizeDocumentStatus(doc.Status)</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style="margin-top: 6px; display: flex; align-items: center; gap: 6px;">
-                                    <span class="status-pill @doc.Status.ToLower()" data-document-status style="font-size: 0.75rem; border-radius: 4px; padding: 2px 6px;">@localizeDocumentStatus(doc.Status)</span>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <p class="helper-text">Chọn một môn học để xem tài liệu.</p>
-                }
-            </div>
-
-            <!-- Quáº£n lÃ½ Chat Sessions -->
-            <div class="section-block">
-                <div class="section-title">
-                    <h2>Cuộc trò chuyện</h2>
-                    <span>@Model.Sessions.Count</span>
-                </div>
-                <p class="helper-text">Mỗi môn học có thể có nhiều cuộc trò chuyện. Chọn một cuộc trò chuyện hoặc tạo phiên mới.</p>
-                @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
-                {
-                    <form method="post" asp-page-handler="CreateSession" class="create-form" style="margin-bottom: 6px;">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
-                        <div class="input-row">
-                            <input name="title" type="text" placeholder="Tên cuộc trò chuyện (không bắt buộc)" aria-label="Tên cuộc trò chuyện" />
-                            <button type="submit">Tạo mới</button>
+                            }
                         </div>
-                    </form>
-                    <div class="session-list" aria-live="polite" data-session-list>
-                        @if (Model.Sessions.Count == 0)
-                        {
-                            <p class="helper-text">Chưa có cuộc trò chuyện nào.</p>
-                        }
-                        @foreach (var ss in Model.Sessions)
-                        {
-                            <a class="session-item @(Model.SelectedSessionId == ss.SessionId ? "active" : "")" 
-                               data-session-id="@ss.SessionId"
-                               href="?datasetId=@Model.SelectedDatasetId&sessionId=@ss.SessionId"
-                               style="text-decoration: none;">
-                                 <span class="session-name">@localizeSessionTitle(ss.Title)</span>
-                                <span class="session-meta">Cập nhật @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(ss.UpdatedAt, "HH:mm dd/MM")</span>
-                            </a>
-                        }
+                    }
+                    else
+                    {
+                        <p class="text-xs text-gray-500 italic">Chọn một môn học để xem tài liệu.</p>
+                    }
+                </div>
+
+                <!-- Cuộc trò chuyện -->
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-sm font-bold text-ink">Cuộc trò chuyện</h2>
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-[10px] font-bold text-gray-600">@Model.Sessions.Count</span>
                     </div>
-                }
+                    <p class="text-xs text-gray-500 mb-3">Chọn hoặc tạo cuộc trò chuyện mới để lưu phiên.</p>
+                    
+                    @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
+                    {
+                        <form method="post" asp-page-handler="CreateSession" class="flex gap-2 mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                            <input name="title" type="text" placeholder="Tên trò chuyện..." class="w-full text-xs px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-accent-strong focus:border-accent-strong outline-none" aria-label="Tên cuộc trò chuyện" />
+                            <button type="submit" class="shrink-0 bg-accent-strong hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors shadow-sm">Tạo mới</button>
+                        </form>
+                        <div class="space-y-1.5 session-list" aria-live="polite" data-session-list>
+                            @if (Model.Sessions.Count == 0)
+                            {
+                                <p class="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">Chưa có cuộc trò chuyện nào.</p>
+                            }
+                            @foreach (var ss in Model.Sessions)
+                            {
+                                <a class="block p-3 rounded-xl border transition-all session-item @(Model.SelectedSessionId == ss.SessionId ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50")" 
+                                   data-session-id="@ss.SessionId"
+                                   href="?datasetId=@Model.SelectedDatasetId&sessionId=@ss.SessionId">
+                                    <div class="text-sm font-semibold truncate @(Model.SelectedSessionId == ss.SessionId ? "text-accent-strong" : "text-ink")">@localizeSessionTitle(ss.Title)</div>
+                                    <div class="text-[11px] text-gray-500 mt-0.5">Cập nhật @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(ss.UpdatedAt, "HH:mm dd/MM")</div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
 
             <!-- Thống kê -->
-            <div class="section-block mt-4 pt-3" style="border-top: 1px solid var(--line);">
-                <div class="section-title mb-2">
-                    <h2 style="font-size: 1rem; font-weight: 700; color: var(--ink);">Thống kê</h2>
-                </div>
-                <div class="d-flex flex-column gap-2" style="font-size: 0.85rem;">
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Tổng tài liệu</span>
-                        <strong data-document-count style="color: var(--accent); font-weight: 700;">@Model.Documents.Count</strong>
+            <div class="p-5 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Thống kê</h2>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Tổng tài liệu</span>
+                        <strong class="text-accent-strong">@Model.Documents.Count</strong>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Cuộc trò chuyện</span>
-                        <strong style="color: #8b5cf6; font-weight: 700;">@Model.Sessions.Count</strong>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Cuộc trò chuyện</span>
+                        <strong class="text-purple-600">@Model.Sessions.Count</strong>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted">Tin nhắn trong phiên</span>
-                        <strong style="color: #10b981; font-weight: 700;">@Model.MessageHistory.Count</strong>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Tin nhắn phiên này</span>
+                        <strong class="text-emerald-600">@Model.MessageHistory.Count</strong>
                     </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Cot 2: Giao dien Hoi thoai (Chat Panel) -->
-        <main class="chat-panel" aria-label="Không gian trò chuyện">
-        <div class="chat-header" style="padding: 20px; border-bottom: 1px solid var(--line); margin-bottom: 16px; background: var(--surface-muted); border-radius: var(--radius) var(--radius) 0 0;">
-            <div>
-                <p class="eyebrow" style="letter-spacing: 0.1em; color: var(--muted);">KHÔNG GIAN TRÒ CHUYỆN</p>
-                @if (Model.SelectedSession != null)
+        <!-- Cột 2: Không gian trò chuyện (Chat Panel) -->
+        <main class="chat-panel flex-1 flex flex-col h-full bg-white relative hidden md:flex" aria-label="Không gian trò chuyện">
+            <div class="px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                <div>
+                    <p class="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">KHÔNG GIAN TRÒ CHUYỆN</p>
+                    @if (Model.SelectedSession != null)
+                    {
+                        <h2 class="text-lg font-bold text-ink" data-chat-title>@localizeSessionTitle(Model.SelectedSession.Title)</h2>
+                    }
+                    else if (Model.SelectedDataset != null)
+                    {
+                        <h2 class="text-lg font-bold text-ink" data-chat-title>Chọn hoặc tạo cuộc trò chuyện</h2>
+                    }
+                    else
+                    {
+                        <h2 class="text-lg font-bold text-ink" data-chat-title>Chọn môn học để bắt đầu</h2>
+                    }
+                </div>
+                @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
                 {
-                    <h2 data-chat-title>@localizeSessionTitle(Model.SelectedSession.Title)</h2>
-                }
-                else if (Model.SelectedDataset != null)
-                {
-                    <h2 data-chat-title>Chọn hoặc tạo cuộc trò chuyện</h2>
-                }
-                else
-                {
-                    <h2 data-chat-title>Chọn môn học để bắt đầu</h2>
+                    <form method="post" asp-page-handler="CreateSession" class="m-0 p-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                        <input type="hidden" name="title" value="Trò chuyện môn học" />
+                        <button type="submit" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">Phiên mới</button>
+                    </form>
                 }
             </div>
-            @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
-            {
-                <form method="post" asp-page-handler="CreateSession" style="margin: 0; padding: 0;">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
-                    <input type="hidden" name="title" value="Trò chuyện môn học" />
-                    <button class="secondary-button" type="submit">Phiên mới</button>
-                </form>
-            }
-        </div>
 
-        @if (Model.SelectedDatasetId.HasValue && Model.SelectedSessionId.HasValue)
-        {
-            <section class="question-suggestions" data-question-suggestions data-dataset-id="@Model.SelectedDatasetId">
-                <div class="question-suggestions-header">
-                    <div>
-                        <p class="eyebrow">GỢI Ý CÂU HỎI AI</p>
-                        <h3>Gợi ý học tập cho môn này</h3>
-                    </div>
-                    <button type="button" class="secondary-button" data-generate-questions>Gợi ý câu hỏi</button>
-                </div>
-                <div class="suggestion-list" data-suggestion-list>
-                    <button type="button" class="suggestion-chip" data-question-template="Tóm tắt các ý chính của môn học này theo tài liệu đã tải lên?">Tóm tắt ý chính</button>
-                    <button type="button" class="suggestion-chip" data-question-template="Những khái niệm quan trọng nhất trong tài liệu này là gì?">Khái niệm quan trọng</button>
-                    <button type="button" class="suggestion-chip" data-question-template="Hãy tạo 5 câu hỏi ôn tập từ tài liệu của môn học này.">Câu hỏi ôn tập</button>
-                </div>
-                <p class="suggestion-helper" data-suggestion-helper>Chọn một gợi ý để điền vào ô chat.</p>
-            </section>
-        }
-
-        <div class="chat-stream" aria-live="polite" id="chatStream">
-            @if (Model.SelectedSession != null)
-            {
-                if (Model.MessageHistory.Count == 0)
+            <div class="flex-1 overflow-y-auto px-4 md:px-8 lg:px-16 py-6 bg-gray-50/30 chat-stream" id="chatStream" aria-live="polite">
+                @if (Model.SelectedDatasetId.HasValue && Model.SelectedSessionId.HasValue)
                 {
-                    <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.8; margin-top: 10vh; text-align: center; padding: 24px;">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); margin-bottom: 16px;"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        <h3 style="font-weight: 700; color: var(--ink); margin-bottom: 12px; font-size: 1.25rem;">Đặt câu hỏi dựa trên tài liệu của bạn</h3>
-                        <p style="color: var(--muted); max-width: 400px; line-height: 1.6; font-size: 0.95rem;">Nhập câu hỏi bên dưới. AI sẽ tìm các phần liên quan nhất trong tài liệu để trả lời.</p>
-                    </div>
+                    <section class="question-suggestions mb-8" data-question-suggestions data-dataset-id="@Model.SelectedDatasetId">
+                        <div class="flex justify-between items-end mb-3 border-b border-gray-200 pb-3">
+                            <div>
+                                <p class="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">GỢI Ý CÂU HỎI AI</p>
+                                <h3 class="text-sm font-bold text-ink">Gợi ý học tập cho môn này</h3>
+                            </div>
+                            <button type="button" class="text-xs font-semibold text-accent-strong border border-accent-strong/30 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors" data-generate-questions>Tạo gợi ý mới</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-2 suggestion-list" data-suggestion-list>
+                            <button type="button" class="suggestion-chip px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:border-accent-strong hover:text-accent-strong transition-colors shadow-sm" data-question-template="Tóm tắt các ý chính của môn học này theo tài liệu đã tải lên?">Tóm tắt ý chính</button>
+                            <button type="button" class="suggestion-chip px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:border-accent-strong hover:text-accent-strong transition-colors shadow-sm" data-question-template="Những khái niệm quan trọng nhất trong tài liệu này là gì?">Khái niệm quan trọng</button>
+                            <button type="button" class="suggestion-chip px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:border-accent-strong hover:text-accent-strong transition-colors shadow-sm" data-question-template="Hãy tạo 5 câu hỏi ôn tập từ tài liệu của môn học này.">Câu hỏi ôn tập</button>
+                        </div>
+                        <p class="text-xs text-gray-500 italic suggestion-helper" data-suggestion-helper>Chọn một gợi ý để điền vào ô chat.</p>
+                    </section>
                 }
-                else
+
+                @if (Model.SelectedSession != null)
                 {
-                    @foreach (var msg in Model.MessageHistory)
+                    if (Model.MessageHistory.Count == 0)
                     {
-                        <div class="message @msg.Role.ToLower()" data-message-id="@msg.MessageId">
-                            <div class="message-bubble">
-                                <div class="message-content @(msg.Role == "Assistant" ? "ai-markdown" : "user-message-text")">@msg.Content</div>
+                        <div class="empty-state flex flex-col items-center justify-center h-full text-center p-8 opacity-80 mt-10">
+                            <div class="w-16 h-16 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-strong"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                             </div>
-                            <div class="message-meta">
-                                @(msg.Role == "User" ? "Bạn" : "Trợ lý") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
-                            </div>
-                            @if (msg.Role == "Assistant" && Model.MessageIdsWithCitations.Contains(msg.MessageId))
+                            <h3 class="text-xl font-bold text-ink mb-2">Đặt câu hỏi dựa trên tài liệu</h3>
+                            <p class="text-gray-500 max-w-sm text-sm">Nhập câu hỏi bên dưới. AI sẽ tìm các phần liên quan nhất trong tài liệu để trả lời.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="space-y-6 pb-6">
+                            @foreach (var msg in Model.MessageHistory)
                             {
-                                <div class="citation-row" style="margin-top: 8px;">
-                                    <button class="citation-chip view-sources-btn" 
-                                       data-message-id="@msg.MessageId"
-                                       style="background: none; border: 1px solid var(--line); font: inherit; font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); transition: all 0.2s;" onmouseover="this.style.background='var(--surface-muted)'; this.style.color='var(--ink)';" onmouseout="this.style.background='none'; this.style.color='var(--muted)';">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                         Xem nguồn trích dẫn
-                                    </button>
+                                <div class="message flex flex-col @msg.Role.ToLower() @(msg.Role == "User" ? "items-end" : "items-start")" data-message-id="@msg.MessageId">
+                                    <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm @(msg.Role == "User" ? "bg-accent-strong text-white rounded-br-sm" : "bg-white border border-gray-200 text-ink rounded-bl-sm")">
+                                        <div class="message-content text-[15px] leading-relaxed @(msg.Role == "Assistant" ? "ai-markdown prose prose-sm prose-indigo max-w-none" : "user-message-text whitespace-pre-wrap")">@msg.Content</div>
+                                    </div>
+                                    <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
+                                        @(msg.Role == "User" ? "Bạn" : "Trợ lý") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
+                                    </div>
+                                    @if (msg.Role == "Assistant" && Model.MessageIdsWithCitations.Contains(msg.MessageId))
+                                    {
+                                        <div class="citation-row mt-2">
+                                            <button class="citation-chip view-sources-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-ink hover:border-gray-400 transition-colors shadow-sm" 
+                                               data-message-id="@msg.MessageId">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                                 Xem 1 nguồn trích dẫn
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
                     }
                 }
-            }
-            else
-            {
-                <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.8; margin-top: 10vh; text-align: center; padding: 24px;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); margin-bottom: 16px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                    <h3 style="font-weight: 700; color: var(--ink); margin-bottom: 12px; font-size: 1.25rem;">Chào mừng bạn đến với trợ lý học tập</h3>
-                    <p style="color: var(--muted); max-width: 400px; line-height: 1.6; font-size: 0.95rem;">Hãy chọn một môn học, tải tài liệu lên, sau đó bắt đầu cuộc trò chuyện để trao đổi dựa trên tài liệu của bạn.</p>
-                </div>
-            }
-        </div>
-
-        @if (Model.SelectedDataset?.IsArchived == true)
-        {
-            <div class="alert alert-warning" role="status">Môn học đã được lưu trữ. Bạn có thể xem lịch sử và nguồn trích dẫn nhưng không thể tạo phiên hoặc gửi câu hỏi mới.</div>
-        }
-        else if (Model.SelectedSessionId.HasValue)
-        {
-            <form method="post" asp-page-handler="SendMessage" class="composer">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
-                <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
-                <textarea name="question" rows="1" placeholder="Hỏi về môn học này..." required id="chatQuestionTextarea" aria-label="Câu hỏi"></textarea>
-                <button type="submit" class="composer-send-btn">Gửi</button>
-            </form>
-        }
-    </main>
-
-    <!-- Cá»™t 3: Hiá»ƒn thá»‹ trÃ­ch dáº«n tÃ i liá»‡u tham chiáº¿u (Reference Panel) -->
-    <aside class="workspace-panel reference-panel" aria-label="Tài liệu tham khảo">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">TÀI LIỆU THAM KHẢO</p>
-                <h2>Nguồn trích dẫn</h2>
-            </div>
-            <button type="button" class="reference-close-btn" aria-label="Đóng nguồn trích dẫn" title="Đóng nguồn trích dẫn" data-close-references>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-
-        @if (Model.SelectedMessageId.HasValue && Model.Citations.Count > 0)
-        {
-            <div class="reference-content">
-                @foreach (var c in Model.Citations)
+                else
                 {
-                    <div class="reference-card">
-                        <h3 title="@c.FileName">@c.FileName</h3>
-                        @if (string.Equals(c.FileType, "pdf", StringComparison.OrdinalIgnoreCase))
-                        {
-                            <p><strong>Trang:</strong> @(c.PageNumber > 0 ? c.PageNumber.ToString() : "Không xác định")</p>
-                        }
-                        else
-                        {
-                            <p><strong>Đoạn:</strong> @(c.ChunkIndex?.ToString() ?? "Không xác định")</p>
-                        }
-                        <p><strong>Nhãn nguồn:</strong> @c.SourceLabel</p>
-                        <p style="margin-top: 6px; font-style: italic; background: var(--surface-muted); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent);">
-                            "@c.QuoteText"
-                        </p>
+                    <div class="empty-state flex flex-col items-center justify-center h-full text-center p-8 opacity-80 mt-10">
+                        <div class="w-16 h-16 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-strong"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-ink mb-2">Chào mừng đến với trợ lý học tập</h3>
+                        <p class="text-gray-500 max-w-sm text-sm">Hãy chọn một môn học, tải tài liệu lên, sau đó bắt đầu cuộc trò chuyện.</p>
                     </div>
                 }
             </div>
-        }
-        else
-        {
-            <div class="reference-empty">
-                <h3>Chưa chọn nguồn trích dẫn</h3>
-                <p>Khi câu trả lời có nguồn trích dẫn, hãy chọn một nguồn để xem đoạn nội dung và tên tài liệu.</p>
-            </div>
-        }
-    </aside>
 
-    <!-- Document Chunk Preview Modal -->
-    <div id="docPreviewModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px;">
-        <div class="modal-content" style="background: var(--surface); border-radius: 12px; max-width: 800px; width: 100%; max-height: 85%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid var(--line);">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--surface-muted);">
-                <div>
-                    <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; display: block; margin-bottom: 2px;">XEM TRƯỚC TÀI LIỆU</span>
-                    <h3 id="docPreviewTitle" style="margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--ink);">Tài liệu môn học</h3>
-                </div>
-                <button type="button" onclick="closeDocPreviewModal()" style="background: none; border: none; font-size: 1.75rem; color: var(--muted); cursor: pointer; padding: 0; line-height: 1; transition: color 0.2s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--muted)'">&times;</button>
+            <div class="p-4 bg-white border-t border-gray-200">
+                @if (Model.SelectedDataset?.IsArchived == true)
+                {
+                    <div class="p-3 text-sm text-yellow-700 bg-yellow-50 rounded-xl border border-yellow-200 text-center">
+                        Môn học đã lưu trữ. Chỉ xem lịch sử, không thể chat thêm.
+                    </div>
+                }
+                else if (Model.SelectedSessionId.HasValue)
+                {
+                    <form method="post" asp-page-handler="SendMessage" class="composer max-w-4xl mx-auto relative flex items-end gap-2 bg-gray-50 border border-gray-300 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-accent-strong/20 focus-within:border-accent-strong transition-all shadow-sm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                        <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
+                        <textarea name="question" rows="1" placeholder="Hỏi AI về môn học này..." required id="chatQuestionTextarea" aria-label="Câu hỏi" class="w-full bg-transparent border-0 resize-none max-h-32 px-3 py-2 text-[15px] focus:ring-0 text-ink placeholder-gray-400 outline-none"></textarea>
+                        <button type="submit" class="composer-send-btn shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-accent-strong text-white hover:bg-indigo-700 shadow-sm transition-colors mb-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </form>
+                }
             </div>
-            <div id="docPreviewBody" style="padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; background: var(--surface);">
-                <!-- Chunks will be dynamically populated here -->
+        </main>
+
+        <!-- Cột 3: Tài liệu tham khảo (Reference Panel) -->
+        <aside class="workspace-panel reference-panel w-full md:w-80 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col h-full overflow-y-auto hidden md:flex" aria-label="Tài liệu tham khảo">
+            <div class="px-5 py-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                    <p class="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">TÀI LIỆU THAM KHẢO</p>
+                    <h2 class="text-base font-bold text-ink">Nguồn trích dẫn</h2>
+                </div>
+                <button type="button" class="reference-close-btn p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors" aria-label="Đóng" title="Đóng" data-close-references>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div class="p-5 flex-1 overflow-y-auto">
+                @if (Model.SelectedMessageId.HasValue && Model.Citations.Count > 0)
+                {
+                    <div class="reference-content space-y-4">
+                        @foreach (var c in Model.Citations)
+                        {
+                            <div class="reference-card bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-gray-300 transition-colors">
+                                <h3 class="text-sm font-bold text-ink mb-2 truncate" title="@c.FileName">@c.FileName</h3>
+                                <div class="text-xs text-gray-500 space-y-1 mb-3">
+                                    @if (string.Equals(c.FileType, "pdf", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <p><span class="font-semibold text-gray-700">Trang:</span> @(c.PageNumber > 0 ? c.PageNumber.ToString() : "Không xác định")</p>
+                                    }
+                                    else
+                                    {
+                                        <p><span class="font-semibold text-gray-700">Đoạn:</span> @(c.ChunkIndex?.ToString() ?? "Không xác định")</p>
+                                    }
+                                    <p><span class="font-semibold text-gray-700">Nhãn nguồn:</span> <span class="px-1.5 py-0.5 bg-gray-100 rounded">@c.SourceLabel</span></p>
+                                </div>
+                                <div class="text-xs italic bg-amber-50/50 text-gray-700 p-3 rounded-lg border-l-2 border-amber-400 leading-relaxed max-h-48 overflow-y-auto">
+                                    "@c.QuoteText"
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="reference-empty text-center py-12 px-4 border-2 border-dashed border-gray-200 rounded-xl mt-4">
+                        <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <h3 class="text-sm font-bold text-gray-700 mb-1">Chưa chọn nguồn</h3>
+                        <p class="text-xs text-gray-500">Bấm "Xem nguồn trích dẫn" ở câu trả lời của AI để xem chi tiết.</p>
+                    </div>
+                }
+            </div>
+        </aside>
+
+        <!-- Document Preview Modal -->
+        <div id="docPreviewModal" class="modal hidden fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm items-center justify-center p-4 sm:p-6" style="display: none;">
+            <div class="modal-content bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden transform transition-all">
+                <div class="modal-header flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-1">XEM TRƯỚC</span>
+                        <h3 id="docPreviewTitle" class="text-base font-bold text-ink">Tài liệu</h3>
+                    </div>
+                    <button type="button" onclick="closeDocPreviewModal()" class="text-gray-400 hover:text-gray-700 hover:bg-gray-200 p-1.5 rounded-lg transition-colors">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div id="docPreviewBody" class="p-6 overflow-y-auto flex-1 bg-white space-y-4">
+                    <!-- Chunks injected here -->
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 }
 
 @section Scripts {
@@ -569,60 +593,6 @@ else
             background: rgba(220, 38, 38, 0.05);
             color: var(--danger);
             cursor: pointer;
-        }
-
-        .question-suggestions {
-            border-bottom: 1px solid var(--line);
-            padding: 14px 18px;
-            background: var(--surface);
-        }
-
-        .question-suggestions-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
-
-        .question-suggestions-header h3 {
-            margin: 0;
-            color: var(--ink);
-            font-size: 0.98rem;
-            line-height: 1.2;
-        }
-
-        .suggestion-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .suggestion-chip {
-            border: 1px solid rgba(37, 99, 235, 0.22);
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.06);
-            color: var(--accent-strong);
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 700;
-            line-height: 1.25;
-            max-width: 100%;
-            padding: 7px 10px;
-            overflow-wrap: anywhere;
-            text-align: left;
-        }
-
-        .suggestion-chip:hover,
-        .suggestion-chip:focus {
-            border-color: var(--accent);
-            background: rgba(37, 99, 235, 0.1);
-        }
-
-        .suggestion-helper {
-            color: var(--muted);
-            font-size: 0.76rem;
-            margin: 8px 0 0;
         }
 
         .credit-summary-row {
@@ -1033,7 +1003,6 @@ else
             const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
             if (payload.action === "deleted") {
                 if (documentRow) documentRow.remove();
-                updateWorkspaceDocumentCount();
                 return;
             }
 
@@ -1043,7 +1012,6 @@ else
                     const emptyState = list.querySelector(".helper-text");
                     if (emptyState) emptyState.remove();
                     list.prepend(createDocumentRow(payload));
-                    updateWorkspaceDocumentCount();
                 }
                 return;
             }
@@ -1078,16 +1046,16 @@ else
                 </div>
                 <div class="document-actions-row">
                     <span class="status-pill ${escapeHtml(status.toLowerCase())}" data-document-status>${escapeHtml(localizeDocumentStatus(status))}</span>
+                    <a class="document-preview-link" href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" title="Xem các đoạn đã lập chỉ mục và thông tin tài liệu">Xem đoạn nội dung</a>
+                    <form method="post" action="?handler=DeleteDocument" style="margin: 0; padding: 0;" onsubmit="return confirm('Tài liệu này sẽ bị ẩn khỏi cuộc trò chuyện và xóa khỏi chỉ mục RAG. Bạn có muốn tiếp tục?');">
+                        ${antiForgeryInput()}
+                        <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
+                        <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
+                        <button class="document-delete-button" type="submit" title="Ẩn tài liệu">Ẩn</button>
+                    </form>
                 </div>
             `;
             return item;
-        }
-
-        function updateWorkspaceDocumentCount() {
-            const total = document.querySelectorAll("[data-document-list] [data-document-id]").length;
-            document.querySelectorAll("[data-document-count]").forEach(function (element) {
-                element.textContent = String(total);
-            });
         }
 
         function antiForgeryInput() {
@@ -1299,7 +1267,7 @@ else
             if (emptyState) emptyState.remove();
 
             const messageDiv = document.createElement("div");
-            messageDiv.className = `message ${role}`;
+            messageDiv.className = `message flex flex-col ${role} ${role === 'user' ? 'items-end' : 'items-start'}`;
             if (messageId) {
                 messageDiv.dataset.messageId = messageId;
             }
@@ -1307,21 +1275,27 @@ else
             let citationHtml = "";
             if (role === "assistant" && messageId && hasCitations) {
                 citationHtml = `
-                    <div class="citation-row" style="margin-top: 8px;">
-                        <button class="citation-chip view-sources-btn" 
-                                data-message-id="${messageId}"
-                                style="background: none; border: none; font: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
-                            &#128269; Xem nguồn trích dẫn
+                    <div class="citation-row mt-2">
+                        <button class="citation-chip view-sources-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-ink hover:border-gray-400 transition-colors shadow-sm" 
+                                data-message-id="${messageId}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                             Xem nguồn trích dẫn
                         </button>
                     </div>
                 `;
             }
 
+            const bubbleClass = role === 'user' 
+                ? 'bg-accent-strong text-white rounded-br-sm' 
+                : 'bg-white border border-gray-200 text-ink rounded-bl-sm';
+            
+            const contentClass = role === 'assistant' ? 'ai-markdown prose prose-sm prose-indigo max-w-none' : 'user-message-text whitespace-pre-wrap';
+
             messageDiv.innerHTML = `
-                <div class="message-bubble">
-                    <div class="message-content ${role === "assistant" ? "ai-markdown" : "user-message-text"}">${role === "assistant" ? renderMarkdown(content) : escapeHtml(content)}</div>
+                <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm ${bubbleClass}">
+                    <div class="message-content text-[15px] leading-relaxed ${contentClass}">${role === "assistant" ? renderMarkdown(content) : escapeHtml(content)}</div>
                 </div>
-                <div class="message-meta">
+                <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
                     ${role === "user" ? "Bạn" : "Trợ lý"} &bull; ${time}
                 </div>
                 ${citationHtml}
@@ -1390,13 +1364,13 @@ else
             if (emptyState) emptyState.remove();
 
             const loadingDiv = document.createElement("div");
-            loadingDiv.className = "message assistant loading-bubble";
+            loadingDiv.className = "message flex flex-col items-start assistant loading-bubble";
             loadingDiv.innerHTML = `
-                <div class="message-bubble" style="display: flex; align-items: center; gap: 8px;">
+                <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm bg-white border border-gray-200 text-ink rounded-bl-sm flex items-center gap-2">
                     <span style="display: inline-block; animation: spin 1s linear infinite;">&#9203;</span>
-                    <span style="font-style: italic; color: var(--muted);">Đang tìm tài liệu và tạo câu trả lời...</span>
+                    <span class="text-sm italic text-gray-500">Đang tìm tài liệu và tạo câu trả lời...</span>
                 </div>
-                <div class="message-meta">
+                <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
                     Trợ lý &bull; Đang chuẩn bị
                 </div>
             `;
@@ -1419,10 +1393,10 @@ else
             pending.classList.add("pending-message");
             pending.dataset.pendingMessageId = key;
             pending.innerHTML = `
-                <div class="message-bubble">
-                    <div class="message-content ai-markdown"></div>
+                <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm bg-white border border-gray-200 text-ink rounded-bl-sm">
+                    <div class="message-content text-[15px] leading-relaxed ai-markdown prose prose-sm prose-indigo max-w-none"></div>
                 </div>
-                <div class="message-meta">
+                <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
                     Trợ lý &bull; Đang trả lời
                 </div>
             `;
@@ -1732,7 +1706,6 @@ else
                 .then(data => {
                     title.textContent = data.fileName;
                     body.innerHTML = "";
-                    const isPdfDocument = String(data.fileType || "").toLowerCase() === "pdf";
                     
                     data.chunks.forEach(chunk => {
                         const chunkDiv = document.createElement("div");
@@ -1770,16 +1743,13 @@ else
                             chunkDiv.style.background = "var(--surface-muted)";
                         }
                         
-                        const pageLocation = isPdfDocument
-                            ? `<span>Trang ${chunk.pageNumber > 0 ? chunk.pageNumber : 'Không xác định'}</span>`
-                            : '';
                         chunkDiv.innerHTML = `
                             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 6px;">
                                 <strong style="display: flex; align-items: center; gap: 4px;">
                                     Đoạn #${chunk.chunkIndex}
                                     ${isTarget ? '<span style="color: var(--accent); font-weight: 700; background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">★ Nội dung đối chiếu</span>' : ''}
                                 </strong>
-                                ${pageLocation}
+                                <span>Trang ${chunk.pageNumber}</span>
                             </div>
                             <pre style="white-space: pre-wrap; font-family: inherit; color: var(--ink); margin: 0; font-size: 0.88rem; line-height: 1.6;">${contentHtml}</pre>
                         `;

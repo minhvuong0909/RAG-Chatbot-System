@@ -4,42 +4,53 @@
     ViewData["Title"] = "Quản lý quyền môn học";
 }
 
-<div class="container py-4">
-    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+<div class="space-y-6" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <h2 class="page-title fw-bold text-dark">Quản Lý Quyền Môn Học</h2>
-            <p class="text-muted m-0 mt-1">Cấp hoặc thu hồi quyền truy cập cho môn học: <strong class="text-primary">@Model.Dataset.Name</strong></p>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản lý quyền môn học</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">@Model.Dataset.Name</h1>
+            <p class="text-sm text-gray-500 mt-1">Cấp hoặc thu hồi quyền truy cập cho môn học.</p>
         </div>
-        <a asp-page="/Admin/Index" class="btn btn-outline-secondary">
+        <a asp-page="/Admin/Index" class="inline-flex items-center justify-center px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">
             Quay lại Dashboard
         </a>
     </div>
 
-    <partial name="_AdminTabs" />
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+        <partial name="_AdminTabs" />
+    </div>
 
-    <div class="row g-4">
-        <!-- Cấp quyền truy cập -->
-        <div class="col-md-5">
-            <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h5 class="fw-bold m-0" style="color: var(--ink);">Cấp Quyền Mới</h5>
-                    <p class="text-muted small m-0 mt-1">Chọn sinh viên để cấp quyền truy vấn tài liệu trong môn học này.</p>
+    @if (Model.Dataset.IsPublic)
+    {
+        <div class="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-blue-800">Môn học này đang được đặt ở chế độ Công khai. Tất cả tài khoản được duyệt đều có quyền truy vấn mà không cần cấp quyền thủ công.</p></div>
+        </div>
+    }
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Grant Permission -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-6">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-white">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                        </span>
+                        Cấp quyền mới
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-2 ml-10">Chọn sinh viên để cấp quyền truy vấn tài liệu trong môn học này.</p>
                 </div>
-                <div class="card-body px-4 pb-4">
-                    @if (Model.Dataset.IsPublic)
-                    {
-                        <div class="alert alert-warning mb-3" style="border-radius: var(--radius-sm); font-size: 0.85rem;">
-                            <strong>Lưu ý:</strong> Môn học này đang được đặt ở chế độ <strong>Công khai</strong>. Tất cả tài khoản được duyệt đều có quyền truy vấn mà không cần cấp quyền thủ công.
-                        </div>
-                    }
-
-                    <form method="post" asp-page-handler="GrantPermission" class="mt-2">
+                <div class="p-6">
+                    <form method="post" asp-page-handler="GrantPermission" class="flex flex-col gap-4">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.Dataset.DatasetId" />
-
-                        <div class="mb-4">
-                            <label for="userId" class="form-label mb-2 fw-semibold text-secondary" style="font-size: 0.85rem;">Chọn người dùng</label>
-                            <select id="userId" name="userId" required class="form-select" @(Model.Dataset.IsPublic || !Model.AvailableUsers.Any() ? "disabled" : "") style="border-radius: var(--radius-sm);">
+                        
+                        <div>
+                            <label for="userId" class="block text-sm font-bold text-gray-700 mb-1.5">Chọn người dùng <span class="text-red-500">*</span></label>
+                            <select id="userId" name="userId" required disabled="@(Model.Dataset.IsPublic || !Model.AvailableUsers.Any())" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed">
                                 @if (!Model.AvailableUsers.Any())
                                 {
                                     <option value="">Không có người dùng nào khác</option>
@@ -54,67 +65,86 @@
                                 }
                             </select>
                         </div>
-
-                        <button type="submit" class="btn btn-primary w-100 fw-bold" @(Model.Dataset.IsPublic || !Model.AvailableUsers.Any() ? "disabled" : "") style="border-radius: var(--radius-sm);">
-                            Cấp Quyền Truy Cập
+                        <button type="submit" disabled="@(Model.Dataset.IsPublic || !Model.AvailableUsers.Any())" class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed mt-2">
+                            Cấp quyền truy cập
                         </button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Danh sách những người có quyền truy cập -->
-        <div class="col-md-7">
-            <div class="card border-0 h-100 shadow-sm" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h5 class="fw-bold m-0" style="color: var(--ink);">Danh Sách Được Cấp Quyền</h5>
-                    <p class="text-muted small m-0 mt-1">Dưới đây là các tài khoản đang có quyền truy vấn môn học riêng tư này.</p>
-                </div>
-                <div class="card-body px-4 pb-4">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle" style="color: var(--ink);">
-                            <thead>
-                                <tr class="text-secondary small fw-bold" style="border-bottom: 2px solid var(--line);">
-                                    <th>Người dùng</th>
-                                    <th>Vai trò</th>
-                                    <th class="text-end">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (!Model.PermittedUsers.Any())
-                                {
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted py-4">Chưa có ai được cấp quyền truy cập riêng lẻ.</td>
-                                    </tr>
-                                }
-                                else
-                                {
-                                    foreach (var u in Model.PermittedUsers)
-                                    {
-                                        <tr style="border-bottom: 1px solid var(--line);">
-                                            <td>
-                                                <div class="fw-bold text-dark">@u.FullName</div>
-                                                <div class="text-muted small" style="font-size: 0.8rem;">@u.Email</div>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-light text-dark border">@u.Role</span>
-                                            </td>
-                                            <td class="text-end">
-                                                <form method="post" asp-page-handler="RevokePermission" style="display:inline;" class="m-0">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="datasetId" value="@Model.Dataset.DatasetId" />
-                                                    <input type="hidden" name="userId" value="@u.UserId" />
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold" onclick="return confirm('Bạn có chắc chắn muốn thu hồi quyền truy cập này?')">
-                                                        Thu hồi
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                            </tbody>
-                        </table>
+        <!-- Permitted Users List -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-50 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            </span>
+                            Danh sách được cấp quyền
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-2 ml-10">Dưới đây là các tài khoản đang có quyền truy vấn môn học riêng tư này.</p>
                     </div>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">@Model.PermittedUsers.Count người dùng</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50/50 border-b border-gray-100">
+                                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Người dùng</th>
+                                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Vai trò</th>
+                                <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @if (!Model.PermittedUsers.Any())
+                            {
+                                <tr><td colspan="3" class="py-12 text-center text-sm text-gray-500">Chưa có ai được cấp quyền truy cập riêng lẻ.</td></tr>
+                            }
+                            @foreach (var u in Model.PermittedUsers)
+                            {
+                                <tr class="hover:bg-gray-50/50 transition-colors">
+                                    <td class="py-3 px-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-cyan-100 text-accent-strong flex items-center justify-center font-bold text-xs">
+                                                @(string.IsNullOrWhiteSpace(u.FullName) ? "?" : u.FullName.Substring(0, Math.Min(2, u.FullName.Length)).ToUpper())
+                                            </div>
+                                            <div>
+                                                <div class="font-semibold text-ink text-sm">@u.FullName</div>
+                                                <div class="text-xs text-gray-500 mt-0.5">@u.Email</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-6">
+                                        @if (u.Role == "Admin")
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border bg-purple-50 text-purple-700 border-purple-200">Quản trị viên</span>
+                                        }
+                                        else if (u.Role == "Teacher")
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border bg-indigo-50 text-accent-strong border-indigo-200">Giảng viên</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border bg-gray-100 text-gray-600 border-gray-200">Sinh viên</span>
+                                        }
+                                    </td>
+                                    <td class="py-3 px-6 text-right">
+                                        <form method="post" asp-page-handler="RevokePermission" class="m-0 inline-block" onsubmit="return confirm('Bạn có chắc chắn muốn thu hồi quyền truy cập này?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="datasetId" value="@Model.Dataset.DatasetId" />
+                                            <input type="hidden" name="userId" value="@u.UserId" />
+                                            <button type="submit" class="inline-flex items-center justify-center px-3 py-1.5 border border-red-200 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-colors">
+                                                Thu hồi
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
