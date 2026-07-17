@@ -14,7 +14,7 @@ namespace RagChatbotSystem.Business.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
-        private const string ModelName = "gemini-2.0-flash";
+        private const string ModelName = "gemini-3.1-flash-lite";
 
         private int _lastPromptTokens;
         private int _lastCompletionTokens;

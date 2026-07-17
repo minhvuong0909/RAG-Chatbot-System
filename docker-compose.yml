@@ -43,7 +43,6 @@ services:
       - RagApi__BaseUrl=http://rag-api:8000
       - GoogleDrive__CredentialJsonPath=/app/google-credentials.json
       - GoogleDrive__TargetFolderId=${GOOGLE_DRIVE_FOLDER_ID:-}
-      - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Groq__ApiKey=${GROQ_API_KEY:-}
       - OpenAi__ApiKey=${OPENAI_API_KEY:-}
       - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID:-}

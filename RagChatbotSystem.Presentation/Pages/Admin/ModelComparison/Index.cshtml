@@ -7,7 +7,7 @@
     {
         "Groq" => "Groq (Llama 3.3 70B)",
         "Qwen" => "Groq (Qwen 32B)",
-        // "Gemini" => "Google Gemini",
+        "Gemini" => "Google Gemini",
         _ => key
     };
 }
@@ -28,12 +28,36 @@
         <div class="alert alert-danger">@Model.ErrorMessage</div>
     }
 
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+
+    <!-- Khối tiến trình chạy ngầm Batch Benchmark -->
+    <div id="batchProgressSection" class="admin-section" style="display: @(Model.BatchStatus.IsRunning ? "block" : "none"); margin-bottom: 20px;">
+        <div class="section-title">
+            <h2>Tiến trình Benchmark hàng loạt</h2>
+        </div>
+        <div class="batch-progress-card">
+            <div class="batch-progress-info">
+                <span id="batchProgressText">Đang xử lý: @Model.BatchStatus.ProcessedQuestions / @Model.BatchStatus.TotalQuestions câu hỏi</span>
+                <span id="batchFailedText" class="text-danger small">Lỗi: @Model.BatchStatus.FailedQuestions</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="batchProgressBar" class="progress-bar" style="width: @(Model.BatchStatus.TotalQuestions > 0 ? (Model.BatchStatus.ProcessedQuestions * 100 / Model.BatchStatus.TotalQuestions) : 0)%;"></div>
+            </div>
+            <div id="batchCurrentQuestion" class="batch-current-question">
+                <strong>Đang chạy:</strong> <span id="batchCurrentQuestionText">@Model.BatchStatus.CurrentQuestion</span>
+            </div>
+        </div>
+    </div>
+
     <section class="admin-section">
         <div class="section-title">
             <h2>Chạy thử nghiệm</h2>
         </div>
 
-        <form method="post" class="admin-form model-comparison-form">
+        <form method="post" class="admin-form model-comparison-form" id="comparisonForm">
             <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
 
             <div class="form-group">
@@ -50,7 +74,7 @@
 
             <div class="form-group">
                 <label asp-for="Input.Question">Câu hỏi thử nghiệm</label>
-                <textarea asp-for="Input.Question" rows="3" placeholder="Nhập câu hỏi để thử nghiệm trên các mô hình..."></textarea>
+                <textarea asp-for="Input.Question" rows="4" placeholder="Nhập câu hỏi để thử nghiệm. Để chạy benchmark hàng loạt, hãy nhập mỗi câu hỏi trên một dòng..."></textarea>
                 <span asp-validation-for="Input.Question" class="text-danger small"></span>
             </div>
 
@@ -68,7 +92,7 @@
                 <span asp-validation-for="Input.Providers" class="text-danger small"></span>
             </div>
 
-            <button type="submit" class="btn btn-primary">Chạy thử nghiệm</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn" @(Model.BatchStatus.IsRunning ? "disabled" : "")>Chạy thử nghiệm</button>
         </form>
     </section>
 
@@ -142,5 +166,55 @@
         .model-comparison-card-answer { border-top: 1px solid var(--line); font-size: .88rem; line-height: 1.5; padding-top: 10px; white-space: pre-wrap; }
         .model-comparison-card-answer-error { color: #e0554f; }
         .model-comparison-card-judge { background: var(--surface-muted); border-radius: 6px; color: var(--muted); font-size: .78rem; font-style: italic; padding: 8px 10px; }
+
+        /* Batch Progress Styles */
+        .batch-progress-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 10px; }
+        .batch-progress-info { display: flex; justify-content: space-between; font-size: 0.88rem; }
+        .progress-bar-container { background: var(--surface-muted); border-radius: 4px; height: 10px; overflow: hidden; width: 100%; }
+        .progress-bar { background: var(--primary); height: 100%; transition: width 0.3s ease; }
+        .batch-current-question { color: var(--muted); font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
     </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var isRunning = @(Model.BatchStatus.IsRunning ? "true" : "false");
+            var pollInterval = null;
+
+            if (isRunning) {
+                startPolling();
+            }
+
+            function startPolling() {
+                pollInterval = setInterval(checkBatchStatus, 2000);
+            }
+
+            function checkBatchStatus() {
+                fetch('/Admin/ModelComparison/Index?handler=Status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.isRunning) {
+                            document.getElementById("batchProgressSection").style.display = "block";
+                            document.getElementById("batchProgressText").innerText = "Đang xử lý: " + data.processedQuestions + " / " + data.totalQuestions + " câu hỏi";
+                            document.getElementById("batchFailedText").innerText = "Lỗi: " + data.failedQuestions;
+                            
+                            var percent = data.totalQuestions > 0 ? (data.processedQuestions * 100 / data.totalQuestions) : 0;
+                            document.getElementById("batchProgressBar").style.width = percent + "%";
+                            document.getElementById("batchCurrentQuestionText").innerText = data.currentQuestion;
+                            document.getElementById("submitBtn").disabled = true;
+                        } else {
+                            clearInterval(pollInterval);
+                            document.getElementById("batchProgressSection").style.display = "none";
+                            document.getElementById("submitBtn").disabled = false;
+                            
+                            // Notify user of completion and reload to clear state or show fresh history
+                            alert("Chạy benchmark hàng loạt hoàn thành! Bạn có thể xem lịch sử để biết chi tiết.");
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lỗi khi kiểm tra tiến trình benchmark:", error);
+                    });
+            }
+        });
+    </script>
 }
