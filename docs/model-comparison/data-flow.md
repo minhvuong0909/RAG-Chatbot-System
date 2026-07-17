@@ -1,116 +1,36 @@
-# So sánh mô hình AI — Luồng xử lý & Mô hình dữ liệu
+# Cơ chế đồng bộ Chunk ID trong hệ thống RBL
 
-Tài liệu này mô tả **chi tiết luồng chạy** (từ lúc bấm nút tới lúc lưu DB), **mô hình dữ liệu**, và **các quyết định thiết kế** của tính năng.
+Một trong những câu hỏi cốt lõi về tính chính xác của hệ thống là: *"Làm sao mô hình AI lấy ra được chính xác cái ID giống hệt với ID đã gán trong file JSON?"*
 
-## 1. Luồng xử lý một lần "Chạy thử nghiệm"
+Câu trả lời nằm ở luồng dữ liệu (Data Flow) đồng nhất giữa **Quá trình Lập chỉ mục (Indexing)** và **Quá trình Truy vấn (Retrieval)**. Các ID này **không** được lưu trong PostgreSQL, mà được lưu trong **FAISS Vector Database** (Cơ sở dữ liệu Vector chuyên dụng cho AI).
 
-```mermaid
-sequenceDiagram
-    participant U as Admin/Teacher
-    participant P as Index.cshtml.cs<br/>(Presentation)
-    participant S as ModelComparisonService<br/>(Business)
-    participant R as Python RAG API
-    participant M as Groq API<br/>(Llama / Qwen)
-    participant J as Groq API<br/>(Judge: gpt-oss-120b)
-    participant D as PostgreSQL
+Dưới đây là 4 bước luân chuyển của một ID trong hệ thống:
 
-    U->>P: Bấm "Chạy thử nghiệm" (môn, câu hỏi, model)
-    P->>P: Validate (môn, câu hỏi ≤1000, có tick model)
-    P->>S: CompareAsync(datasetId, question, providers, userId)
-    S->>R: RetrieveAsync (TopK=10, hybrid + rerank)
-    R-->>S: 10 đoạn ngữ cảnh + đo latency retrieval
-    S->>S: Ghép prompt (chỉ dẫn + ngữ cảnh + câu hỏi)
-    loop Mỗi model đã tick
-        S->>M: GenerateAnswerWithUsageAsync(prompt)
-        M-->>S: Câu trả lời + token, đo latency (Stopwatch)
-    end
-    S->>J: JudgeAllAsync (gửi TẤT CẢ câu trả lời cùng lúc)
-    J-->>S: "Groq: Điểm: X. Lý do:...", "Qwen: Điểm: Y..."
-    S->>S: Regex đọc điểm + lý do cho từng model
-    S->>D: PersistRunAsync (1 Run + N Result)
-    S-->>P: ModelComparisonRunResultDto
-    P-->>U: Hiển thị thẻ kết quả (không tải lại trang)
-```
+### Bước 1: Khởi tạo ID (Sinh Ground Truth)
+Ban đầu, một kịch bản mồi (Script) sẽ cắt tài liệu gốc ra thành các đoạn văn. Với mỗi đoạn văn, hệ thống sẽ sinh ra một chuỗi UUID ngẫu nhiên (Ví dụ: `fe559863-f68b...`).
+- UUID này cùng với câu hỏi được ghi cố định vào file `benchmark.json`. Đây gọi là **Đáp án gốc (Ground Truth)**.
 
-**Điểm mấu chốt về công bằng**: bước Retrieval chạy **đúng 1 lần**, ngữ cảnh dùng chung cho **tất cả** model và cho **cả giám khảo** — không model nào có lợi thế ngữ cảnh khác nhau.
+### Bước 2: Lập chỉ mục vào Vector Database (Indexing)
+Trước khi chạy Benchmark, hệ thống phải chạy một script gọi là `reindex_xquad_profiles.py`.
+Script này làm một nhiệm vụ cực kỳ quan trọng:
+1. Nó đọc từng đoạn văn và cái UUID tương ứng trong file JSON.
+2. Nó nạp đoạn văn đó vào mô hình Embedding (ví dụ E5) để biến thành Vector số học.
+3. Nó lưu Vector này vào **FAISS Database**, đồng thời **nhét cái UUID vào phần Metadata (Dữ liệu đi kèm)** của Vector đó.
 
-## 2. Mô hình dữ liệu
+*=> Lúc này, FAISS đã ghi nhớ: "Đoạn văn có ý nghĩa A, mang mã số là fe559863...".*
 
-```mermaid
-erDiagram
-    ModelComparisonRun ||--o{ ModelComparisonResult : "1 lần chạy có nhiều kết quả"
-    Dataset ||--o{ ModelComparisonRun : "thuộc môn học"
-    User ||--o{ ModelComparisonRun : "người chạy"
+### Bước 3: Truy vấn (Retrieval)
+Khi chúng ta chạy `benchmark_runner.py`, hệ thống gửi câu hỏi cho API Tìm kiếm.
+1. FAISS Database sẽ lấy câu hỏi biến thành Vector, rồi dùng toán học (Cosine Similarity) để quét xem Vector đoạn văn nào gần giống nhất.
+2. Khi tìm thấy đoạn văn giống nhất, **FAISS sẽ móc phần Metadata ra và trả về cho hệ thống chính cái UUID mà nó đã lưu ở Bước 2.**
 
-    ModelComparisonRun {
-        Guid Id PK
-        Guid DatasetId FK
-        Guid RunByUserId FK
-        string Question
-        int RetrievedChunkCount
-        long RetrievalLatencyMs
-        DateTime CreatedAt "UTC"
-    }
-    ModelComparisonResult {
-        Guid Id PK
-        Guid ModelComparisonRunId FK
-        string ProviderKey "Groq / Qwen"
-        string ModelName
-        string Answer
-        long LatencyMs
-        int InputTokens
-        int OutputTokens
-        int TotalTokens
-        bool IsSuccess
-        string ErrorMessage "nullable"
-        int QualityScore "nullable 1-10"
-        string QualityReasoning "nullable"
-    }
-```
+### Bước 4: Chấm điểm (Evaluation)
+Bây giờ `benchmark_runner.py` đang cầm trên tay 2 thứ:
+- ID vừa moi được từ FAISS.
+- ID gốc nằm trong file `benchmark.json`.
 
-- Quan hệ khóa ngoại (cấu hình trong `AppDbContext.OnModelCreating`):
-  - `Run → Dataset`: **Cascade** (xoá dataset thì xoá luôn lịch sử của nó).
-  - `Run → User`: **Restrict** (không cho xoá user còn lịch sử).
-  - `Result → Run`: **Cascade** (xoá lần chạy thì xoá kết quả con).
-- Migration: `20260713115220_AddModelComparisonHistory`.
-- `CreatedAt` lưu theo **UTC**; khi hiển thị mới quy đổi sang giờ Việt Nam bằng `FormatVietnamTime` (vì container chạy giờ UTC, `ToLocalTime()` không quy đổi đúng).
+Hệ thống chỉ việc so sánh 2 chuỗi ID này (String Matching). Nếu giống nhau hoàn toàn, chứng tỏ FAISS đã tìm đúng tài liệu mà con người mong muốn => **Context Recall = 1.0!**
 
-## 3. Chấm điểm bằng LLM-as-judge
-
-### Vì sao dùng giám khảo AI, không dùng thuật toán?
-Để tránh việc người dùng phải tự đọc và đánh giá bằng mắt (chậm, chủ quan giữa các người). Đây là phương pháp được ngành công nhận (MT-Bench, AlpacaEval... đều dùng LLM-as-judge).
-
-### Vì sao chọn model giám khảo KHÁC?
-Nếu để Groq/Qwen tự chấm câu trả lời của chính nó → thiên vị (self-preference bias). Nên giám khảo dùng `openai/gpt-oss-120b` — khác dòng huấn luyện với cả Llama và Qwen.
-
-### Vì sao chấm SO SÁNH thay vì từng câu?
-Ban đầu chấm từng câu độc lập → 2 câu trả lời dài/ngắn khác hẳn nhau vẫn ra điểm bằng nhau (giám khảo không có gì để so sánh). Nay gửi **tất cả câu trả lời cùng lúc** trong 1 prompt, yêu cầu giám khảo **so sánh trực tiếp và phân biệt** — điểm số phân hoá rõ hơn.
-
-### An toàn khi lỗi
-- Nếu giám khảo lỗi hoặc trả về sai định dạng (regex không đọc được điểm) → `QualityScore` để trống (`null`), **không** làm sập lần so sánh. Câu trả lời vẫn hiển thị.
-- Điểm luôn bị ép về khoảng 1–10 (`Math.Clamp`).
-
-## 4. Phân quyền dữ liệu (`ScopeRunsByRole`)
-
-| Vai trò | Thấy lịch sử/biểu đồ của |
-|---|---|
-| Admin | Tất cả các lần chạy |
-| Teacher | Chỉ các môn được phân công (`Dataset.TeacherSubjectAssignment.TeacherId == userId`) |
-| Khác | Không có (trả về rỗng) |
-
-## 5. Xử lý đặc thù từng model
-
-- **Qwen** là "reasoning model" — trả về cả block suy luận `<think>...</think>` lẫn trong nội dung. `GroqService.StripReasoning` dùng regex bỏ block này trước khi hiển thị. Model không có `<think>` (Llama) không bị ảnh hưởng.
-
-## 6. Thống kê cho biểu đồ (`GetStatsAsync`)
-
-Gom nhóm theo `ProviderKey`, tính trên các bản ghi **thành công**:
-- Token trung bình (`AvgTotalTokens`) — chi phí.
-- Độ trễ trung bình (`AvgLatencyMs`) — tốc độ.
-- Điểm chất lượng trung bình (`AvgQualityScore`) — do AI chấm.
-
-Lần lỗi bị loại khỏi phép tính trung bình để không làm sai lệch số liệu.
-
-## 7. Hướng mở rộng (chưa làm — ghi nhận để tham khảo)
-
-- Thêm chỉ số khách quan theo chuẩn **RAGAS** cho hệ RAG: **Faithfulness** (độ bám tài liệu) và **Answer Relevance** (độ liên quan), tính bằng cosine similarity trên embedding. Building block đã có sẵn trong Python RAG API (model embedding đã load, đã normalize) — chỉ cần thêm 1 endpoint `/score`. Việc này giúp benchmark có chỉ số khách quan, lặp lại được, bổ trợ cho điểm AI chấm.
+---
+**💡 Tổng kết:**
+Hệ thống không tự "bịa" ra ID, mà chúng ta đã **nhét sẵn ID đó vào FAISS (Vector DB)** dưới dạng Metadata từ lúc Index. Khi FAISS tìm thấy văn bản, nó chỉ đơn giản là "nhả" cái ID đó ra lại cho chúng ta đối chiếu!
