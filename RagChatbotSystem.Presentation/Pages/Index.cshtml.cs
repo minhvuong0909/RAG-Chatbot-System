@@ -525,6 +525,7 @@ namespace RagChatbotSystem.Presentation.Pages
                 {
                     documentId = doc.DocumentId,
                     fileName = doc.FileName,
+                    fileType = doc.FileType,
                     chunks = chunks.Select(c => new
                     {
                         chunkId = c.ChunkId,
