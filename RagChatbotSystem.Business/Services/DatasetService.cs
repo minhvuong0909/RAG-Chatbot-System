@@ -40,21 +40,14 @@ namespace RagChatbotSystem.Business.Services
 
         public async Task<IReadOnlyList<DatasetDto>> GetDatasetsForUserAsync(Guid userId, string role, CancellationToken cancellationToken = default)
         {
-            var query = _datasetRepository.GetQueryable().AsNoTracking()
-                .Where(d => !d.IsArchived);
+            return await MaterializeDatasetDtosAsync(BuildAccessibleDatasetsQuery(userId, role), cancellationToken);
+        }
 
-            if (role == "Teacher")
-            {
-                query = query.Where(d => d.TeacherSubjectAssignment != null && d.TeacherSubjectAssignment.TeacherId == userId);
-            }
-            else if (role != "Admin")
-            {
-                query = query.Where(d =>
-                    (d.IsPublic && d.IsApproved) ||
-                    d.DatasetPermissions.Any(dp => dp.UserId == userId));
-            }
-
-            return await MaterializeDatasetDtosAsync(query, cancellationToken);
+        public async Task<IReadOnlyList<Guid>> GetAccessibleDatasetIdsAsync(Guid userId, string role, CancellationToken cancellationToken = default)
+        {
+            return await BuildAccessibleDatasetsQuery(userId, role)
+                .Select(dataset => dataset.DatasetId)
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<DatasetDto?> GetDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default)
@@ -350,6 +343,27 @@ namespace RagChatbotSystem.Business.Services
                 .ToListAsync(cancellationToken);
 
             return datasets.Select(ToDto).ToList();
+        }
+
+        private IQueryable<Dataset> BuildAccessibleDatasetsQuery(Guid userId, string role)
+        {
+            var query = _datasetRepository.GetQueryable().AsNoTracking()
+                .Where(dataset => !dataset.IsArchived);
+
+            if (role == "Teacher")
+            {
+                return query.Where(dataset => dataset.TeacherSubjectAssignment != null
+                    && dataset.TeacherSubjectAssignment.TeacherId == userId);
+            }
+
+            if (role != "Admin")
+            {
+                return query.Where(dataset =>
+                    (dataset.IsPublic && dataset.IsApproved)
+                    || dataset.DatasetPermissions.Any(permission => permission.UserId == userId));
+            }
+
+            return query;
         }
 
         private static IQueryable<Dataset> IncludeDatasetSummary(IQueryable<Dataset> query)

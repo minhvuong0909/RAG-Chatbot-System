@@ -12,16 +12,13 @@ namespace RagChatbotSystem.Presentation.Services
     public class RealtimeService : IRealtimeService
     {
         private readonly IHubContext<ChatHub> _chatHubContext;
-        private readonly IHubContext<DocumentHub> _documentHubContext;
         private readonly IHubContext<NotificationHub> _notificationHubContext;
 
         public RealtimeService(
             IHubContext<ChatHub> chatHubContext,
-            IHubContext<DocumentHub> documentHubContext,
             IHubContext<NotificationHub> notificationHubContext)
         {
             _chatHubContext = chatHubContext;
-            _documentHubContext = documentHubContext;
             _notificationHubContext = notificationHubContext;
         }
 
@@ -72,8 +69,20 @@ namespace RagChatbotSystem.Presentation.Services
 
         public async Task SendDocumentProgressAsync(Guid datasetId, Guid documentId, string status, int percentComplete, CancellationToken cancellationToken = default)
         {
-            await _documentHubContext.Clients.Group($"dataset_{datasetId}")
-                .SendAsync("ReceiveDocumentProgress", documentId, status, percentComplete, cancellationToken);
+            var payload = new
+            {
+                datasetId,
+                documentId,
+                status,
+                percentComplete,
+                changedAt = DateTimeOffset.UtcNow
+            };
+
+            await Task.WhenAll(
+                _notificationHubContext.Clients.Group(NotificationHub.DatasetGroupName(datasetId))
+                    .SendAsync("DocumentProgress", payload, cancellationToken),
+                _notificationHubContext.Clients.Group(NotificationHub.AdminGroupName)
+                    .SendAsync("DocumentProgress", payload, cancellationToken));
         }
 
         public async Task SendNotificationAsync(Guid userId, string message, CancellationToken cancellationToken = default)

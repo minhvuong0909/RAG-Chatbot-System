@@ -61,10 +61,13 @@
                         <article id="chunk-@chunk.ChunkId" data-chunk-id="@chunk.ChunkId" data-chunk-index="@chunk.ChunkIndex" class="document-chunk">
                             <div class="document-chunk-header">
                                 <strong>Chunk #@chunk.ChunkIndex</strong>
-                                <span>Trang @chunk.PageNumber</span>
+                                @if (string.Equals(Model.FileType, "pdf", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span>Trang @(chunk.PageNumber > 0 ? chunk.PageNumber.ToString() : "Không xác định")</span>
+                                }
                             </div>
                             <pre>@chunk.Content</pre>
-                            @if (!string.IsNullOrWhiteSpace(chunk.MetadataJson))
+                            @if (string.Equals(Model.FileType, "pdf", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(chunk.MetadataJson))
                             {
                                 <details>
                                     <summary>Siêu dữ liệu</summary>

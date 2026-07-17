@@ -215,7 +215,7 @@ else
                     {
                         <a asp-page="/Documents/Index" asp-route-datasetId="@Model.SelectedDatasetId" style="font-size: 0.8rem; font-weight: 500; text-decoration: none; color: var(--accent); margin-left: auto; margin-right: 8px;">Quản lý</a>
                     }
-                    <span>@Model.Documents.Count</span>
+                    <span data-document-count>@Model.Documents.Count</span>
                 </div>
                 @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
                 {
@@ -290,7 +290,7 @@ else
                 <div class="d-flex flex-column gap-2" style="font-size: 0.85rem;">
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Tổng tài liệu</span>
-                        <strong style="color: var(--accent); font-weight: 700;">@Model.Documents.Count</strong>
+                        <strong data-document-count style="color: var(--accent); font-weight: 700;">@Model.Documents.Count</strong>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Cuộc trò chuyện</span>
@@ -1033,6 +1033,7 @@ else
             const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
             if (payload.action === "deleted") {
                 if (documentRow) documentRow.remove();
+                updateWorkspaceDocumentCount();
                 return;
             }
 
@@ -1042,6 +1043,7 @@ else
                     const emptyState = list.querySelector(".helper-text");
                     if (emptyState) emptyState.remove();
                     list.prepend(createDocumentRow(payload));
+                    updateWorkspaceDocumentCount();
                 }
                 return;
             }
@@ -1076,16 +1078,16 @@ else
                 </div>
                 <div class="document-actions-row">
                     <span class="status-pill ${escapeHtml(status.toLowerCase())}" data-document-status>${escapeHtml(localizeDocumentStatus(status))}</span>
-                    <a class="document-preview-link" href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" title="Xem các đoạn đã lập chỉ mục và thông tin tài liệu">Xem đoạn nội dung</a>
-                    <form method="post" action="?handler=DeleteDocument" style="margin: 0; padding: 0;" onsubmit="return confirm('Tài liệu này sẽ bị ẩn khỏi cuộc trò chuyện và xóa khỏi chỉ mục RAG. Bạn có muốn tiếp tục?');">
-                        ${antiForgeryInput()}
-                        <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
-                        <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
-                        <button class="document-delete-button" type="submit" title="Ẩn tài liệu">Ẩn</button>
-                    </form>
                 </div>
             `;
             return item;
+        }
+
+        function updateWorkspaceDocumentCount() {
+            const total = document.querySelectorAll("[data-document-list] [data-document-id]").length;
+            document.querySelectorAll("[data-document-count]").forEach(function (element) {
+                element.textContent = String(total);
+            });
         }
 
         function antiForgeryInput() {
@@ -1730,6 +1732,7 @@ else
                 .then(data => {
                     title.textContent = data.fileName;
                     body.innerHTML = "";
+                    const isPdfDocument = String(data.fileType || "").toLowerCase() === "pdf";
                     
                     data.chunks.forEach(chunk => {
                         const chunkDiv = document.createElement("div");
@@ -1767,13 +1770,16 @@ else
                             chunkDiv.style.background = "var(--surface-muted)";
                         }
                         
+                        const pageLocation = isPdfDocument
+                            ? `<span>Trang ${chunk.pageNumber > 0 ? chunk.pageNumber : 'Không xác định'}</span>`
+                            : '';
                         chunkDiv.innerHTML = `
                             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 6px;">
                                 <strong style="display: flex; align-items: center; gap: 4px;">
                                     Đoạn #${chunk.chunkIndex}
                                     ${isTarget ? '<span style="color: var(--accent); font-weight: 700; background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">★ Nội dung đối chiếu</span>' : ''}
                                 </strong>
-                                <span>Trang ${chunk.pageNumber}</span>
+                                ${pageLocation}
                             </div>
                             <pre style="white-space: pre-wrap; font-family: inherit; color: var(--ink); margin: 0; font-size: 0.88rem; line-height: 1.6;">${contentHtml}</pre>
                         `;

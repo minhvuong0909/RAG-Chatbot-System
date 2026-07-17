@@ -18,6 +18,10 @@ namespace RagChatbotSystem.Business.Services
     public class ChatService : IChatService
     {
         private const string FriendlyAiUnavailableMessage = "Hiện chưa thể tạo câu trả lời từ AI. Vui lòng thử lại sau hoặc liên hệ quản trị viên.";
+        private const int MaxRelevantContextChunks = 5;
+        private const int MaxOverviewDocuments = 12;
+        private const int MaxOverviewContextChunks = 12;
+        private const int OverviewChunksPerDocument = 2;
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly IGenericRepository<ChatSession> _sessionRepository;
@@ -141,47 +145,57 @@ namespace RagChatbotSystem.Business.Services
             await _messageRepository.AddAsync(userMessage, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken); // Save first to ensure User message is persistent
 
-            var retrieveResult = await _ragApiClient.RetrieveAsync(new RetrieveRequestDto
-            {
-                Query = userQuestion,
-                DatasetId = session.DatasetId,
-                TopK = 10,
-                SemanticWeight = 0.7,
-                LexicalWeight = 0.3,
-                EnableRerank = true
-            });
-
             var datasetIdStr = session.DatasetId.ToString();
-            
-            _logger.LogInformation("Retrieve returned {Count} documents from RAG API for query '{Query}'. Filter DatasetId: '{DatasetId}'",
-                retrieveResult.Documents?.Count ?? 0, userQuestion, datasetIdStr);
+            var isDatasetOverviewQuestion = IsDatasetOverviewQuestion(userQuestion);
+            List<DocumentModelDto> contextDocs;
 
-            if (retrieveResult.Documents != null)
+            if (isDatasetOverviewQuestion)
             {
-                for (int i = 0; i < retrieveResult.Documents.Count; i++)
+                contextDocs = await GetDatasetOverviewContextAsync(session.DatasetId, cancellationToken);
+                _logger.LogInformation(
+                    "Built balanced overview context with {ChunkCount} chunks across {DocumentCount} documents for DatasetId '{DatasetId}'.",
+                    contextDocs.Count,
+                    contextDocs.Select(doc => TryGetGuidMetadata(doc.Metadata, "document_id")).Where(id => id.HasValue).Distinct().Count(),
+                    datasetIdStr);
+            }
+            else
+            {
+                var retrieveResult = await _ragApiClient.RetrieveAsync(new RetrieveRequestDto
                 {
-                    var doc = retrieveResult.Documents[i];
-                    var hasDsId = doc.Metadata.TryGetValue("dataset_id", out var dsIdVal);
-                    _logger.LogInformation("Candidate {Index}: Content length={Length}, has dataset_id={HasDsId}, dataset_id value='{DsIdVal}'",
-                        i, doc.PageContent?.Length ?? 0, hasDsId, dsIdVal);
-                }
+                    Query = userQuestion,
+                    DatasetId = session.DatasetId,
+                    TopK = 10,
+                    SemanticWeight = 0.7,
+                    LexicalWeight = 0.3,
+                    EnableRerank = true
+                });
+
+                _logger.LogInformation("Retrieve returned {Count} documents from RAG API for query '{Query}'. Filter DatasetId: '{DatasetId}'",
+                    retrieveResult.Documents?.Count ?? 0, userQuestion, datasetIdStr);
+
+                var retrievedForDataset = (retrieveResult.Documents ?? Enumerable.Empty<DocumentModelDto>())
+                    .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
+                        && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                contextDocs = await FilterActiveCompletedContextAsync(
+                    retrievedForDataset,
+                    session.DatasetId,
+                    MaxRelevantContextChunks,
+                    cancellationToken);
             }
 
-            var contextDocs = (retrieveResult.Documents ?? Enumerable.Empty<DocumentModelDto>())
-                .Where(doc => doc.Metadata.TryGetValue("dataset_id", out var dsId)
-                    && string.Equals(dsId?.ToString(), datasetIdStr, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            contextDocs = await FilterActiveCompletedContextAsync(contextDocs, session.DatasetId, cancellationToken);
             var isDocumentScopedQuestion = IsDocumentScopedQuestion(userQuestion, contextDocs);
-
-            var contextText = contextDocs.Count > 0
-                ? string.Join("\n\n---\n\n", contextDocs.Select(d => d.PageContent))
-                : "Khong tim thay tai lieu phu hop trong ngu canh.";
+            var contextText = BuildContextText(contextDocs);
+            var overviewInstruction = isDatasetOverviewQuestion
+                ? "Đây là yêu cầu tổng quan toàn bộ môn học: phải bao quát từng nguồn được cung cấp. Nếu các tài liệu không cùng chủ đề, hãy nói rõ điều đó và tóm tắt riêng từng tài liệu thay vì cố ghép chúng thành một chủ đề giả."
+                : "Chỉ giữ các thông tin trực tiếp giúp trả lời câu hỏi.";
 
             var prompt =
-                "Bạn là một trợ lý AI hữu ích. Hãy trả lời câu hỏi của người dùng bằng tiếng Việt dựa vào phần Ngữ cảnh được cung cấp dưới đây.\n" +
-                "Nếu thông tin không có trong Ngữ cảnh, hãy trả lời là \"Tôi không tìm thấy thông tin này trong tài liệu của bạn.\" và khuyên người dùng bổ sung tài liệu. Không tự bịa ra câu trả lời nằm ngoài tài liệu.\n\n" +
+                "Bạn là một trợ lý AI hữu ích. Hãy trả lời bằng tiếng Việt và chỉ dựa trên phần Ngữ cảnh bên dưới.\n" +
+                "Hãy tổng hợp, diễn giải và loại bỏ chi tiết nhiễu hoặc trùng lặp. Không chép nguyên văn các chunk thành danh sách và không nhắc đến từ 'chunk' trong câu trả lời.\n" +
+                $"{overviewInstruction}\n" +
+                "Nếu Ngữ cảnh thực sự không chứa thông tin cần thiết, hãy trả lời: \"Tôi không tìm thấy thông tin này trong tài liệu của bạn.\" Không tự bịa dữ kiện ngoài tài liệu.\n\n" +
                 $"Ngữ cảnh:\n{contextText}\n\n" +
                 $"Câu hỏi: {userQuestion}\n" +
                 "Câu trả lời:";
@@ -309,11 +323,6 @@ namespace RagChatbotSystem.Business.Services
                 finalContent = "Xin lỗi, đã xảy ra lỗi trong quá trình tạo phản hồi.";
             }
 
-            if (isDocumentScopedQuestion && contextDocs.Count > 0 && LooksLikeNoInformationAnswer(finalContent))
-            {
-                finalContent = BuildGroundedFallbackAnswer(contextDocs);
-            }
-
             var assistantMessage = new ChatMessage
             {
                 MessageId = assistantMessageId,
@@ -427,17 +436,6 @@ namespace RagChatbotSystem.Business.Services
                 citationDtos,
                 creditSpend,
                 creditBalance);
-        }
-
-        private static bool LooksLikeNoInformationAnswer(string answer)
-        {
-            var normalized = answer.ToLowerInvariant();
-            return normalized.Contains("không tìm thấy")
-                || normalized.Contains("khong tim thay")
-                || normalized.Contains("không có thông tin")
-                || normalized.Contains("khong co thong tin")
-                || normalized.Contains("bổ sung thêm tài liệu")
-                || normalized.Contains("bo sung them tai lieu");
         }
 
         private static bool IsDocumentScopedQuestion(string question, IReadOnlyList<DocumentModelDto> contextDocs)
@@ -559,39 +557,121 @@ namespace RagChatbotSystem.Business.Services
             return "Cau hoi nay nam ngoai pham vi tai lieu da upload, nen minh khong dung noi dung trong file de tra loi. Hay hoi ve noi dung, tu vung, y chinh, khai niem, hoac cau hoi on tap tu tai lieu de minh tra loi kem nguon tham khao.";
         }
 
-        private static string BuildGroundedFallbackAnswer(IReadOnlyList<DocumentModelDto> contextDocs)
+        private static bool IsDatasetOverviewQuestion(string question)
         {
-            var builder = new StringBuilder();
-            builder.AppendLine("Dựa trên tài liệu đã upload, các ý chính có thể rút ra là:");
+            var normalized = NormalizeForIntent(question);
+            var asksForOverview = normalized.Contains("tom tat")
+                || normalized.Contains("y chinh")
+                || normalized.Contains("tong quan")
+                || normalized.Contains("khai quat");
+            var coversCollection = normalized.Contains("mon hoc")
+                || normalized.Contains("tat ca tai lieu")
+                || normalized.Contains("toan bo tai lieu")
+                || normalized.Contains("cac tai lieu")
+                || normalized.Contains("tai lieu da tai len");
 
-            var points = contextDocs
-                .SelectMany(d => d.PageContent
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(line => line.Trim()))
-                .Where(line => line.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(12)
-                .ToList();
+            return asksForOverview && coversCollection;
+        }
 
-            if (points.Count == 0)
+        private static string BuildContextText(IReadOnlyList<DocumentModelDto> contextDocs)
+        {
+            if (contextDocs.Count == 0)
             {
-                builder.AppendLine("- Tài liệu có nội dung liên quan, nhưng phần trích xuất hiện tại quá ngắn để tóm tắt chi tiết.");
+                return "Không tìm thấy tài liệu phù hợp trong ngữ cảnh.";
             }
-            else
+
+            return string.Join("\n\n---\n\n", contextDocs.Select(doc =>
             {
-                foreach (var point in points)
+                var fileName = GetMetadataString(doc.Metadata, "file_name") ?? "Tài liệu không xác định";
+                var fileType = GetMetadataString(doc.Metadata, "file_type");
+                var pageNumber = GetMetadataInt(doc.Metadata, "page_number");
+                var chunkIndex = GetMetadataInt(doc.Metadata, "chunk_index");
+                var location = string.Equals(fileType, "pdf", StringComparison.OrdinalIgnoreCase) && pageNumber > 0
+                    ? $"Trang {pageNumber}"
+                    : chunkIndex.HasValue ? $"Đoạn {chunkIndex.Value}" : "Đoạn không xác định";
+                return $"[Nguồn: {fileName}; {location}]\n{doc.PageContent}";
+            }));
+        }
+
+        private async Task<List<DocumentModelDto>> GetDatasetOverviewContextAsync(
+            Guid datasetId,
+            CancellationToken cancellationToken)
+        {
+            var documents = await _documentRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(document => document.DatasetId == datasetId && !document.IsDeleted && document.Status == "Completed")
+                .OrderBy(document => document.UploadedAt)
+                .ThenBy(document => document.FileName)
+                .Select(document => new { document.DocumentId, document.FileName, document.FileType })
+                .Take(MaxOverviewDocuments)
+                .ToListAsync(cancellationToken);
+
+            if (documents.Count == 0)
+            {
+                return new List<DocumentModelDto>();
+            }
+
+            var documentIds = documents.Select(document => document.DocumentId).ToList();
+            var candidates = await _chunkRepository.GetQueryable()
+                .AsNoTracking()
+                .Where(chunk => documentIds.Contains(chunk.DocumentId) && chunk.ChunkIndex <= OverviewChunksPerDocument)
+                .OrderBy(chunk => chunk.ChunkIndex)
+                .Select(chunk => new
                 {
-                    builder.AppendLine($"- {point}");
+                    chunk.ChunkId,
+                    chunk.DocumentId,
+                    chunk.ChunkIndex,
+                    chunk.Content,
+                    chunk.PageNumber
+                })
+                .ToListAsync(cancellationToken);
+
+            var chunksByDocument = candidates
+                .GroupBy(chunk => chunk.DocumentId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.OrderBy(chunk => chunk.ChunkIndex).Take(OverviewChunksPerDocument).ToList());
+            var context = new List<DocumentModelDto>(Math.Min(MaxOverviewContextChunks, documents.Count * OverviewChunksPerDocument));
+
+            for (var round = 0; round < OverviewChunksPerDocument && context.Count < MaxOverviewContextChunks; round++)
+            {
+                foreach (var document in documents)
+                {
+                    if (!chunksByDocument.TryGetValue(document.DocumentId, out var documentChunks) || round >= documentChunks.Count)
+                    {
+                        continue;
+                    }
+
+                    var chunk = documentChunks[round];
+                    context.Add(new DocumentModelDto
+                    {
+                        PageContent = chunk.Content,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["id"] = chunk.ChunkId.ToString(),
+                            ["document_id"] = document.DocumentId.ToString(),
+                            ["dataset_id"] = datasetId.ToString(),
+                            ["file_name"] = document.FileName,
+                            ["file_type"] = document.FileType,
+                            ["page_number"] = chunk.PageNumber,
+                            ["chunk_index"] = chunk.ChunkIndex
+                        }
+                    });
+
+                    if (context.Count >= MaxOverviewContextChunks)
+                    {
+                        break;
+                    }
                 }
             }
 
-            builder.AppendLine();
-            builder.Append("Các nguồn tham khảo đã được gắn ở phần View Sources.");
-            return builder.ToString();
+            return context;
         }
+
         private async Task<List<DocumentModelDto>> FilterActiveCompletedContextAsync(
             IReadOnlyList<DocumentModelDto> candidates,
             Guid datasetId,
+            int maxCount,
             CancellationToken cancellationToken)
         {
             var chunkIds = candidates
@@ -622,7 +702,7 @@ namespace RagChatbotSystem.Business.Services
                     var chunkId = TryGetGuidMetadata(doc.Metadata, "id");
                     return chunkId.HasValue && activeSet.Contains(chunkId.Value);
                 })
-                .Take(3)
+                .Take(maxCount)
                 .ToList();
         }
 
@@ -640,13 +720,19 @@ namespace RagChatbotSystem.Business.Services
                     continue;
                 }
 
+                var fileType = GetMetadataString(doc.Metadata, "file_type")
+                    ?? Path.GetExtension(GetMetadataString(doc.Metadata, "file_name") ?? string.Empty).TrimStart('.');
+                var pageNumber = string.Equals(fileType, "pdf", StringComparison.OrdinalIgnoreCase)
+                    ? GetMetadataInt(doc.Metadata, "page_number") ?? 0
+                    : 0;
+
                 citations.Add(new Citation
                 {
                     CitationId = Guid.NewGuid(),
                     MessageId = messageId,
                     DocumentId = docId,
                     ChunkId = chunkId,
-                    PageNumber = GetMetadataInt(doc.Metadata, "page_number") ?? 1,
+                    PageNumber = pageNumber,
                     QuoteText = doc.PageContent,
                     SourceLabel = GetMetadataString(doc.Metadata, "file_name") ?? "Chunk Reference",
                     CreatedAt = DateTime.UtcNow

@@ -10,6 +10,7 @@ namespace RagChatbotSystem.Business.Interfaces
     {
         Task<IReadOnlyList<DatasetDto>> GetDatasetsAsync(Guid? createdBy = null, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<DatasetDto>> GetDatasetsForUserAsync(Guid userId, string role, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<Guid>> GetAccessibleDatasetIdsAsync(Guid userId, string role, CancellationToken cancellationToken = default);
         Task<DatasetDto?> GetDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default);
         Task<DatasetDto> CreateDatasetAsync(CreateDatasetRequest request, CancellationToken cancellationToken = default);
         Task<bool> UpdateDatasetAsync(Guid datasetId, string name, string? description, bool isPublic, CancellationToken cancellationToken = default);

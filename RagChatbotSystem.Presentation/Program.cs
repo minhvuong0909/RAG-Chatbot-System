@@ -214,42 +214,47 @@ namespace RagChatbotSystem.Presentation
                         startupLogger.LogInformation("Admin account ensured successfully for {Email}.", adminEmail);
                     }
 
-                    var myAdminEmail = "admin@vuongdev.top";
-                    if (!db.Users.Any(u => u.Email == myAdminEmail))
+                    // Demo accounts are useful for local development, but known credentials must
+                    // never be provisioned when the same build runs in Production.
+                    if (app.Environment.IsDevelopment())
                     {
-                        var myAdmin = new RagChatbotSystem.DataAccess.Models.User
+                        var myAdminEmail = "admin@vuongdev.top";
+                        if (!db.Users.Any(u => u.Email == myAdminEmail))
                         {
-                            UserId = Guid.NewGuid(),
-                            FullName = "Vuong Dev Admin",
-                            Email = myAdminEmail,
-                            Username = ResolveAvailableUsername(db, "vuongdev-admin", Guid.Empty),
-                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Vv123456!"),
-                            Role = "Admin",
-                            IsApproved = true,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.Users.Add(myAdmin);
-                        db.SaveChanges();
-                        startupLogger.LogInformation("Admin account seeded successfully for {Email}.", myAdminEmail);
-                    }
+                            var myAdmin = new RagChatbotSystem.DataAccess.Models.User
+                            {
+                                UserId = Guid.NewGuid(),
+                                FullName = "Vuong Dev Admin",
+                                Email = myAdminEmail,
+                                Username = ResolveAvailableUsername(db, "vuongdev-admin", Guid.Empty),
+                                PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Vv123456!"),
+                                Role = "Admin",
+                                IsApproved = true,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.Users.Add(myAdmin);
+                            db.SaveChanges();
+                            startupLogger.LogInformation("Development admin account seeded successfully for {Email}.", myAdminEmail);
+                        }
 
-                    var studentEmail = "student@example.com";
-                    if (!db.Users.Any(u => u.Email == studentEmail))
-                    {
-                        var studentUser = new RagChatbotSystem.DataAccess.Models.User
+                        var studentEmail = "student@example.com";
+                        if (!db.Users.Any(u => u.Email == studentEmail))
                         {
-                            UserId = Guid.NewGuid(),
-                            FullName = "Demo Student",
-                            Email = studentEmail,
-                            Username = "student",
-                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Student@123456"),
-                            Role = "Student",
-                            IsApproved = true,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.Users.Add(studentUser);
-                        db.SaveChanges();
-                        startupLogger.LogInformation("Student account seeded successfully for {Email}.", studentEmail);
+                            var studentUser = new RagChatbotSystem.DataAccess.Models.User
+                            {
+                                UserId = Guid.NewGuid(),
+                                FullName = "Demo Student",
+                                Email = studentEmail,
+                                Username = "student",
+                                PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Student@123456"),
+                                Role = "Student",
+                                IsApproved = true,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.Users.Add(studentUser);
+                            db.SaveChanges();
+                            startupLogger.LogInformation("Development student account seeded successfully for {Email}.", studentEmail);
+                        }
                     }
                 }
                 catch (Exception ex)
