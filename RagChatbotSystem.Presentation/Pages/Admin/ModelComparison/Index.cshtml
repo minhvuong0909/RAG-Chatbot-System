@@ -12,127 +12,225 @@
     };
 }
 
-<section class="admin-page" data-admin-page>
-    <header class="admin-page-header">
+<div class="space-y-6" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow">Quản trị</p>
-            <h1>So sánh mô hình AI</h1>
-            <p class="helper-text">Chạy thử cùng một câu hỏi trên nhiều mô hình AI khác nhau để so sánh chất lượng câu trả lời, thời gian phản hồi và số Token sử dụng.</p>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản trị</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">So sánh mô hình AI</h1>
+            <p class="text-sm text-gray-500 mt-1">Chạy thử cùng một câu hỏi trên nhiều mô hình AI khác nhau để so sánh chất lượng câu trả lời, thời gian phản hồi và số Token sử dụng.</p>
         </div>
-    </header>
+        <div class="flex items-center gap-3">
+            <a asp-page="/Admin/ModelComparison/History" class="inline-flex items-center justify-center px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">
+                Lịch sử & Báo cáo
+            </a>
+        </div>
+    </div>
 
-    <partial name="_AdminTabs" />
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+        <partial name="_AdminTabs" />
+    </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-danger">@Model.ErrorMessage</div>
+        <div class="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-red-800">@Model.ErrorMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-red-400 hover:text-red-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
     }
 
-    <section class="admin-section">
-        <div class="section-title">
-            <h2>Chạy thử nghiệm</h2>
+    <!-- Run Test Section -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative group">
+        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <svg class="w-32 h-32 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
         </div>
+        
+        <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-indigo-50/50 to-white relative z-10">
+            <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+                Chạy thử nghiệm
+            </h2>
+        </div>
+        <div class="p-6 relative z-10">
+            <form method="post" class="admin-processing-form flex flex-col gap-5">
+                <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm bg-red-50 p-4 rounded-xl border border-red-100 hidden empty:hidden"></div>
 
-        <form method="post" class="admin-form model-comparison-form">
-            <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
-
-            <div class="form-group">
-                <label asp-for="Input.DatasetId">Môn học</label>
-                <select asp-for="Input.DatasetId">
-                    <option value="">Chọn môn học</option>
-                    @foreach (var dataset in Model.Datasets)
-                    {
-                        <option value="@dataset.DatasetId">@dataset.Name</option>
-                    }
-                </select>
-                <span asp-validation-for="Input.DatasetId" class="text-danger small"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Input.Question">Câu hỏi thử nghiệm</label>
-                <textarea asp-for="Input.Question" rows="3" placeholder="Nhập câu hỏi để thử nghiệm trên các mô hình..."></textarea>
-                <span asp-validation-for="Input.Question" class="text-danger small"></span>
-            </div>
-
-            <div class="form-group">
-                <label>Chọn mô hình để thử nghiệm</label>
-                <div class="model-comparison-providers">
-                    @foreach (var provider in Model.AvailableProviders)
-                    {
-                        <label class="model-comparison-provider-check">
-                            <input type="checkbox" name="Input.Providers" value="@provider" checked />
-                            @ProviderLabel(provider)
-                        </label>
-                    }
-                </div>
-                <span asp-validation-for="Input.Providers" class="text-danger small"></span>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Chạy thử nghiệm</button>
-        </form>
-    </section>
-
-    @if (Model.Result != null)
-    {
-        <section class="admin-section">
-            <div class="section-title">
-                <h2>Kết quả so sánh</h2>
-                <span>@Model.Result.RetrievedChunkCount đoạn ngữ cảnh · Retrieval @Model.Result.RetrievalLatencyMs ms</span>
-            </div>
-
-            <p class="helper-text"><strong>Câu hỏi:</strong> @Model.Result.Question</p>
-
-            <div class="model-comparison-results">
-                @foreach (var result in Model.Result.Results)
-                {
-                    <div class="model-comparison-card @(result.IsSuccess ? "" : "model-comparison-card-error")">
-                        <div class="model-comparison-card-header">
-                            <strong>@ProviderLabel(result.ProviderKey)</strong>
-                            <span class="status-pill @(result.IsSuccess ? "dataset-approved-pill" : "processing")">
-                                @(result.IsSuccess ? "Thành công" : "Lỗi")
-                            </span>
-                        </div>
-                        <div class="model-comparison-card-meta">
-                            <span><strong>Model:</strong> @result.ModelName</span>
-                            <span><strong>Thời gian:</strong> @result.LatencyMs ms</span>
-                            <span><strong>Token:</strong> @result.InputTokens vào / @result.OutputTokens ra / @result.TotalTokens tổng</span>
-                            @if (result.QualityScore.HasValue)
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Dataset Selection -->
+                    <div>
+                        <label asp-for="Input.DatasetId" class="block text-sm font-bold text-gray-700 mb-1.5">Môn học <span class="text-red-500">*</span></label>
+                        <select asp-for="Input.DatasetId" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border bg-white">
+                            <option value="">Chọn môn học</option>
+                            @foreach (var dataset in Model.Datasets)
                             {
-                                <span><strong>Điểm chất lượng (AI chấm):</strong> @result.QualityScore/10</span>
+                                <option value="@dataset.DatasetId">@dataset.Name</option>
                             }
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
+                        </select>
+                        <span asp-validation-for="Input.DatasetId" class="text-red-500 text-xs mt-1.5 block"></span>
+                    </div>
+
+                    <!-- Question Input -->
+                    <div>
+                        <label asp-for="Input.Question" class="block text-sm font-bold text-gray-700 mb-1.5">Câu hỏi thử nghiệm <span class="text-red-500">*</span></label>
+                        <textarea asp-for="Input.Question" rows="3" placeholder="Nhập câu hỏi để thử nghiệm trên các mô hình..." class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border resize-none"></textarea>
+                        <span asp-validation-for="Input.Question" class="text-red-500 text-xs mt-1.5 block"></span>
+                    </div>
+                </div>
+
+                <!-- Provider Selection -->
+                <div class="bg-gray-50/50 rounded-2xl p-5 border border-gray-100">
+                    <label class="block text-sm font-bold text-gray-700 mb-3">Chọn mô hình để thử nghiệm</label>
+                    <div class="flex flex-wrap gap-3">
+                        @foreach (var provider in Model.AvailableProviders)
                         {
-                            <div class="model-comparison-card-judge">@result.QualityReasoning</div>
-                        }
-                        @if (result.IsSuccess)
-                        {
-                            <div class="model-comparison-card-answer">@result.Answer</div>
-                        }
-                        else
-                        {
-                            <div class="model-comparison-card-answer model-comparison-card-answer-error">@result.ErrorMessage</div>
+                            <label class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-gray-200 bg-white cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors shadow-sm select-none has-[:checked]:border-indigo-500 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500 has-[:checked]:bg-indigo-50/50">
+                                <input type="checkbox" name="Input.Providers" value="@provider" checked class="w-4 h-4 text-accent-strong border-gray-300 rounded focus:ring-indigo-500" />
+                                <span class="text-sm font-bold text-gray-700">@ProviderLabel(provider)</span>
+                            </label>
                         }
                     </div>
-                }
+                    <span asp-validation-for="Input.Providers" class="text-red-500 text-xs mt-2 block"></span>
+                </div>
+
+                <div class="flex justify-end mt-2">
+                    <button type="submit" class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm">
+                        Chạy thử nghiệm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    @if (Model.Result != null)
+    {
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
+            <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-teal-50/50 to-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    </span>
+                    Kết quả so sánh
+                </h2>
+                <div class="flex gap-2">
+                    <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">@Model.Result.RetrievedChunkCount đoạn ngữ cảnh</span>
+                    <span class="px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-100">Retrieval @Model.Result.RetrievalLatencyMs ms</span>
+                </div>
             </div>
-        </section>
+
+            <div class="p-6 bg-gray-50/50 border-b border-gray-100">
+                <p class="text-sm">
+                    <strong class="text-gray-700 font-bold uppercase tracking-wider text-xs mr-2">Câu hỏi:</strong>
+                    <span class="text-ink font-medium">@Model.Result.Question</span>
+                </p>
+            </div>
+
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    @foreach (var result in Model.Result.Results)
+                    {
+                        <div class="bg-white rounded-2xl border @(result.IsSuccess ? "border-gray-200" : "border-red-300") shadow-sm overflow-hidden flex flex-col transition-shadow hover:shadow-md h-full relative">
+                            @if(!result.IsSuccess)
+                            {
+                                <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                            }
+                            else
+                            {
+                                <div class="absolute top-0 left-0 w-1 h-full bg-teal-500"></div>
+                            }
+                            
+                            <div class="px-5 py-4 border-b border-gray-50 flex items-center justify-between pl-6 bg-gray-50/30">
+                                <strong class="text-ink font-bold text-base">@ProviderLabel(result.ProviderKey)</strong>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border @(result.IsSuccess ? "bg-teal-50 text-teal-700 border-teal-200" : "bg-red-50 text-red-700 border-red-200")">
+                                    @(result.IsSuccess ? "Thành công" : "Lỗi")
+                                </span>
+                            </div>
+                            
+                            <div class="p-5 flex-1 flex flex-col gap-4 pl-6">
+                                <div class="grid grid-cols-2 gap-3 mb-2">
+                                    <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Model</p>
+                                        <p class="text-sm font-semibold text-ink truncate" title="@result.ModelName">@result.ModelName</p>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Thời gian</p>
+                                        <p class="text-sm font-semibold text-ink">@result.LatencyMs <span class="text-xs text-gray-500 font-normal">ms</span></p>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-xl p-3 border border-gray-100 col-span-2 flex justify-between items-center">
+                                        <div>
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Token (Vào / Ra)</p>
+                                            <p class="text-sm font-semibold text-ink">@result.InputTokens <span class="text-gray-400 font-normal">/</span> @result.OutputTokens</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tổng</p>
+                                            <p class="text-sm font-bold text-indigo-600">@result.TotalTokens</p>
+                                        </div>
+                                    </div>
+                                    @if (result.QualityScore.HasValue)
+                                    {
+                                        <div class="bg-emerald-50 rounded-xl p-3 border border-emerald-100 col-span-2 flex justify-between items-center">
+                                            <p class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Điểm chất lượng (AI chấm)</p>
+                                            <div class="flex items-center gap-1">
+                                                <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                                <p class="text-sm font-bold text-emerald-700">@result.QualityScore<span class="text-emerald-600/50">/10</span></p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
+                                {
+                                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 text-xs text-gray-600 italic leading-relaxed relative">
+                                        <div class="absolute -top-2 left-4 px-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Lý do chấm điểm</div>
+                                        <div class="mt-1">@result.QualityReasoning</div>
+                                    </div>
+                                }
+                                
+                                <div class="mt-auto pt-4 border-t border-gray-100">
+                                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Câu trả lời</p>
+                                    @if (result.IsSuccess)
+                                    {
+                                        <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap font-medium">@result.Answer</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 font-medium">@result.ErrorMessage</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
     }
-</section>
+</div>
+
+<!-- Processing Overlay -->
+<div id="adminProcessingOverlay" class="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm hidden flex-col items-center justify-center p-4" aria-live="polite">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center animate-bounce-in">
+        <svg class="w-16 h-16 text-accent-strong animate-spin mx-auto mb-6" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <h2 class="text-xl font-bold text-ink mb-2">Đang chạy thử nghiệm</h2>
+        <p class="text-sm text-gray-500">Quá trình này có thể mất một lúc tùy thuộc vào số lượng mô hình được chọn. Vui lòng không đóng trang...</p>
+    </div>
+</div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll(".admin-processing-form").forEach(function (form) {
+            form.addEventListener("submit", function () {
+                const overlay = document.getElementById("adminProcessingOverlay");
+                if (overlay && form.checkValidity()) overlay.classList.remove("hidden"), overlay.classList.add("flex");
+            });
+        });
+    </script>
     <style>
-        .model-comparison-form .form-group { margin-bottom: 16px; }
-        .model-comparison-providers { display: flex; flex-wrap: wrap; gap: 12px; }
-        .model-comparison-provider-check { align-items: center; display: flex; gap: 6px; font-weight: 400; }
-        .model-comparison-results { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-        .model-comparison-card { align-content: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 10px; padding: 14px; }
-        .model-comparison-card-error { border-color: #e0554f; }
-        .model-comparison-card-header { align-items: center; display: flex; justify-content: space-between; }
-        .model-comparison-card-meta { color: var(--muted); display: grid; font-size: .78rem; gap: 3px; }
-        .model-comparison-card-answer { border-top: 1px solid var(--line); font-size: .88rem; line-height: 1.5; padding-top: 10px; white-space: pre-wrap; }
-        .model-comparison-card-answer-error { color: #e0554f; }
-        .model-comparison-card-judge { background: var(--surface-muted); border-radius: 6px; color: var(--muted); font-size: .78rem; font-style: italic; padding: 8px 10px; }
+        .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @@keyframes bounceIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
 }

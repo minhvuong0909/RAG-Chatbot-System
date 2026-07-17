@@ -19,160 +19,210 @@
     };
 }
 
-<section class="admin-page reports-page" data-reports-page>
-    <header class="admin-page-header">
+<div class="space-y-8" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow">QUẢN TRỊ</p>
-            <h1>Báo cáo</h1>
-            <p class="helper-text">Theo dõi lượt hỏi, Token kỹ thuật, Credit thực tế và mức sử dụng theo từng đối tượng. Phạm vi: @Model.ReportScopeLabel.</p>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản trị</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Báo cáo hệ thống</h1>
+            <p class="text-sm text-gray-500 mt-1">Theo dõi lượt hỏi, Token kỹ thuật, Credit thực tế và mức sử dụng theo từng đối tượng.</p>
         </div>
-    </header>
+        <div class="px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg whitespace-nowrap">
+            <span class="text-xs font-bold text-accent-strong">Phạm vi: @Model.ReportScopeLabel</span>
+        </div>
+    </div>
 
     @if (User.IsInRole("Admin"))
     {
-        <partial name="_AdminTabs" />
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+            <partial name="_AdminTabs" />
+        </div>
     }
     else
     {
-        <nav class="admin-tabs" aria-label="Khu vực báo cáo">
-            <a asp-page="/Index">Không gian học tập</a>
-            <a asp-page="/Datasets/Index">Môn học</a>
-            <a class="active" asp-page="/Admin/Reports" aria-current="page">Báo cáo</a>
-        </nav>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+            <nav class="flex overflow-x-auto hide-scrollbar gap-2" aria-label="Khu vực báo cáo">
+                <a asp-page="/Index" class="px-4 py-2 text-sm font-bold rounded-xl text-gray-600 hover:bg-gray-50 hover:text-ink transition-colors whitespace-nowrap">Không gian học tập</a>
+                <a asp-page="/Datasets/Index" class="px-4 py-2 text-sm font-bold rounded-xl text-gray-600 hover:bg-gray-50 hover:text-ink transition-colors whitespace-nowrap">Môn học</a>
+                <a asp-page="/Admin/Reports" class="px-4 py-2 text-sm font-bold rounded-xl bg-indigo-50 text-accent-strong transition-colors whitespace-nowrap" aria-current="page">Báo cáo</a>
+            </nav>
+        </div>
     }
 
-    <section class="report-section report-overview-section" aria-labelledby="overview-heading">
-        <div class="report-section-heading">
-            <div>
-                <p class="eyebrow">TỔNG QUAN</p>
-                <h2 id="overview-heading">Hoạt động hệ thống</h2>
-                <p>Lượt hỏi và người dùng là chỉ số vận hành; Token được trình bày riêng như số liệu kỹ thuật.</p>
-            </div>
+    <!-- SECTION: Overview -->
+    <section aria-labelledby="overview-heading">
+        <div class="mb-4">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Tổng quan</p>
+            <h2 id="overview-heading" class="text-xl font-bold text-ink mt-1">Hoạt động hệ thống</h2>
+            <p class="text-sm text-gray-500 mt-1">Lượt hỏi và người dùng là chỉ số vận hành; Token được trình bày riêng như số liệu kỹ thuật.</p>
         </div>
-        <div class="report-metric-grid report-overview-grid">
-            <article class="report-metric-card metric-queries">
-                <span class="report-metric-label">Tổng lượt hỏi</span>
-                <strong>@Model.Summary.TotalQueriesCount.ToString("N0", vietnameseCulture)</strong>
-                <small>Lượt truy vấn đã được ghi nhận</small>
-            </article>
-            <article class="report-metric-card metric-users">
-                <span class="report-metric-label">Người dùng hoạt động</span>
-                <strong>@Model.Summary.ActiveUsersCount.ToString("N0", vietnameseCulture)</strong>
-                <small>Người dùng có phát sinh lượt hỏi</small>
-            </article>
-            <article class="report-metric-card metric-tokens">
-                <span class="report-metric-label">Tổng Token</span>
-                <strong>@Model.Summary.TotalTokensUsed.ToString("N0", vietnameseCulture)</strong>
-                <small>Chỉ số kỹ thuật của hệ thống AI</small>
-            </article>
-            <article class="report-metric-card metric-today">
-                <span class="report-metric-label">Token hôm nay</span>
-                <strong>@Model.Summary.TodayTokensUsed.ToString("N0", vietnameseCulture)</strong>
-                <small>Sử dụng trong ngày Việt Nam hiện tại</small>
-            </article>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden group hover:border-teal-300 transition-colors">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-16 h-16 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1 relative z-10">Tổng lượt hỏi</p>
+                <p class="text-3xl font-bold text-ink relative z-10">@Model.Summary.TotalQueriesCount.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-2 relative z-10">Lượt truy vấn đã được ghi nhận</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden group hover:border-blue-300 transition-colors">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-16 h-16 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1 relative z-10">Người dùng hoạt động</p>
+                <p class="text-3xl font-bold text-ink relative z-10">@Model.Summary.ActiveUsersCount.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-2 relative z-10">Người dùng có phát sinh lượt hỏi</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden group hover:border-purple-300 transition-colors">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-16 h-16 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1 relative z-10">Tổng Token</p>
+                <p class="text-3xl font-bold text-ink relative z-10">@Model.Summary.TotalTokensUsed.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-2 relative z-10">Chỉ số kỹ thuật của hệ thống AI</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden group hover:border-cyan-300 transition-colors">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg class="w-16 h-16 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1 relative z-10">Token hôm nay</p>
+                <p class="text-3xl font-bold text-ink relative z-10">@Model.Summary.TodayTokensUsed.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-2 relative z-10">Sử dụng trong ngày VN hiện tại</p>
+            </div>
         </div>
     </section>
 
-    <section class="report-section" aria-labelledby="token-heading">
-        <div class="report-section-heading">
-            <div>
-                <p class="eyebrow">CHỈ SỐ KỸ THUẬT</p>
-                <h2 id="token-heading">Mức sử dụng Token</h2>
-                <p>Xu hướng Token và lượt hỏi trong 7 ngày gần nhất.</p>
-            </div>
+    <!-- SECTION: Token Usage Chart -->
+    <section aria-labelledby="token-heading">
+        <div class="mb-4">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Chỉ số kỹ thuật</p>
+            <h2 id="token-heading" class="text-xl font-bold text-ink mt-1">Mức sử dụng Token</h2>
+            <p class="text-sm text-gray-500 mt-1">Xu hướng Token và lượt hỏi trong 7 ngày gần nhất.</p>
         </div>
+        
         @if (hasTokenUsage)
         {
-            <div class="report-chart-frame">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-96">
                 <canvas id="tokenUsageChart" aria-label="Biểu đồ mức sử dụng Token và lượt hỏi" role="img"></canvas>
             </div>
         }
         else
         {
-            <div class="report-empty-state">
-                <strong>Chưa có dữ liệu Token</strong>
-                <p>Biểu đồ sẽ xuất hiện khi hệ thống ghi nhận lượt hỏi thành công.</p>
+            <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center">
+                <div class="w-16 h-16 rounded-full bg-gray-50 text-gray-400 mx-auto mb-4 flex items-center justify-center">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                </div>
+                <strong class="text-lg font-bold text-ink block mb-1">Chưa có dữ liệu Token</strong>
+                <p class="text-sm text-gray-500">Biểu đồ sẽ xuất hiện khi hệ thống ghi nhận lượt hỏi thành công.</p>
             </div>
         }
     </section>
 
-    <section class="report-section" aria-labelledby="credit-heading">
-        <div class="report-section-heading">
-            <div>
-                <p class="eyebrow">CHỈ SỐ NGHIỆP VỤ</p>
-                <h2 id="credit-heading">Mức sử dụng Credit</h2>
-                <p>Credit là chỉ số nghiệp vụ; số thực trừ chỉ phát sinh sau câu trả lời AI hợp lệ được lưu thành công.</p>
-            </div>
+    <!-- SECTION: Credit Usage -->
+    <section aria-labelledby="credit-heading">
+        <div class="mb-4">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Chỉ số nghiệp vụ</p>
+            <h2 id="credit-heading" class="text-xl font-bold text-ink mt-1">Mức sử dụng Credit</h2>
+            <p class="text-sm text-gray-500 mt-1">Credit là chỉ số nghiệp vụ; số thực trừ chỉ phát sinh sau câu trả lời AI hợp lệ được lưu thành công.</p>
         </div>
-        <div class="report-metric-grid report-credit-grid">
-            <article class="report-metric-card metric-credit-calculated">
-                <span class="report-metric-label">Credit tính toán</span>
-                <strong>@Model.CreditReport.Summary.TotalCalculatedCredits.ToString("N0", vietnameseCulture)</strong>
-                <small>Chi phí ước tính từ lượt trả lời</small>
-            </article>
-            <article class="report-metric-card metric-credit-charged">
-                <span class="report-metric-label">Credit thực trừ</span>
-                <strong>@Model.CreditReport.Summary.TotalChargedCredits.ToString("N0", vietnameseCulture)</strong>
-                <small>Đã trừ khỏi ví sau khi hoàn tất</small>
-            </article>
-            <article class="report-metric-card metric-credit-free">
-                <span class="report-metric-label">Credit miễn phí đã dùng</span>
-                <strong>@Model.CreditReport.Summary.FreeCreditsConsumed.ToString("N0", vietnameseCulture)</strong>
-                <small>Phần Credit miễn phí đã tiêu thụ</small>
-            </article>
-            <article class="report-metric-card metric-credit-paid">
-                <span class="report-metric-label">Credit đã mua đã dùng</span>
-                <strong>@Model.CreditReport.Summary.PaidCreditsConsumed.ToString("N0", vietnameseCulture)</strong>
-                <small>Phần Credit đã mua đã tiêu thụ</small>
-            </article>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit tính toán</p>
+                <p class="text-2xl font-bold text-ink">@Model.CreditReport.Summary.TotalCalculatedCredits.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Chi phí ước tính từ lượt trả lời</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit thực trừ</p>
+                <p class="text-2xl font-bold text-ink">@Model.CreditReport.Summary.TotalChargedCredits.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Đã trừ khỏi ví sau khi hoàn tất</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit miễn phí đã dùng</p>
+                <p class="text-2xl font-bold text-ink">@Model.CreditReport.Summary.FreeCreditsConsumed.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Phần Credit miễn phí đã tiêu thụ</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <div class="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                </div>
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit mua thêm đã dùng</p>
+                <p class="text-2xl font-bold text-ink">@Model.CreditReport.Summary.PaidCreditsConsumed.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Phần Credit đã mua đã tiêu thụ</p>
+            </div>
         </div>
     </section>
 
-    <section class="report-section" aria-labelledby="blocked-heading">
-        <div class="report-section-heading">
-            <div>
-                <p class="eyebrow">THEO DÕI SỰ CỐ</p>
-                <h2 id="blocked-heading">Lỗi và lượt bị chặn</h2>
-                <p>Các yêu cầu không đủ số dư hoặc bị chặn trước khi tạo câu trả lời.</p>
-            </div>
+    <!-- SECTION: Blocked Info -->
+    <section aria-labelledby="blocked-heading">
+        <div class="mb-4">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Theo dõi sự cố</p>
+            <h2 id="blocked-heading" class="text-xl font-bold text-ink mt-1">Lỗi và lượt bị chặn</h2>
+            <p class="text-sm text-gray-500 mt-1">Các yêu cầu không đủ số dư hoặc bị chặn trước khi tạo câu trả lời.</p>
         </div>
-        <div class="report-metric-grid report-blocked-grid">
-            <article class="report-metric-card metric-insufficient">
-                <span class="report-metric-label">Không đủ số dư</span>
-                <strong>@Model.CreditReport.Summary.InsufficientBalanceCount.ToString("N0", vietnameseCulture)</strong>
-                <small>Lượt phát sinh yêu cầu nhưng không đủ Credit</small>
-            </article>
-            <article class="report-metric-card metric-blocked">
-                <span class="report-metric-label">Lượt bị chặn do hết Credit</span>
-                <strong>@Model.CreditReport.Summary.ZeroBalanceBlockedCount.ToString("N0", vietnameseCulture)</strong>
-                <small>Đã bị chặn trước RAG và mô hình AI</small>
-            </article>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:w-2/3">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 border-l-4 border-l-rose-500">
+                <p class="text-sm font-bold text-gray-500 mb-1">Không đủ số dư</p>
+                <p class="text-3xl font-bold text-rose-600">@Model.CreditReport.Summary.InsufficientBalanceCount.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-2">Lượt phát sinh yêu cầu nhưng không đủ Credit</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 border-l-4 border-l-amber-500">
+                <p class="text-sm font-bold text-gray-500 mb-1">Lượt bị chặn do hết Credit</p>
+                <p class="text-3xl font-bold text-amber-600">@Model.CreditReport.Summary.ZeroBalanceBlockedCount.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-2">Đã bị chặn trước RAG và mô hình AI</p>
+            </div>
         </div>
     </section>
 
-    <section class="report-section" aria-labelledby="credit-breakdown-heading">
-        <div class="report-section-heading">
-            <div>
-                <p class="eyebrow">Phân tích Credit</p>
-                <h2 id="credit-breakdown-heading">Mức sử dụng theo đối tượng</h2>
-                <p>So sánh mức sử dụng Credit theo sinh viên, môn học và mô hình AI.</p>
-            </div>
+    <!-- SECTION: Credit Breakdown -->
+    <section aria-labelledby="credit-breakdown-heading">
+        <div class="mb-4">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Phân tích Credit</p>
+            <h2 id="credit-breakdown-heading" class="text-xl font-bold text-ink mt-1">Mức sử dụng theo đối tượng</h2>
+            <p class="text-sm text-gray-500 mt-1">So sánh mức sử dụng Credit theo sinh viên, môn học và mô hình AI.</p>
         </div>
-        <div class="report-data-grid">
-            <article class="report-table-panel">
-                <h3>Credit theo sinh viên</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Table 1: Students -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-96">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h3 class="font-bold text-ink">Credit theo sinh viên</h3>
+                </div>
                 @if (Model.CreditReport.TopStudents.Any())
                 {
-                    <div class="report-table-scroll">
-                        <table class="report-table">
-                            <thead><tr><th>Sinh viên</th><th class="text-end">Thực trừ</th><th class="text-end">Tính toán</th></tr></thead>
-                            <tbody>
+                    <div class="overflow-y-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                                <tr>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase">Sinh viên</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Thực trừ</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Tính toán</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach (var student in Model.CreditReport.TopStudents)
                                 {
-                                    <tr>
-                                        <td><span class="table-primary-text" title="@student.FullName">@student.FullName</span><small title="@student.Email">@student.Email</small></td>
-                                        <td class="text-end">@student.ChargedCredits.ToString("N0", vietnameseCulture)</td>
-                                        <td class="text-end">@student.CalculatedCredits.ToString("N0", vietnameseCulture)</td>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="py-3 px-4">
+                                            <div class="font-semibold text-ink text-sm truncate max-w-[150px]" title="@student.FullName">@student.FullName</div>
+                                            <div class="text-xs text-gray-500 truncate max-w-[150px]" title="@student.Email">@student.Email</div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right text-sm font-medium text-teal-600">@student.ChargedCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="py-3 px-4 text-right text-sm text-gray-500">@student.CalculatedCredits.ToString("N0", vietnameseCulture)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -181,24 +231,38 @@
                 }
                 else
                 {
-                    <div class="report-empty-state compact"><strong>Chưa có dữ liệu</strong><p>Chưa có Credit được ghi nhận theo sinh viên.</p></div>
+                    <div class="flex flex-col items-center justify-center flex-1 p-6 text-center">
+                        <strong class="text-ink">Chưa có dữ liệu</strong>
+                        <p class="text-sm text-gray-500 mt-1">Chưa có Credit được ghi nhận theo sinh viên.</p>
+                    </div>
                 }
-            </article>
+            </div>
 
-            <article class="report-table-panel">
-                <h3>Credit theo môn học</h3>
+            <!-- Table 2: Datasets -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-96">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h3 class="font-bold text-ink">Credit theo môn học</h3>
+                </div>
                 @if (Model.CreditReport.TopDatasets.Any())
                 {
-                    <div class="report-table-scroll">
-                        <table class="report-table">
-                            <thead><tr><th>Môn học</th><th class="text-end">Thực trừ</th><th class="text-end">Tính toán</th></tr></thead>
-                            <tbody>
+                    <div class="overflow-y-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                                <tr>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase">Môn học</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Thực trừ</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Tính toán</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach (var dataset in Model.CreditReport.TopDatasets)
                                 {
-                                    <tr>
-                                        <td><span class="table-primary-text" title="@dataset.DatasetName">@dataset.DatasetName</span></td>
-                                        <td class="text-end">@dataset.ChargedCredits.ToString("N0", vietnameseCulture)</td>
-                                        <td class="text-end">@dataset.CalculatedCredits.ToString("N0", vietnameseCulture)</td>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="py-3 px-4">
+                                            <div class="font-semibold text-ink text-sm truncate max-w-[150px]" title="@dataset.DatasetName">@dataset.DatasetName</div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right text-sm font-medium text-teal-600">@dataset.ChargedCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="py-3 px-4 text-right text-sm text-gray-500">@dataset.CalculatedCredits.ToString("N0", vietnameseCulture)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -207,24 +271,38 @@
                 }
                 else
                 {
-                    <div class="report-empty-state compact"><strong>Chưa có dữ liệu</strong><p>Chưa có Credit được ghi nhận theo môn học.</p></div>
+                    <div class="flex flex-col items-center justify-center flex-1 p-6 text-center">
+                        <strong class="text-ink">Chưa có dữ liệu</strong>
+                        <p class="text-sm text-gray-500 mt-1">Chưa có Credit được ghi nhận theo môn học.</p>
+                    </div>
                 }
-            </article>
+            </div>
 
-            <article class="report-table-panel">
-                <h3>Credit theo mô hình AI</h3>
+            <!-- Table 3: Models -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-96">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h3 class="font-bold text-ink">Credit theo mô hình AI</h3>
+                </div>
                 @if (Model.CreditReport.TopModels.Any())
                 {
-                    <div class="report-table-scroll">
-                        <table class="report-table">
-                            <thead><tr><th>Mô hình AI</th><th class="text-end">Thực trừ</th><th class="text-end">Tính toán</th></tr></thead>
-                            <tbody>
+                    <div class="overflow-y-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                                <tr>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase">Mô hình AI</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Thực trừ</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Tính toán</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach (var aiModel in Model.CreditReport.TopModels)
                                 {
-                                    <tr>
-                                        <td><span class="table-primary-text" title="@aiModel.ModelName">@aiModel.ModelName</span></td>
-                                        <td class="text-end">@aiModel.ChargedCredits.ToString("N0", vietnameseCulture)</td>
-                                        <td class="text-end">@aiModel.CalculatedCredits.ToString("N0", vietnameseCulture)</td>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="py-3 px-4">
+                                            <div class="font-semibold text-ink text-sm truncate max-w-[150px]" title="@aiModel.ModelName">@aiModel.ModelName</div>
+                                        </td>
+                                        <td class="py-3 px-4 text-right text-sm font-medium text-teal-600">@aiModel.ChargedCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="py-3 px-4 text-right text-sm text-gray-500">@aiModel.CalculatedCredits.ToString("N0", vietnameseCulture)</td>
                                     </tr>
                                 }
                             </tbody>
@@ -233,38 +311,58 @@
                 }
                 else
                 {
-                    <div class="report-empty-state compact"><strong>Chưa có dữ liệu</strong><p>Chưa có Credit được ghi nhận theo mô hình AI.</p></div>
+                    <div class="flex flex-col items-center justify-center flex-1 p-6 text-center">
+                        <strong class="text-ink">Chưa có dữ liệu</strong>
+                        <p class="text-sm text-gray-500 mt-1">Chưa có Credit được ghi nhận theo mô hình AI.</p>
+                    </div>
                 }
-            </article>
+            </div>
         </div>
     </section>
 
-    <section class="report-section" aria-labelledby="engagement-heading">
-        <div class="report-section-heading">
-            <div>
-                <p class="eyebrow">LƯỢT HỎI VÀ TRÍCH DẪN</p>
-                <h2 id="engagement-heading">Người dùng và tài liệu sử dụng nhiều</h2>
-                <p>Dữ liệu Token kỹ thuật được hiển thị riêng với tần suất trích dẫn tài liệu.</p>
-            </div>
+    <!-- SECTION: Engagement -->
+    <section aria-labelledby="engagement-heading">
+        <div class="mb-4">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Lượt hỏi và Trích dẫn</p>
+            <h2 id="engagement-heading" class="text-xl font-bold text-ink mt-1">Người dùng và tài liệu sử dụng nhiều</h2>
+            <p class="text-sm text-gray-500 mt-1">Dữ liệu Token kỹ thuật được hiển thị riêng với tần suất trích dẫn tài liệu.</p>
         </div>
-        <div class="report-engagement-grid">
-            <article class="report-table-panel report-leaderboard-panel">
-                <h3>Người dùng sử dụng nhiều nhất</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <!-- Leaderboard -->
+            <div class="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-96">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h3 class="font-bold text-ink">Người dùng sử dụng nhiều nhất</h3>
+                </div>
                 @if (Model.Leaderboard.Any())
                 {
-                    <div class="report-table-scroll">
-                        <table class="report-table report-leaderboard-table">
-                            <thead><tr><th>Hạng</th><th>Người dùng</th><th>Vai trò</th><th class="text-end">Lượt hỏi</th><th class="text-end">Token</th></tr></thead>
-                            <tbody>
+                    <div class="overflow-y-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                                <tr>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase w-12 text-center">Hạng</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase">Người dùng</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase">Vai trò</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Lượt hỏi</th>
+                                    <th class="py-2 px-4 text-xs font-bold text-gray-500 uppercase text-right">Token</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
                                 @{ var rank = 1; }
                                 @foreach (var user in Model.Leaderboard)
                                 {
-                                    <tr>
-                                        <td><span class="rank-number">@rank</span></td>
-                                        <td><span class="table-primary-text" title="@user.FullName">@user.FullName</span><small title="@user.Email">@user.Email</small></td>
-                                        <td><span class="report-role">@RoleLabel(user.Role)</span></td>
-                                        <td class="text-end">@user.TotalQueriesCount.ToString("N0", vietnameseCulture)</td>
-                                        <td class="text-end">@user.TotalTokensUsed.ToString("N0", vietnameseCulture)</td>
+                                    <tr class="hover:bg-gray-50/50">
+                                        <td class="py-3 px-4 text-center">
+                                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-xs font-bold">@rank</span>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <div class="font-semibold text-ink text-sm truncate max-w-[150px]" title="@user.FullName">@user.FullName</div>
+                                            <div class="text-xs text-gray-500 truncate max-w-[150px]" title="@user.Email">@user.Email</div>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border bg-gray-50 text-gray-600 border-gray-200 whitespace-nowrap">@RoleLabel(user.Role)</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-right text-sm font-medium text-ink">@user.TotalQueriesCount.ToString("N0", vietnameseCulture)</td>
+                                        <td class="py-3 px-4 text-right text-sm text-purple-600">@user.TotalTokensUsed.ToString("N0", vietnameseCulture)</td>
                                     </tr>
                                     rank++;
                                 }
@@ -274,27 +372,35 @@
                 }
                 else
                 {
-                    <div class="report-empty-state compact"><strong>Chưa có dữ liệu</strong><p>Chưa có người dùng phát sinh lượt hỏi.</p></div>
+                    <div class="flex flex-col items-center justify-center flex-1 p-6 text-center">
+                        <strong class="text-ink">Chưa có dữ liệu</strong>
+                        <p class="text-sm text-gray-500 mt-1">Chưa có người dùng phát sinh lượt hỏi.</p>
+                    </div>
                 }
-            </article>
+            </div>
 
-            <article class="report-table-panel report-documents-panel">
-                <h3>Tài liệu được trích dẫn nhiều nhất</h3>
+            <!-- Top Documents -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-96">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h3 class="font-bold text-ink">Tài liệu được trích dẫn nhiều nhất</h3>
+                </div>
                 @if (Model.TopDocuments.Any())
                 {
                     var maxCitations = Model.TopDocuments.First().CitationCount;
-                    <div class="report-document-list">
+                    <div class="overflow-y-auto flex-1 custom-scrollbar p-4 space-y-4">
                         @foreach (var document in Model.TopDocuments)
                         {
                             var percentage = maxCitations > 0 ? (double)document.CitationCount / maxCitations * 100 : 0;
-                            <div class="report-document-item">
-                                <div class="report-document-title">
-                                    <span title="@document.DocumentName">@document.DocumentName</span>
-                                    <small title="@document.DatasetName">@document.DatasetName</small>
+                            <div>
+                                <div class="flex justify-between items-end mb-1">
+                                    <div class="min-w-0 pr-4">
+                                        <p class="text-sm font-semibold text-ink truncate" title="@document.DocumentName">@document.DocumentName</p>
+                                        <p class="text-xs text-gray-500 truncate" title="@document.DatasetName">@document.DatasetName</p>
+                                    </div>
+                                    <strong class="text-sm text-teal-600 whitespace-nowrap">@document.CitationCount.ToString("N0", vietnameseCulture) lượt</strong>
                                 </div>
-                                <div class="report-document-meter">
-                                    <span class="report-document-track"><span style="width: @percentage.ToString(CultureInfo.InvariantCulture)%"></span></span>
-                                    <strong>@document.CitationCount.ToString("N0", vietnameseCulture) lượt</strong>
+                                <div class="w-full bg-gray-100 rounded-full h-2">
+                                    <div class="bg-teal-500 h-2 rounded-full" style="width: @percentage.ToString(CultureInfo.InvariantCulture)%"></div>
                                 </div>
                             </div>
                         }
@@ -302,72 +408,24 @@
                 }
                 else
                 {
-                    <div class="report-empty-state compact"><strong>Chưa có dữ liệu</strong><p>Chưa có tài liệu nào được trích dẫn.</p></div>
+                    <div class="flex flex-col items-center justify-center flex-1 p-6 text-center">
+                        <strong class="text-ink">Chưa có dữ liệu</strong>
+                        <p class="text-sm text-gray-500 mt-1">Chưa có tài liệu nào được trích dẫn.</p>
+                    </div>
                 }
-            </article>
+            </div>
         </div>
     </section>
-</section>
+</div>
 
 @section Scripts {
     <style>
-        .reports-page { gap: 1.35rem; }
-        .report-section { display: grid; gap: 1rem; padding: 1.4rem 0; border-top: 1px solid #dbe4ee; }
-        .report-overview-section { border-top: 0; padding-top: 0; }
-        .report-section-heading h2, .report-table-panel h3 { margin: 0; color: #0f172a; }
-        .report-section-heading h2 { font-size: 1.25rem; }
-        .report-section-heading p { max-width: 760px; margin: .35rem 0 0; color: #64748b; font-size: .92rem; }
-        .report-metric-grid { display: grid; gap: .9rem; }
-        .report-overview-grid, .report-credit-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        .report-blocked-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 700px; }
-        .report-metric-card { display: flex; min-width: 0; min-height: 138px; flex-direction: column; gap: .35rem; border: 1px solid #dbe4ee; border-top: 3px solid #94a3b8; border-radius: 8px; background: #fff; padding: 1rem; }
-        .report-metric-label { color: #475569; font-size: .86rem; font-weight: 650; }
-        .report-metric-card strong { color: #0f172a; font-size: 1.8rem; line-height: 1.1; }
-        .report-metric-card small { color: #64748b; font-size: .8rem; line-height: 1.35; }
-        .metric-queries { border-top-color: #0f766e; }
-        .metric-users { border-top-color: #2563eb; }
-        .metric-tokens { border-top-color: #7c3aed; }
-        .metric-today { border-top-color: #0891b2; }
-        .metric-credit-calculated { border-top-color: #2563eb; }
-        .metric-credit-charged { border-top-color: #0f766e; }
-        .metric-credit-free { border-top-color: #d97706; }
-        .metric-credit-paid { border-top-color: #c2410c; }
-        .metric-insufficient { border-top-color: #be123c; }
-        .metric-blocked { border-top-color: #a16207; }
-        .report-chart-frame { position: relative; height: 330px; border: 1px solid #dbe4ee; border-radius: 8px; background: #fff; padding: .75rem; }
-        .report-empty-state { display: grid; min-height: 190px; place-content: center; border: 1px dashed #cbd5e1; border-radius: 8px; color: #475569; text-align: center; padding: 1.25rem; }
-        .report-empty-state strong { color: #0f172a; }
-        .report-empty-state p { margin: .35rem 0 0; }
-        .report-empty-state.compact { min-height: 130px; font-size: .9rem; }
-        .report-data-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-        .report-engagement-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .9fr); gap: 1rem; }
-        .report-table-panel { display: grid; min-width: 0; gap: .85rem; border: 1px solid #dbe4ee; border-radius: 8px; background: #fff; padding: 1rem; }
-        .report-table-panel h3 { font-size: 1rem; }
-        .report-table-scroll { max-height: 365px; overflow: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
-        .report-table { width: 100%; min-width: 410px; border-collapse: collapse; font-size: .88rem; }
-        .report-table th { position: sticky; top: 0; z-index: 1; background: #f8fafc; color: #475569; font-size: .75rem; font-weight: 750; text-align: left; white-space: nowrap; padding: .7rem; }
-        .report-table td { border-top: 1px solid #e2e8f0; color: #334155; padding: .7rem; vertical-align: middle; }
-        .report-table td.text-end, .report-table th.text-end { text-align: right; }
-        .table-primary-text, .report-document-title > span { display: block; max-width: 205px; overflow: hidden; color: #0f172a; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-        .report-table small, .report-document-title small { display: block; max-width: 205px; overflow: hidden; margin-top: .15rem; color: #64748b; font-size: .77rem; text-overflow: ellipsis; white-space: nowrap; }
-        .rank-number { display: inline-grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; background: #f1f5f9; color: #334155; font-weight: 700; }
-        .report-role { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #475569; font-size: .75rem; font-weight: 700; padding: .25rem .5rem; white-space: nowrap; }
-        .report-document-list { display: grid; gap: .9rem; }
-        .report-document-item { display: grid; gap: .45rem; }
-        .report-document-title { min-width: 0; }
-        .report-document-meter { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .65rem; }
-        .report-document-track { display: block; height: 8px; overflow: hidden; border-radius: 4px; background: #e2e8f0; }
-        .report-document-track > span { display: block; height: 100%; border-radius: inherit; background: #0f766e; }
-        .report-document-meter strong { color: #334155; font-size: .8rem; white-space: nowrap; }
-        @@media (max-width: 1100px) { .report-overview-grid, .report-credit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .report-data-grid { grid-template-columns: 1fr; } .report-engagement-grid { grid-template-columns: 1fr; } }
-        @@media (max-width: 620px) {
-            .report-overview-grid, .report-credit-grid, .report-blocked-grid { grid-template-columns: 1fr; }
-            .report-chart-frame { height: 280px; padding: .5rem; }
-            .report-table-panel { padding: .85rem; }
-            .report-table-scroll { margin-inline: -.15rem; }
-            .report-table { min-width: 470px; }
-            .report-metric-card { min-height: 122px; }
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 
     @if (hasTokenUsage)
@@ -376,9 +434,10 @@
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 const canvas = document.getElementById("tokenUsageChart");
-                if (!canvas || typeof Chart === "undefined") {
-                    return;
-                }
+                if (!canvas || typeof Chart === "undefined") return;
+
+                Chart.defaults.font.family = '"Inter", "Segoe UI", sans-serif';
+                Chart.defaults.color = '#64748b';
 
                 new Chart(canvas, {
                     type: "line",
@@ -388,25 +447,31 @@
                             {
                                 label: "Token đã dùng",
                                 data: @Html.Raw(chartTokens),
-                                borderColor: "#2563eb",
-                                borderWidth: 2,
-                                backgroundColor: "rgba(37, 99, 235, .10)",
+                                borderColor: "#7c3aed",
+                                borderWidth: 3,
+                                backgroundColor: "rgba(124, 58, 237, 0.15)",
                                 fill: true,
-                                tension: .3,
-                                pointBackgroundColor: "#2563eb",
-                                pointRadius: 3,
+                                tension: 0.4,
+                                pointBackgroundColor: "#ffffff",
+                                pointBorderColor: "#7c3aed",
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
                                 yAxisID: "tokens"
                             },
                             {
                                 label: "Lượt hỏi",
                                 data: @Html.Raw(chartQueries),
-                                borderColor: "#0f766e",
-                                borderWidth: 2,
-                                borderDash: [5, 4],
+                                borderColor: "#0d9488",
+                                borderWidth: 3,
+                                borderDash: [5, 5],
                                 fill: false,
-                                tension: .3,
-                                pointBackgroundColor: "#0f766e",
-                                pointRadius: 3,
+                                tension: 0.4,
+                                pointBackgroundColor: "#ffffff",
+                                pointBorderColor: "#0d9488",
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
                                 yAxisID: "queries"
                             }
                         ]
@@ -417,22 +482,44 @@
                         locale: "vi-VN",
                         interaction: { mode: "index", intersect: false },
                         plugins: {
-                            legend: { position: "top", labels: { boxWidth: 12, usePointStyle: true } },
-                            tooltip: { padding: 10, cornerRadius: 6 }
+                            legend: { 
+                                position: "top", 
+                                labels: { 
+                                    usePointStyle: true, 
+                                    padding: 20,
+                                    font: { family: "'Inter', sans-serif", size: 13, weight: 'bold' }
+                                } 
+                            },
+                            tooltip: { 
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                titleColor: '#111827',
+                                bodyColor: '#4b5563',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 1,
+                                padding: 12, 
+                                cornerRadius: 8,
+                                titleFont: { family: "'Inter', sans-serif", size: 13, weight: 'bold' },
+                                bodyFont: { family: "'Inter', sans-serif", size: 12 }
+                            }
                         },
                         scales: {
-                            x: { grid: { display: false } },
+                            x: { 
+                                grid: { display: false },
+                                ticks: { font: { family: "'Inter', sans-serif" } }
+                            },
                             tokens: {
                                 type: "linear",
                                 position: "left",
-                                title: { display: true, text: "Token" },
-                                grid: { color: "rgba(148, 163, 184, .22)" }
+                                title: { display: true, text: "Token", font: { weight: 'bold' } },
+                                grid: { color: "#f3f4f6" },
+                                ticks: { font: { family: "'Inter', sans-serif" } }
                             },
                             queries: {
                                 type: "linear",
                                 position: "right",
-                                title: { display: true, text: "Lượt hỏi" },
-                                grid: { drawOnChartArea: false }
+                                title: { display: true, text: "Lượt hỏi", font: { weight: 'bold' } },
+                                grid: { drawOnChartArea: false },
+                                ticks: { font: { family: "'Inter', sans-serif" } }
                             }
                         }
                     }

@@ -7,6 +7,7 @@
         "Admin" => "Quản trị viên",
         var role => role
     };
+    bool isWorkspace = ViewData["IsWorkspace"] as bool? ?? false;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -18,120 +19,127 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/app.tailwind.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/premium.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm app-navbar">
-            <div class="container-fluid">
-                @if (User.IsInRole("Admin"))
-                {
-                    <a class="navbar-brand" asp-page="/Admin/Index">
-                        <span class="brand-mark">R</span>
-                        <span style="font-weight: 700; background: linear-gradient(135deg, var(--ink) 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">RAG Chatbot</span>
-                    </a>
-                }
-                else if (User.IsInRole("Teacher"))
-                {
-                    <a class="navbar-brand" asp-page="/Datasets/Index">
-                        <span class="brand-mark">R</span>
-                        <span style="font-weight: 700; background: linear-gradient(135deg, var(--ink) 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">RAG Chatbot</span>
-                    </a>
-                }
-                else
-                {
-                    <a class="navbar-brand" asp-page="/Index">
-                        <span class="brand-mark">R</span>
-                        <span style="font-weight: 700; background: linear-gradient(135deg, var(--ink) 30%, var(--accent-strong) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">RAG Chatbot</span>
-                    </a>
-                }
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Mở hoặc đóng điều hướng">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+<body class="bg-surface-muted text-ink min-h-screen flex flex-col font-sans @(isWorkspace ? "overflow-hidden" : "")">
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center gap-2">
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-page="/Admin/Index" class="flex items-center gap-2 group">
+                                <span class="w-8 h-8 rounded-lg bg-accent-strong text-white flex items-center justify-center font-grotesk font-bold text-lg shadow-glow group-hover:scale-105 transition-transform">R</span>
+                                <span class="font-grotesk font-bold text-xl bg-gradient-to-r from-ink to-accent-strong bg-clip-text text-transparent">RAG Chatbot</span>
+                            </a>
+                        }
+                        else if (User.IsInRole("Teacher"))
+                        {
+                            <a asp-page="/Datasets/Index" class="flex items-center gap-2 group">
+                                <span class="w-8 h-8 rounded-lg bg-accent-strong text-white flex items-center justify-center font-grotesk font-bold text-lg shadow-glow group-hover:scale-105 transition-transform">R</span>
+                                <span class="font-grotesk font-bold text-xl bg-gradient-to-r from-ink to-accent-strong bg-clip-text text-transparent">RAG Chatbot</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-page="/Index" class="flex items-center gap-2 group">
+                                <span class="w-8 h-8 rounded-lg bg-accent-strong text-white flex items-center justify-center font-grotesk font-bold text-lg shadow-glow group-hover:scale-105 transition-transform">R</span>
+                                <span class="font-grotesk font-bold text-xl bg-gradient-to-r from-ink to-accent-strong bg-clip-text text-transparent">RAG Chatbot</span>
+                            </a>
+                        }
+                    </div>
+                    <div class="hidden sm:ml-8 sm:flex sm:space-x-4">
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             @if (User.IsInRole("Admin"))
                             {
-                                <li class="nav-item">
-                                    <a class="nav-link text-danger fw-bold" asp-page="/Admin/Index">Quản trị</a>
-                                </li>
+                                <a asp-page="/Admin/Index" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage.StartsWith("/Admin", StringComparison.Ordinal) ? "border-red-500 text-red-600" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Quản trị
+                                </a>
+                            }
+                            else if (User.IsInRole("Teacher"))
+                            {
+                                <a asp-page="/Datasets/Index" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage.StartsWith("/Datasets", StringComparison.Ordinal) || currentPage.StartsWith("/Documents", StringComparison.Ordinal) ? "border-accent-strong text-ink" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Môn học và tài liệu
+                                </a>
+                                <a asp-page="/Teacher/Analytics" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage.StartsWith("/Teacher/Analytics", StringComparison.Ordinal) ? "border-accent-strong text-ink" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Phân tích học tập
+                                </a>
                             }
                             else
                             {
-                                @if (User.IsInRole("Teacher"))
-                                {
-                                    <li class="nav-item">
-                                        <a class="nav-link @(currentPage.StartsWith("/Datasets", StringComparison.Ordinal) || currentPage.StartsWith("/Documents", StringComparison.Ordinal) ? "active" : "")" asp-page="/Datasets/Index">Môn học và tài liệu</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link @(currentPage.StartsWith("/Teacher/Analytics", StringComparison.Ordinal) ? "active" : "")" asp-page="/Teacher/Analytics">Phân tích học tập</a>
-                                    </li>
-                                }
-                                else
-                                {
-                                    <li class="nav-item">
-                                        <a class="nav-link @(currentPage == "/Index" ? "active" : "")" asp-page="/Index">Không gian học tập</a>
-                                    </li>
-                                }
+                                <a asp-page="/Index" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage == "/Index" ? "border-accent-strong text-ink" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Không gian học tập
+                                </a>
                             }
-                        }
-                    </ul>
-                    <div class="d-flex align-items-center gap-3">
-                        @if (User.Identity != null && User.Identity.IsAuthenticated)
-                        {
-                            <div class="wallet-badge d-flex align-items-center gap-2">
-                                <span style="display:inline-block; width:8px; height:8px; background:var(--accent-strong); border-radius:50%; box-shadow:0 0 10px var(--accent-strong);"></span>
-                                <div class="text-start lh-sm">
-                                    <div class="fw-bold small" style="color: var(--ink);">@User.Identity.Name</div>
-                                    <div class="text-muted small" style="font-size: 0.65rem; font-weight: 700; letter-spacing: 0.5px;">@localizedRole</div>
-                                </div>
-                            </div>
-                            <form asp-page="/Account/Logout" method="post" class="m-0">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: rgba(255,255,255,0.15); color: var(--ink);">Đăng xuất</button>
-                            </form>
-                        }
-                        else
-                        {
-                            <a asp-page="/Account/Login" class="btn btn-outline-primary btn-sm" style="border-radius: 6px; font-weight: 600; border-color: var(--accent-strong); color: var(--accent-strong);">Đăng nhập</a>
                         }
                     </div>
                 </div>
-
+                <div class="hidden sm:ml-6 sm:flex sm:items-center gap-4">
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <div class="flex items-center gap-3 px-3 py-1.5 rounded-full bg-surface-muted border border-border">
+                            <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                            <div class="flex flex-col leading-tight">
+                                <span class="text-sm font-semibold text-ink">@User.Identity.Name</span>
+                                <span class="text-[0.65rem] font-bold text-gray-500 uppercase tracking-wider">@localizedRole</span>
+                            </div>
+                        </div>
+                        <form asp-page="/Account/Logout" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm">
+                                Đăng xuất
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-page="/Account/Login" class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-accent-strong hover:bg-indigo-700 shadow-glow transition-all">
+                            Đăng nhập
+                        </a>
+                    }
+                </div>
+                <div class="-mr-2 flex items-center sm:hidden">
+                    <!-- Mobile menu button placeholder -->
+                    <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </nav>
     </header>
-    <div class="app-shell">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="app-footer">
-        <div class="container footer-content">
-            <div class="footer-brand">
-                <span class="brand-mark" style="width: 24px; height: 24px; font-size: 0.75rem; border-radius: 6px; box-shadow: none;">R</span>
-                <span style="font-size: 0.9rem;">&copy; 2026 RAG Chatbot System</span>
-            </div>
-            
-            <div class="footer-links">
-                <a href="#" class="footer-link">Tài liệu</a>
-                <a href="#" class="footer-link">Bảo mật</a>
-                <a href="#" class="footer-link">Điều khoản</a>
-                <div class="footer-status">
-                    <span class="footer-status-dot"></span>
-                    <span>Hệ thống đang hoạt động</span>
+    <main class="flex-grow w-full mx-auto @(isWorkspace ? "max-w-full px-0 py-0 flex flex-col overflow-hidden h-[calc(100vh-64px)]" : "max-w-7xl px-4 sm:px-6 lg:px-8 py-8")">
+        @RenderBody()
+    </main>
+
+    @if (!isWorkspace)
+    {
+        <footer class="bg-white border-t border-border mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2 text-gray-500">
+                    <span class="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center font-grotesk font-bold text-xs">R</span>
+                    <span class="text-sm">&copy; 2026 RAG Chatbot System</span>
+                </div>
+                <div class="flex items-center gap-6 text-sm text-gray-500">
+                    <a href="#" class="hover:text-ink transition-colors">Tài liệu</a>
+                    <a href="#" class="hover:text-ink transition-colors">Bảo mật</a>
+                    <a href="#" class="hover:text-ink transition-colors">Điều khoản</a>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span>Hệ thống đang hoạt động</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    </footer>
+        </footer>
+    }
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     @if (User.Identity != null && User.Identity.IsAuthenticated)
     {

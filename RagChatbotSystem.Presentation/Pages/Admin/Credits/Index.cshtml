@@ -15,15 +15,28 @@
 
     string LedgerTypeLabel(CreditLedgerType type) => type switch
     {
-        CreditLedgerType.DAILY_RESET => "Đặt lại Credit hằng ngày",
-        CreditLedgerType.FREE_GRANT => "Tặng Credit miễn phí",
+        CreditLedgerType.DAILY_RESET => "Đặt lại hằng ngày",
+        CreditLedgerType.FREE_GRANT => "Tặng miễn phí",
         CreditLedgerType.PURCHASE => "Nạp Credit",
-        CreditLedgerType.ADMIN_GRANT => "Quản trị viên cấp Credit",
+        CreditLedgerType.ADMIN_GRANT => "Cấp Credit",
         CreditLedgerType.ADJUSTMENT => "Điều chỉnh",
         CreditLedgerType.SPEND => "Sử dụng",
         CreditLedgerType.REFUND => "Hoàn Credit",
         CreditLedgerType.EXPIRED => "Hết hạn",
         _ => type.ToString()
+    };
+
+    string LedgerTypeColor(CreditLedgerType type) => type switch
+    {
+        CreditLedgerType.DAILY_RESET => "bg-blue-50 text-blue-700 border-blue-200",
+        CreditLedgerType.FREE_GRANT => "bg-green-50 text-green-700 border-green-200",
+        CreditLedgerType.PURCHASE => "bg-teal-50 text-teal-700 border-teal-200",
+        CreditLedgerType.ADMIN_GRANT => "bg-indigo-50 text-indigo-700 border-indigo-200",
+        CreditLedgerType.ADJUSTMENT => "bg-amber-50 text-amber-700 border-amber-200",
+        CreditLedgerType.SPEND => "bg-gray-100 text-gray-600 border-gray-200",
+        CreditLedgerType.REFUND => "bg-purple-50 text-purple-700 border-purple-200",
+        CreditLedgerType.EXPIRED => "bg-red-50 text-red-700 border-red-200",
+        _ => "bg-gray-100 text-gray-600 border-gray-200"
     };
 
     string PurchaseStatusLabel(CreditPurchaseStatus status) => status switch
@@ -35,16 +48,26 @@
         CreditPurchaseStatus.REFUNDED => "Đã hoàn",
         _ => status.ToString()
     };
+    
+    string PurchaseStatusColor(CreditPurchaseStatus status) => status switch
+    {
+        CreditPurchaseStatus.PENDING => "bg-amber-50 text-amber-700 border-amber-200",
+        CreditPurchaseStatus.COMPLETED => "bg-green-50 text-green-700 border-green-200",
+        CreditPurchaseStatus.FAILED => "bg-red-50 text-red-700 border-red-200",
+        CreditPurchaseStatus.CANCELLED => "bg-gray-100 text-gray-600 border-gray-200",
+        CreditPurchaseStatus.REFUNDED => "bg-purple-50 text-purple-700 border-purple-200",
+        _ => "bg-gray-100 text-gray-600 border-gray-200"
+    };
 
     string PackageLabel(CreditPurchaseDto purchase) =>
         purchase.PackageId.HasValue && packagesById.TryGetValue(purchase.PackageId.Value, out var package)
             ? PackageDisplayName(package)
-            : "Nạp Credit thủ công";
+            : "Nạp thủ công";
 
     string PackageDisplayName(CreditPackageDto package) => package.Name switch
     {
         "Study Lite" => "Gói học cơ bản",
-        "Study Plus" => "Gói học nâng cao",
+        "Study Plus" => "Gói nâng cao",
         "Exam Boost" => "Gói ôn thi",
         "Final Sprint" => "Gói nước rút",
         _ => package.Name
@@ -62,215 +85,267 @@
 
     string LedgerNote(CreditLedgerDto entry) =>
         entry.Type == CreditLedgerType.DAILY_RESET && string.Equals(entry.Note, "Initial daily free credit reset.", StringComparison.Ordinal)
-            ? "Credit miễn phí được đặt lại hằng ngày."
+            ? "Credit miễn phí đặt lại hằng ngày"
             : entry.Note ?? "-";
 }
 
-<section class="admin-page credit-admin-page">
-    <header class="admin-page-header">
+<div class="space-y-6" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow">QUẢN TRỊ</p>
-            <h1>Quản lý Credit</h1>
-            <p class="helper-text">Theo dõi số dư sinh viên và ghi nhận nạp, tặng hoặc điều chỉnh Credit thủ công.</p>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản trị</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Quản lý Credit</h1>
+            <p class="text-sm text-gray-500 mt-1">Theo dõi số dư sinh viên và ghi nhận nạp, tặng hoặc điều chỉnh Credit thủ công.</p>
         </div>
-    </header>
+    </div>
 
-    <partial name="_AdminTabs" />
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+        <partial name="_AdminTabs" />
+    </div>
 
+    <!-- Alerts -->
     @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
     {
-        <div class="alert alert-success" role="status">@Model.SuccessMessage</div>
+        <div class="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-green-800">@Model.SuccessMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-green-400 hover:text-green-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
     }
     @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
     {
-        <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+        <div class="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-red-800">@Model.ErrorMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-red-400 hover:text-red-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
     }
 
-    <section class="admin-section">
-        <div class="admin-section-heading">
-            <div>
-                <p class="eyebrow">SINH VIÊN</p>
-                <h2>Chọn sinh viên</h2>
-                <p>Tìm theo họ tên hoặc email, sau đó xem và điều chỉnh số dư.</p>
-            </div>
+    <!-- Student Selection -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <svg class="w-24 h-24 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
         </div>
+        
+        <div class="mb-5 relative z-10">
+            <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Sinh viên</p>
+            <h2 class="text-lg font-bold text-ink mt-1">Chọn sinh viên</h2>
+            <p class="text-sm text-gray-500 mt-1">Tìm theo họ tên hoặc email, sau đó xem và điều chỉnh số dư.</p>
+        </div>
+
         @if (Model.Students.Any())
         {
-            <form method="get" class="credit-student-selector">
-                <div>
-                    <label for="studentSearch" class="form-label">Tìm sinh viên</label>
-                    <input id="studentSearch" class="form-control" type="search" placeholder="Nhập họ tên hoặc email" autocomplete="off" />
+            <form method="get" class="flex flex-col md:flex-row items-end gap-4 relative z-10">
+                <div class="w-full md:w-1/3">
+                    <label for="studentSearch" class="block text-sm font-bold text-gray-700 mb-1.5">Tìm kiếm</label>
+                    <input id="studentSearch" type="search" placeholder="Nhập họ tên hoặc email..." autocomplete="off" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border" />
                 </div>
-                <div>
-                    <label for="studentSelect" class="form-label">Sinh viên</label>
-                    <select id="studentSelect" name="userId" class="form-select">
+                <div class="w-full md:w-1/2">
+                    <label for="studentSelect" class="block text-sm font-bold text-gray-700 mb-1.5">Sinh viên</label>
+                    <select id="studentSelect" name="userId" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border bg-gray-50">
                         @foreach (var student in Model.Students)
                         {
                             <option value="@student.UserId" selected="@(Model.SelectedUserId == student.UserId)">@student.FullName (@student.Email)</option>
                         }
                     </select>
                 </div>
-                <button class="btn btn-primary" type="submit">Xem số dư</button>
+                <button type="submit" class="w-full md:w-auto inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm">
+                    Xem số dư
+                </button>
             </form>
         }
         else
         {
-            <div class="credit-empty-state">
-                <strong>Chưa có sinh viên để quản lý</strong>
-                <p>Danh sách sinh viên sẽ xuất hiện tại đây khi tài khoản sinh viên được tạo.</p>
+            <div class="border border-dashed border-gray-300 rounded-xl p-8 text-center relative z-10">
+                <strong class="text-ink">Chưa có sinh viên để quản lý</strong>
+                <p class="text-sm text-gray-500 mt-1">Danh sách sinh viên sẽ xuất hiện tại đây khi tài khoản sinh viên được tạo.</p>
             </div>
         }
-    </section>
+    </div>
 
     @if (Model.SelectedBalance != null)
     {
-        <section class="credit-admin-balance" aria-label="Số dư Credit của sinh viên đã chọn">
-            <article class="stats-card highlight-card">
-                <div class="stats-card-content">
-                    <span class="stats-card-label">Tổng số dư</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.TotalCredits.ToString("N0", vietnameseCulture)</span>
-                    <small>Credit hiện có thể sử dụng</small>
-                </div>
-            </article>
-            <article class="stats-card">
-                <div class="stats-card-content">
-                    <span class="stats-card-label">Credit miễn phí</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.FreeCredits.ToString("N0", vietnameseCulture)</span>
-                    <small>Được ưu tiên sử dụng trước</small>
-                </div>
-            </article>
-            <article class="stats-card">
-                <div class="stats-card-content">
-                    <span class="stats-card-label">Credit đã mua</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.PaidCredits.ToString("N0", vietnameseCulture)</span>
-                    <small>Được ghi nhận từ nạp thủ công</small>
-                </div>
-            </article>
-            <article class="stats-card">
-                <div class="stats-card-content">
-                    <span class="stats-card-label">Credit miễn phí mỗi ngày</span>
-                    <span class="stats-card-value">@Model.SelectedBalance.Settings.DailyFreeCredits.ToString("N0", vietnameseCulture)</span>
-                    <small>Đặt lại theo ngày Việt Nam</small>
-                </div>
-            </article>
-        </section>
+        <!-- Balances Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl shadow-sm p-6 text-white relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-colors"></div>
+                <p class="text-sm font-medium text-indigo-100 mb-1 relative z-10">Tổng số dư</p>
+                <p class="text-3xl font-bold relative z-10">@Model.SelectedBalance.TotalCredits.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-indigo-200 mt-2 relative z-10">Credit hiện có thể sử dụng</p>
+            </div>
+            
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit miễn phí</p>
+                <p class="text-2xl font-bold text-ink">@Model.SelectedBalance.FreeCredits.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Được ưu tiên sử dụng trước</p>
+            </div>
 
-        <section class="credit-action-grid">
-            <article class="admin-section credit-action-panel">
-                <div class="section-title">
-                    <div>
-                        <h2>Nạp Credit đã mua</h2>
-                        <span>Ghi nhận nạp thủ công, không xử lý thanh toán trực tuyến.</span>
-                    </div>
-                </div>
-                <form method="post" asp-page-handler="TopUp" class="row g-3">
-                    <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
-                    <div class="col-md-6">
-                        <label asp-for="Input.PaidCredits" class="form-label">Credit đã mua</label>
-                        <input asp-for="Input.PaidCredits" class="form-control" type="number" min="1" />
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Input.Amount" class="form-label">Số tiền (VND)</label>
-                        <input asp-for="Input.Amount" class="form-control" type="number" min="0" />
-                    </div>
-                    <div class="col-12">
-                        <label asp-for="Input.Note" class="form-label">Lý do điều chỉnh</label>
-                        <input asp-for="Input.Note" class="form-control" required maxlength="500" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">Cộng Credit đã mua</button>
-                    </div>
-                </form>
-            </article>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit đã mua</p>
+                <p class="text-2xl font-bold text-ink">@Model.SelectedBalance.PaidCredits.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Được ghi nhận từ nạp thủ công</p>
+            </div>
 
-            <article class="admin-section credit-action-panel">
-                <div class="section-title">
-                    <div>
-                        <h2>Tặng Credit miễn phí</h2>
-                        <span>Thao tác này luôn được ghi vào lịch sử giao dịch.</span>
-                    </div>
-                </div>
-                <form method="post" asp-page-handler="GrantFree" class="row g-3">
-                    <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
-                    <div class="col-md-6">
-                        <label asp-for="Input.FreeCredits" class="form-label">Credit miễn phí</label>
-                        <input asp-for="Input.FreeCredits" class="form-control" type="number" min="1" />
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Input.Note" class="form-label">Lý do điều chỉnh</label>
-                        <input asp-for="Input.Note" class="form-control" required maxlength="500" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-outline-primary">Tặng Credit miễn phí</button>
-                    </div>
-                </form>
-            </article>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:-translate-y-1 transition-transform">
+                <p class="text-sm font-bold text-gray-500 mb-1">Credit miễn phí mỗi ngày</p>
+                <p class="text-2xl font-bold text-ink">@Model.SelectedBalance.Settings.DailyFreeCredits.ToString("N0", vietnameseCulture)</p>
+                <p class="text-xs text-gray-400 mt-1">Đặt lại theo ngày Việt Nam</p>
+            </div>
+        </div>
 
-            <article class="admin-section credit-action-panel credit-adjustment-panel">
-                <div class="section-title">
-                    <div>
-                        <h2>Điều chỉnh số dư</h2>
-                        <span>Nhập số âm để giảm Credit. Hệ thống yêu cầu xác nhận trước khi giảm.</span>
-                    </div>
+        <!-- Action Forms -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- TopUp Paid Credits -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-teal-50/50 to-white">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        </span>
+                        Nạp Credit đã mua
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-1 ml-10">Ghi nhận nạp thủ công, không xử lý thanh toán trực tuyến.</p>
                 </div>
-                <form method="post" asp-page-handler="Adjust" class="row g-3" data-credit-adjustment-form>
-                    <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
-                    <div class="col-md-4">
-                        <label asp-for="Input.FreeCreditsDelta" class="form-label">Điều chỉnh Credit miễn phí</label>
-                        <input asp-for="Input.FreeCreditsDelta" class="form-control" type="number" />
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="Input.PaidCreditsDelta" class="form-label">Điều chỉnh Credit đã mua</label>
-                        <input asp-for="Input.PaidCreditsDelta" class="form-control" type="number" />
-                    </div>
-                    <div class="col-md-4">
-                        <label asp-for="Input.Note" class="form-label">Lý do điều chỉnh</label>
-                        <input asp-for="Input.Note" class="form-control" required maxlength="500" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-outline-danger">Áp dụng điều chỉnh</button>
-                    </div>
-                </form>
-            </article>
-        </section>
-
-        <section class="admin-section">
-            <div class="admin-section-heading">
-                <div>
-                    <p class="eyebrow">LỊCH SỬ HOẠT ĐỘNG</p>
-                    <h2>Chi tiết biến động và đơn hàng</h2>
-                    <p>Theo dõi sự thay đổi của số dư Credit và trạng thái các đơn nạp tiền của sinh viên.</p>
+                <div class="p-6 flex-1">
+                    <form method="post" asp-page-handler="TopUp" class="flex flex-col gap-4 h-full">
+                        <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label asp-for="Input.PaidCredits" class="block text-sm font-bold text-gray-700 mb-1">Credit đã mua <span class="text-red-500">*</span></label>
+                                <input asp-for="Input.PaidCredits" type="number" min="1" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 border" />
+                            </div>
+                            <div>
+                                <label asp-for="Input.Amount" class="block text-sm font-bold text-gray-700 mb-1">Số tiền (VND) <span class="text-red-500">*</span></label>
+                                <input asp-for="Input.Amount" type="number" min="0" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 border" />
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label asp-for="Input.Note" class="block text-sm font-bold text-gray-700 mb-1">Lý do nạp <span class="text-red-500">*</span></label>
+                            <input asp-for="Input.Note" required maxlength="500" placeholder="Ví dụ: Nạp tiền mặt" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 border" />
+                        </div>
+                        <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors shadow-sm mt-auto">
+                            Cộng Credit đã mua
+                        </button>
+                    </form>
                 </div>
             </div>
 
-            <ul class="nav nav-tabs mb-4" id="adminCreditHistoryTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-semibold" id="admin-ledger-tab" data-bs-toggle="tab" data-bs-target="#admin-ledger-pane" type="button" role="tab" aria-controls="admin-ledger-pane" aria-selected="true" style="color: var(--text-primary);">Biến động số dư</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-semibold" id="admin-purchase-tab" data-bs-toggle="tab" data-bs-target="#admin-purchase-pane" type="button" role="tab" aria-controls="admin-purchase-pane" aria-selected="false" style="color: var(--text-primary);">Lịch sử đơn hàng nạp</button>
-                </li>
-            </ul>
+            <!-- Grant Free Credits -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-blue-50/50 to-white">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path></svg>
+                        </span>
+                        Tặng Credit miễn phí
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-1 ml-10">Thao tác này luôn được ghi vào lịch sử giao dịch.</p>
+                </div>
+                <div class="p-6 flex-1">
+                    <form method="post" asp-page-handler="GrantFree" class="flex flex-col gap-4 h-full">
+                        <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
+                        <div>
+                            <label asp-for="Input.FreeCredits" class="block text-sm font-bold text-gray-700 mb-1">Số lượng tặng <span class="text-red-500">*</span></label>
+                            <input asp-for="Input.FreeCredits" type="number" min="1" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 border" />
+                        </div>
+                        <div class="flex-1">
+                            <label asp-for="Input.Note" class="block text-sm font-bold text-gray-700 mb-1">Lý do tặng <span class="text-red-500">*</span></label>
+                            <input asp-for="Input.Note" required maxlength="500" placeholder="Ví dụ: Thưởng thành tích" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2 border" />
+                        </div>
+                        <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2.5 border border-indigo-200 text-sm font-bold rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm mt-auto">
+                            Tặng Credit miễn phí
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-            <div class="tab-content" id="adminCreditHistoryTabsContent">
-                <div class="tab-pane fade show active" id="admin-ledger-pane" role="tabpanel" aria-labelledby="admin-ledger-tab" tabindex="0">
+            <!-- Adjust Credits -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-amber-50/50 to-white">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </span>
+                        Điều chỉnh số dư
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-1 ml-10">Nhập số âm để giảm Credit. Hệ thống yêu cầu xác nhận trước khi giảm.</p>
+                </div>
+                <div class="p-6">
+                    <form method="post" asp-page-handler="Adjust" class="flex flex-col md:flex-row gap-4" data-credit-adjustment-form>
+                        <input type="hidden" asp-for="Input.UserId" value="@Model.SelectedBalance.UserId" />
+                        <div class="w-full md:w-1/4">
+                            <label asp-for="Input.FreeCreditsDelta" class="block text-sm font-bold text-gray-700 mb-1">Miễn phí (±)</label>
+                            <input asp-for="Input.FreeCreditsDelta" type="number" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm px-4 py-2 border" />
+                        </div>
+                        <div class="w-full md:w-1/4">
+                            <label asp-for="Input.PaidCreditsDelta" class="block text-sm font-bold text-gray-700 mb-1">Đã mua (±)</label>
+                            <input asp-for="Input.PaidCreditsDelta" type="number" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm px-4 py-2 border" />
+                        </div>
+                        <div class="w-full md:w-1/3">
+                            <label asp-for="Input.Note" class="block text-sm font-bold text-gray-700 mb-1">Lý do <span class="text-red-500">*</span></label>
+                            <input asp-for="Input.Note" required maxlength="500" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm px-4 py-2 border" />
+                        </div>
+                        <div class="w-full md:w-auto flex items-end">
+                            <button type="submit" class="w-full md:w-auto inline-flex justify-center items-center px-4 py-2.5 border border-amber-200 text-sm font-bold rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors shadow-sm whitespace-nowrap">
+                                Áp dụng
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <section class="mt-8" aria-label="Lịch sử hoạt động">
+            <div class="mb-4">
+                <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Lịch sử hoạt động</p>
+                <h2 class="text-xl font-bold text-ink mt-1">Chi tiết biến động và đơn hàng</h2>
+                <p class="text-sm text-gray-500 mt-1">Theo dõi sự thay đổi của số dư Credit và trạng thái các đơn nạp tiền của sinh viên.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex border-b border-gray-100 bg-gray-50/50 px-2 pt-2">
+                    <button id="tab-ledger" class="px-6 py-3 text-sm font-bold text-accent-strong border-b-2 border-accent-strong bg-white rounded-t-lg transition-colors focus:outline-none" onclick="switchTab('ledger')">Biến động số dư</button>
+                    <button id="tab-purchase" class="px-6 py-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-ink hover:bg-gray-100 rounded-t-lg transition-colors focus:outline-none" onclick="switchTab('purchase')">Đơn hàng nạp</button>
+                </div>
+
+                <!-- Ledger Tab Content -->
+                <div id="content-ledger" class="block">
                     @if (Model.Ledger.Any())
                     {
-                        <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử giao dịch Credit">
-                            <table class="table align-middle admin-table credit-table">
-                                <thead>
-                                    <tr><th>Thời gian</th><th>Loại giao dịch</th><th>Đã cộng</th><th>Đã dùng</th><th>Trước / Sau</th><th>Ghi chú</th></tr>
+                        <div class="overflow-x-auto h-[430px] custom-scrollbar">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 bg-white shadow-sm z-10">
+                                    <tr class="border-b border-gray-100">
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Thời gian</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Loại giao dịch</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Đã cộng</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Đã dùng</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Trước / Sau</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Ghi chú</th>
+                                    </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="divide-y divide-gray-100">
                                     @foreach (var entry in Model.Ledger)
                                     {
-                                        <tr>
-                                            <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                            <td><span class="credit-status">@LedgerTypeLabel(entry.Type)</span></td>
-                                            <td>@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture))</td>
-                                            <td>@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture))</td>
-                                            <td><strong>@TotalBalanceBefore(entry).ToString("N0", vietnameseCulture) → @((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</strong></td>
-                                            <td class="credit-note" title="@LedgerNote(entry)">@LedgerNote(entry)</td>
+                                        <tr class="hover:bg-gray-50/50">
+                                            <td class="py-3 px-6 text-sm text-gray-500 whitespace-nowrap">@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td class="py-3 px-6">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border whitespace-nowrap @LedgerTypeColor(entry.Type)">
+                                                    @LedgerTypeLabel(entry.Type)
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-6 text-sm font-medium text-teal-600 text-right">@((entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture))</td>
+                                            <td class="py-3 px-6 text-sm font-medium text-rose-600 text-right">@((entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture))</td>
+                                            <td class="py-3 px-6 text-sm text-center whitespace-nowrap">
+                                                <span class="text-gray-400">@TotalBalanceBefore(entry).ToString("N0", vietnameseCulture)</span>
+                                                <span class="mx-1 text-gray-300">→</span>
+                                                <strong class="text-ink">@((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))</strong>
+                                            </td>
+                                            <td class="py-3 px-6 text-sm text-gray-500">
+                                                <div class="truncate max-w-[250px]" title="@LedgerNote(entry)">@LedgerNote(entry)</div>
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>
@@ -279,31 +354,43 @@
                     }
                     else
                     {
-                        <div class="credit-empty-state">
-                            <strong>Chưa có biến động số dư</strong>
-                            <p>Các lần đặt lại, nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
+                        <div class="p-12 text-center">
+                            <strong class="text-ink text-lg">Chưa có biến động số dư</strong>
+                            <p class="text-sm text-gray-500 mt-1">Các lần đặt lại, nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
                         </div>
                     }
                 </div>
 
-                <div class="tab-pane fade" id="admin-purchase-pane" role="tabpanel" aria-labelledby="admin-purchase-tab" tabindex="0">
+                <!-- Purchase Tab Content -->
+                <div id="content-purchase" class="hidden">
                     @if (Model.Purchases.Any())
                     {
-                        <div class="credit-table-shell" tabindex="0" aria-label="Bảng lịch sử nạp Credit">
-                            <table class="table align-middle admin-table credit-table">
-                                <thead>
-                                    <tr><th>Thời gian</th><th>Gói Credit</th><th>Tổng cộng</th><th>Giá</th><th>Trạng thái giao dịch</th><th>Người thực hiện</th></tr>
+                        <div class="overflow-x-auto h-[430px] custom-scrollbar">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 bg-white shadow-sm z-10">
+                                    <tr class="border-b border-gray-100">
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Thời gian</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Gói Credit</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Tổng cộng</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Giá</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Người thực hiện</th>
+                                    </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="divide-y divide-gray-100">
                                     @foreach (var purchase in Model.Purchases)
                                     {
-                                        <tr>
-                                            <td>@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                            <td title="@PackageLabel(purchase)">@PackageLabel(purchase)</td>
-                                            <td><strong>@purchase.TotalCredits.ToString("N0", vietnameseCulture)</strong></td>
-                                            <td>@FormatCurrency(purchase.Amount, purchase.Currency)</td>
-                                            <td><span class="credit-status">@PurchaseStatusLabel(purchase.Status)</span></td>
-                                            <td title="@UserLabel(purchase.CreatedByUserId)">@UserLabel(purchase.CreatedByUserId)</td>
+                                        <tr class="hover:bg-gray-50/50">
+                                            <td class="py-3 px-6 text-sm text-gray-500 whitespace-nowrap">@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td class="py-3 px-6 text-sm font-medium text-ink">@PackageLabel(purchase)</td>
+                                            <td class="py-3 px-6 text-sm font-bold text-teal-600 text-right">@purchase.TotalCredits.ToString("N0", vietnameseCulture)</td>
+                                            <td class="py-3 px-6 text-sm text-gray-700 text-right whitespace-nowrap">@FormatCurrency(purchase.Amount, purchase.Currency)</td>
+                                            <td class="py-3 px-6">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border whitespace-nowrap @PurchaseStatusColor(purchase.Status)">
+                                                    @PurchaseStatusLabel(purchase.Status)
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-6 text-sm text-gray-500 truncate max-w-[150px]" title="@UserLabel(purchase.CreatedByUserId)">@UserLabel(purchase.CreatedByUserId)</td>
                                         </tr>
                                     }
                                 </tbody>
@@ -312,52 +399,43 @@
                     }
                     else
                     {
-                        <div class="credit-empty-state">
-                            <strong>Chưa có lịch sử nạp Credit</strong>
-                            <p>Các lần nạp Credit thủ công hoặc trực tuyến sẽ xuất hiện tại đây.</p>
+                        <div class="p-12 text-center">
+                            <strong class="text-ink text-lg">Chưa có lịch sử nạp Credit</strong>
+                            <p class="text-sm text-gray-500 mt-1">Các lần nạp Credit thủ công hoặc trực tuyến sẽ xuất hiện tại đây.</p>
                         </div>
                     }
                 </div>
             </div>
         </section>
     }
-</section>
+</div>
 
 @section Scripts {
     <style>
-        .credit-admin-page { gap: 1.35rem; }
-        .credit-student-selector { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(280px, 1.3fr) auto; align-items: end; gap: .9rem; }
-        .credit-student-selector .btn { min-width: 130px; }
-        .credit-admin-balance { display: grid; grid-template-columns: minmax(0, 1.3fr) repeat(3, minmax(0, 1fr)); gap: 1rem; }
-        .credit-admin-balance .stats-card { display: flex; min-width: 0; min-height: 138px; flex-direction: column; justify-content: center; border: 1px solid #dbe4ee; border-top: 3px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 1rem; }
-        .credit-admin-balance .highlight-card { border-top-color: #0f766e; }
-        .credit-admin-balance .stats-card-content { display: flex; flex-direction: column; gap: .35rem; }
-        .credit-admin-balance .stats-card-label { color: #475569; font-size: .88rem; font-weight: 600; }
-        .credit-admin-balance .stats-card-value { color: #0f172a; font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
-        .credit-admin-balance .stats-card small { color: #64748b; font-size: .82rem; line-height: 1.35; }
-        .credit-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-        .credit-action-panel { margin: 0; min-width: 0; }
-        .credit-action-panel .section-title { display: block; }
-        .credit-action-panel .section-title span { display: block; min-width: 0; min-height: 0; margin-top: .3rem; padding: 0; border: 0; border-radius: 0; background: transparent; color: #64748b; font-size: .88rem; line-height: 1.4; }
-        .credit-adjustment-panel { grid-column: 1 / -1; }
-        .credit-table-shell { max-height: 430px; overflow: auto; border: 1px solid #dbe4ee; border-radius: 8px; }
-        .credit-table { min-width: 800px; margin: 0; }
-        .credit-table th { position: sticky; top: 0; z-index: 1; background: #f8fafc; }
-        .credit-table td { white-space: nowrap; }
-        .credit-note { max-width: 290px; overflow: hidden; text-overflow: ellipsis; }
-        .credit-status { display: inline-flex; align-items: center; width: fit-content; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #334155; font-size: .78rem; font-weight: 700; line-height: 1.2; padding: .32rem .6rem; white-space: nowrap; }
-        .credit-empty-state { border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1.25rem; color: #475569; text-align: center; }
-        .credit-empty-state strong { color: #0f172a; }
-        .credit-empty-state p { margin: .35rem 0 0; }
-        @@media (max-width: 980px) { .credit-admin-balance { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @@media (max-width: 700px) {
-            .credit-student-selector, .credit-action-grid, .credit-admin-balance { grid-template-columns: 1fr; }
-            .credit-student-selector .btn { width: 100%; }
-            .credit-adjustment-panel { grid-column: auto; }
-            .credit-table-shell { margin-inline: -.15rem; }
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
     <script>
+        function switchTab(tabId) {
+            // Update tabs UI
+            document.getElementById('tab-ledger').className = "px-6 py-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-ink hover:bg-gray-100 rounded-t-lg transition-colors focus:outline-none";
+            document.getElementById('tab-purchase').className = "px-6 py-3 text-sm font-bold text-gray-500 border-b-2 border-transparent hover:text-ink hover:bg-gray-100 rounded-t-lg transition-colors focus:outline-none";
+            
+            const activeTab = document.getElementById('tab-' + tabId);
+            activeTab.className = "px-6 py-3 text-sm font-bold text-accent-strong border-b-2 border-accent-strong bg-white rounded-t-lg transition-colors focus:outline-none";
+
+            // Update content visibility
+            document.getElementById('content-ledger').classList.add('hidden');
+            document.getElementById('content-ledger').classList.remove('block');
+            document.getElementById('content-purchase').classList.add('hidden');
+            document.getElementById('content-purchase').classList.remove('block');
+
+            document.getElementById('content-' + tabId).classList.remove('hidden');
+            document.getElementById('content-' + tabId).classList.add('block');
+        }
+
         (() => {
             const searchInput = document.getElementById('studentSearch');
             const studentSelect = document.getElementById('studentSelect');
