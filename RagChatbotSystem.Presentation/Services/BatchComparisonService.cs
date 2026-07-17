@@ -55,47 +55,65 @@ namespace RagChatbotSystem.Presentation.Services
 
             _ = Task.Run(async () =>
             {
-                for (int i = 0; i < questions.Count; i++)
+                try
                 {
-                    var question = questions[i].Trim();
-                    if (string.IsNullOrWhiteSpace(question)) continue;
+                    for (int i = 0; i < questions.Count; i++)
+                    {
+                        var question = questions[i].Trim();
+                        if (string.IsNullOrWhiteSpace(question)) continue;
+
+                        lock (_lock)
+                        {
+                            _currentJob.CurrentQuestion = question;
+                        }
+
+                        try
+                        {
+                            using var scope = _scopeFactory.CreateScope();
+                            var comparisonService = scope.ServiceProvider.GetRequiredService<IModelComparisonService>();
+
+                            // Execute the comparison (retrieves, calls LLMs, scores, and persists to DB)
+                            await comparisonService.CompareAsync(datasetId, question, providers, userId);
+
+                            lock (_lock)
+                            {
+                                _currentJob.ProcessedQuestions++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing batch question: {Question}", question);
+                            lock (_lock)
+                            {
+                                _currentJob.ProcessedQuestions++;
+                                _currentJob.FailedQuestions++;
+                            }
+                        }
+
+                        // A brief 2-second sleep between questions to avoid hitting rate limits (e.g. 429 Too Many Requests)
+                        await Task.Delay(2000);
+                    }
 
                     lock (_lock)
                     {
-                        _currentJob.CurrentQuestion = question;
+                        _currentJob.CurrentQuestion = "Hoàn thành";
                     }
-
-                    try
-                    {
-                        using var scope = _scopeFactory.CreateScope();
-                        var comparisonService = scope.ServiceProvider.GetRequiredService<IModelComparisonService>();
-                        
-                        // Execute the comparison (retrieves, calls LLMs, scores, and persists to DB)
-                        await comparisonService.CompareAsync(datasetId, question, providers, userId);
-
-                        lock (_lock)
-                        {
-                            _currentJob.ProcessedQuestions++;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error processing batch question: {Question}", question);
-                        lock (_lock)
-                        {
-                            _currentJob.ProcessedQuestions++;
-                            _currentJob.FailedQuestions++;
-                        }
-                    }
-
-                    // A brief 2-second sleep between questions to avoid hitting rate limits (e.g. 429 Too Many Requests)
-                    await Task.Delay(2000);
                 }
-
-                lock (_lock)
+                catch (Exception ex)
                 {
-                    _currentJob.IsRunning = false;
-                    _currentJob.CurrentQuestion = "Hoàn thành";
+                    // Lỗi ngoài dự kiến bên ngoài vòng lặp — vẫn phải reset ở finally để không kẹt IsRunning=true.
+                    _logger.LogError(ex, "Batch benchmark job crashed unexpectedly.");
+                    lock (_lock)
+                    {
+                        _currentJob.CurrentQuestion = "Đã dừng do lỗi";
+                    }
+                }
+                finally
+                {
+                    lock (_lock)
+                    {
+                        _currentJob.IsRunning = false;
+                    }
                 }
             });
 
