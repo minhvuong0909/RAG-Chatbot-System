@@ -17,6 +17,9 @@ namespace RagChatbotSystem.DataAccess.Models
         public string? ErrorMessage { get; set; }
         public int? QualityScore { get; set; }
         public string? QualityReasoning { get; set; }
+        // Chỉ số khách quan bằng embedding cosine (chuẩn RAGAS), 0..1
+        public double? Faithfulness { get; set; }
+        public double? Relevance { get; set; }
 
         public virtual ModelComparisonRun Run { get; set; } = null!;
     }

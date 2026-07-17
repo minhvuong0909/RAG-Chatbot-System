@@ -14,7 +14,7 @@ namespace RagChatbotSystem.Business.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
-        private const string ModelName = "gemini-2.0-flash";
+        private const string ModelName = "gemini-3.1-flash-lite";
 
         private int _lastPromptTokens;
         private int _lastCompletionTokens;
@@ -72,15 +72,10 @@ namespace RagChatbotSystem.Business.Services
                 };
 
                 var response = await _httpClient.PostAsJsonAsync(requestUrl, payload);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response);
 
                 var result = await response.Content.ReadFromJsonAsync<GeminiResponse>();
-                var answer = string.Empty;
-                if (result?.Candidates != null && result.Candidates.Length > 0 &&
-                    result.Candidates[0].Content?.Parts != null && result.Candidates[0].Content.Parts.Length > 0)
-                {
-                    answer = result.Candidates[0].Content.Parts[0].Text ?? string.Empty;
-                }
+                var answer = ExtractText(result?.Candidates);
 
                 if (result?.UsageMetadata != null)
                 {
@@ -158,7 +153,7 @@ namespace RagChatbotSystem.Business.Services
                 };
 
                 response = await _httpClient.PostAsJsonAsync(requestUrl, payload);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response);
             }
             catch (Exception ex)
             {
@@ -203,15 +198,11 @@ namespace RagChatbotSystem.Business.Services
                         _lastWasActualTokenUsage = true;
                     }
 
-                    if (chunk?.Candidates != null && chunk.Candidates.Length > 0 &&
-                        chunk.Candidates[0].Content?.Parts != null && chunk.Candidates[0].Content.Parts.Length > 0)
+                    var text = ExtractText(chunk?.Candidates);
+                    if (!string.IsNullOrEmpty(text))
                     {
-                        var text = chunk.Candidates[0].Content.Parts[0].Text;
-                        if (!string.IsNullOrEmpty(text))
-                        {
-                            accumulatedText.Append(text);
-                            yield return text;
-                        }
+                        accumulatedText.Append(text);
+                        yield return text;
                     }
                 }
             }
@@ -230,6 +221,38 @@ namespace RagChatbotSystem.Business.Services
         private static int EstimateTokens(string value)
         {
             return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));
+        }
+
+        // Gemini 3.x có thể tách câu trả lời thành nhiều "part" (hoặc part đầu là thought) — gộp
+        // toàn bộ text của candidate đầu tiên thay vì chỉ lấy Parts[0] để không bị cụt/rỗng.
+        private static string ExtractText(GeminiCandidate[]? candidates)
+        {
+            if (candidates == null || candidates.Length == 0) return string.Empty;
+
+            var parts = candidates[0].Content?.Parts;
+            if (parts == null || parts.Length == 0) return string.Empty;
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var part in parts)
+            {
+                if (!string.IsNullOrEmpty(part.Text)) sb.Append(part.Text);
+            }
+            return sb.ToString();
+        }
+
+        // EnsureSuccessStatusCode chỉ trả về mã lỗi mà bỏ qua body — nơi Google ghi lý do thật
+        // (sai key / hết quota / model không tồn tại...). Đọc kèm body để lỗi hiển thị có ích.
+        private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response)
+        {
+            if (response.IsSuccessStatusCode) return;
+
+            var body = await response.Content.ReadAsStringAsync();
+            var detail = string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body.Trim();
+            if (!string.IsNullOrEmpty(detail) && detail.Length > 500)
+            {
+                detail = detail.Substring(0, 500) + "…";
+            }
+            throw new HttpRequestException($"Gemini API {(int)response.StatusCode} {response.StatusCode}: {detail}");
         }
 
         #region Gemini API JSON Serialization Classes

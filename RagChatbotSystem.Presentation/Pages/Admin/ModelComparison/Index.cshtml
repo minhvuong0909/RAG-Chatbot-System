@@ -7,7 +7,7 @@
     {
         "Groq" => "Groq (Llama 3.3 70B)",
         "Qwen" => "Groq (Qwen 32B)",
-        // "Gemini" => "Google Gemini",
+        "Gemini" => "Google Gemini",
         _ => key
     };
 }
@@ -41,12 +41,37 @@
         </div>
     }
 
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-start gap-3">
+            <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p class="text-sm font-medium text-emerald-800">@Model.SuccessMessage</p>
+        </div>
+    }
+
+    <!-- Khối tiến trình chạy ngầm Batch Benchmark -->
+    <div id="batchProgressSection" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6" style="display: @(Model.BatchStatus.IsRunning ? "block" : "none");">
+        <h2 class="text-lg font-bold text-ink mb-4">Tiến trình Benchmark hàng loạt</h2>
+        <div class="flex flex-col gap-3">
+            <div class="flex justify-between text-sm">
+                <span id="batchProgressText" class="font-medium text-gray-700">Đang xử lý: @Model.BatchStatus.ProcessedQuestions / @Model.BatchStatus.TotalQuestions câu hỏi</span>
+                <span id="batchFailedText" class="text-red-500 font-medium">Lỗi: @Model.BatchStatus.FailedQuestions</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                <div id="batchProgressBar" class="bg-accent-strong h-full transition-all duration-300" style="width: @(Model.BatchStatus.TotalQuestions > 0 ? (Model.BatchStatus.ProcessedQuestions * 100 / Model.BatchStatus.TotalQuestions) : 0)%;"></div>
+            </div>
+            <div class="text-xs text-gray-500 truncate">
+                <strong>Đang chạy:</strong> <span id="batchCurrentQuestionText">@Model.BatchStatus.CurrentQuestion</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Run Test Section -->
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative group">
         <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
             <svg class="w-32 h-32 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
         </div>
-        
+
         <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-indigo-50/50 to-white relative z-10">
             <h2 class="text-lg font-bold text-ink flex items-center gap-2">
                 <span class="w-8 h-8 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center">
@@ -76,7 +101,8 @@
                     <!-- Question Input -->
                     <div>
                         <label asp-for="Input.Question" class="block text-sm font-bold text-gray-700 mb-1.5">Câu hỏi thử nghiệm <span class="text-red-500">*</span></label>
-                        <textarea asp-for="Input.Question" rows="3" placeholder="Nhập câu hỏi để thử nghiệm trên các mô hình..." class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border resize-none"></textarea>
+                        <textarea asp-for="Input.Question" rows="4" placeholder="Nhập câu hỏi để thử nghiệm. Để chạy benchmark hàng loạt, hãy nhập mỗi câu hỏi trên một dòng..." class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border resize-none"></textarea>
+                        <p class="text-xs text-gray-500 mt-1.5">Mỗi dòng là 1 câu hỏi. Chế độ chạy hàng loạt tối đa @IndexModel.MaxBatchQuestions câu mỗi lần.</p>
                         <span asp-validation-for="Input.Question" class="text-red-500 text-xs mt-1.5 block"></span>
                     </div>
                 </div>
@@ -97,7 +123,7 @@
                 </div>
 
                 <div class="flex justify-end mt-2">
-                    <button type="submit" class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm">
+                    <button type="submit" id="submitBtn" @(Model.BatchStatus.IsRunning ? "disabled" : "") class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                         Chạy thử nghiệm
                     </button>
                 </div>
@@ -142,14 +168,14 @@
                             {
                                 <div class="absolute top-0 left-0 w-1 h-full bg-teal-500"></div>
                             }
-                            
+
                             <div class="px-5 py-4 border-b border-gray-50 flex items-center justify-between pl-6 bg-gray-50/30">
                                 <strong class="text-ink font-bold text-base">@ProviderLabel(result.ProviderKey)</strong>
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border @(result.IsSuccess ? "bg-teal-50 text-teal-700 border-teal-200" : "bg-red-50 text-red-700 border-red-200")">
                                     @(result.IsSuccess ? "Thành công" : "Lỗi")
                                 </span>
                             </div>
-                            
+
                             <div class="p-5 flex-1 flex flex-col gap-4 pl-6">
                                 <div class="grid grid-cols-2 gap-3 mb-2">
                                     <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
@@ -180,6 +206,20 @@
                                             </div>
                                         </div>
                                     }
+                                    @if (result.Faithfulness.HasValue)
+                                    {
+                                        <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Độ bám tài liệu</p>
+                                            <p class="text-sm font-semibold text-ink">@result.Faithfulness.Value.ToString("0.00")</p>
+                                        </div>
+                                    }
+                                    @if (result.Relevance.HasValue)
+                                    {
+                                        <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Độ liên quan</p>
+                                            <p class="text-sm font-semibold text-ink">@result.Relevance.Value.ToString("0.00")</p>
+                                        </div>
+                                    }
                                 </div>
 
                                 @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
@@ -189,7 +229,7 @@
                                         <div class="mt-1">@result.QualityReasoning</div>
                                     </div>
                                 }
-                                
+
                                 <div class="mt-auto pt-4 border-t border-gray-100">
                                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Câu trả lời</p>
                                     @if (result.IsSuccess)
@@ -233,4 +273,49 @@
         .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @@keyframes bounceIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var isRunning = @(Model.BatchStatus.IsRunning ? "true" : "false");
+            var pollInterval = null;
+
+            if (isRunning) {
+                startPolling();
+            }
+
+            function startPolling() {
+                pollInterval = setInterval(checkBatchStatus, 2000);
+            }
+
+            function checkBatchStatus() {
+                fetch('/Admin/ModelComparison/Index?handler=Status')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.isRunning) {
+                            document.getElementById("batchProgressSection").style.display = "block";
+                            document.getElementById("batchProgressText").innerText = "Đang xử lý: " + data.processedQuestions + " / " + data.totalQuestions + " câu hỏi";
+                            document.getElementById("batchFailedText").innerText = "Lỗi: " + data.failedQuestions;
+
+                            var percent = data.totalQuestions > 0 ? (data.processedQuestions * 100 / data.totalQuestions) : 0;
+                            document.getElementById("batchProgressBar").style.width = percent + "%";
+                            document.getElementById("batchCurrentQuestionText").innerText = data.currentQuestion;
+                            var submitBtn = document.getElementById("submitBtn");
+                            if (submitBtn) submitBtn.disabled = true;
+                        } else {
+                            clearInterval(pollInterval);
+                            document.getElementById("batchProgressSection").style.display = "none";
+                            var submitBtn = document.getElementById("submitBtn");
+                            if (submitBtn) submitBtn.disabled = false;
+
+                            // Notify user of completion and reload to clear state or show fresh history
+                            alert("Chạy benchmark hàng loạt hoàn thành! Bạn có thể xem lịch sử để biết chi tiết.");
+                            window.location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Lỗi khi kiểm tra tiến trình benchmark:", error);
+                    });
+            }
+        });
+    </script>
 }
