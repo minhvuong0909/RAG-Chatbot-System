@@ -10,6 +10,7 @@ namespace RagChatbotSystem.Business.Interfaces
     {
         Task<IReadOnlyList<EvaluationProfileDto>> GetProfilesAsync(CancellationToken cancellationToken = default);
         Task<IReadOnlyList<EvaluationRunSummaryDto>> GetRunsAsync(Guid datasetId, CancellationToken cancellationToken = default);
+        Task<EvaluationRunDetailDto?> GetRunDetailAsync(Guid runId, CancellationToken cancellationToken = default);
         Task<EvaluationImportResult> ImportRunnerReportAsync(Guid datasetId, Guid userId, string reportJson, CancellationToken cancellationToken = default);
     }
 }

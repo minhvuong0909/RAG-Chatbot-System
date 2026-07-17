@@ -30,8 +30,18 @@ class Settings(BaseSettings):
         "xquad-e5-base": "intfloat/multilingual-e5-base",
         "xquad-phobert-base": "vinai/phobert-base",
         "xquad-bge-m3": "BAAI/bge-m3",
+        # Chunking ablation profiles — same E5 embedding, different chunk sizes.
+        "xquad-e5-chunk300": "intfloat/multilingual-e5-base",
+        "xquad-e5-chunk800": "intfloat/multilingual-e5-base",
     }
-    
+
+    # Chunking ablation: (chunk_size, chunk_overlap) per profile slug.
+    # Profiles not listed here use the documents as-is (pre-chunked by .NET).
+    CHUNKING_PROFILES: dict[str, tuple[int, int]] = {
+        "xquad-e5-chunk300": (300, 50),
+        "xquad-e5-chunk800": (800, 100),
+    }
+
     class Config:
         env_file = ".env"
         extra = "ignore"
@@ -39,8 +49,8 @@ class Settings(BaseSettings):
 settings = Settings()
 
 def embedding_model_for_profile(profile_id: str) -> str:
-    if profile_id.endswith("e5-base"):
-        return settings.EMBEDDING_PROFILES["e5-base"]
+    if profile_id.endswith("e5-base") or "chunk" in profile_id:
+        return settings.EMBEDDING_PROFILES.get("e5-base", settings.EMBEDDING_MODEL)
     if profile_id.endswith("phobert-base"):
         return settings.EMBEDDING_PROFILES["phobert-base"]
     if profile_id.endswith("bge-m3"):
@@ -51,9 +61,14 @@ def embedding_batch_size_for_profile(profile_id: str) -> int:
     """Conservative defaults for the project's 4 GB VRAM machine."""
     if profile_id.endswith("bge-m3"):
         return 1
-    if profile_id.endswith("e5-base") or profile_id.endswith("phobert-base"):
+    if profile_id.endswith("e5-base") or profile_id.endswith("phobert-base") or "chunk" in profile_id:
         return 4
     return 8
+
+def chunking_config_for_profile(profile_id: str) -> tuple[int, int] | None:
+    """Return (chunk_size, chunk_overlap) for profiles that need re-chunking,
+    or None if documents should be indexed as-is."""
+    return settings.CHUNKING_PROFILES.get(profile_id)
 
 # Validation
 if not settings.HF_TOKEN:

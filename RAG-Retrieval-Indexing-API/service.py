@@ -11,7 +11,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder
 
-from config import settings, embedding_batch_size_for_profile, embedding_model_for_profile
+from config import settings, embedding_batch_size_for_profile, embedding_model_for_profile, chunking_config_for_profile
 
 # Biên dịch sẵn regex tokenizer (tránh compile lại mỗi lần gọi)
 _WORD_PATTERN = re.compile(r'\w+')
@@ -36,6 +36,11 @@ class HybridRetrieverService:
         self._initialize_embeddings()
 
         if documents:
+            # Apply chunking ablation if this profile has a re-chunking config.
+            chunk_cfg = chunking_config_for_profile(self.profile_id)
+            if chunk_cfg:
+                documents = self._rechunk_documents(documents, chunk_cfg[0], chunk_cfg[1])
+
             # Luôn cố gắng tải các tài liệu đã lưu trong cache trước để gộp
             existing_docs: list[Document] = []
             if not rebuild_cache:
@@ -78,6 +83,29 @@ class HybridRetrieverService:
         # the entire profile fail during batch indexing.
         if self.profile_id.endswith("phobert-base"):
             self.embeddings._client.max_seq_length = 256
+
+    @staticmethod
+    def _rechunk_documents(documents: list[Document], chunk_size: int, chunk_overlap: int) -> list[Document]:
+        """Re-split incoming documents using RecursiveCharacterTextSplitter.
+        Each sub-chunk inherits the parent's metadata (source, dataset_id, etc.)
+        but its id becomes <parent_id>-chunk<n> so it does not collide with the
+        original chunk IDs stored in PostgreSQL."""
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            separators=["\n\n", "\n", ". ", " ", ""],
+        )
+        result: list[Document] = []
+        for doc in documents:
+            sub_docs = splitter.split_documents([doc])
+            parent_id = doc.metadata.get("id", "")
+            for idx, sub in enumerate(sub_docs):
+                sub.metadata = dict(doc.metadata)  # copy parent metadata
+                sub.metadata["id"] = f"{parent_id}-chunk{idx}" if parent_id else None
+                sub.metadata["parent_chunk_id"] = parent_id
+                result.append(sub)
+        return result
 
     def _build_index(self):
         """Xây dựng chỉ mục FAISS + BM25 từ self.documents.

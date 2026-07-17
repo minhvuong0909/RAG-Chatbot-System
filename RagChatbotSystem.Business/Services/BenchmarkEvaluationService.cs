@@ -45,6 +45,30 @@ namespace RagChatbotSystem.Business.Services
                 run.CreatedAt, run.CompletedAt)).ToList();
         }
 
+        public async Task<EvaluationRunDetailDto?> GetRunDetailAsync(Guid runId, CancellationToken cancellationToken = default)
+        {
+            var run = await _unitOfWork.Repository<EvaluationRun>().GetQueryable().AsNoTracking()
+                .Where(r => r.Id == runId)
+                .Include(r => r.BenchmarkDefinition)
+                .Include(r => r.EvaluationProfile)
+                .Include(r => r.Results).ThenInclude(res => res.BenchmarkQuestion)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (run == null) return null;
+
+            var resultDtos = run.Results
+                .OrderBy(r => r.BenchmarkQuestion.SortOrder)
+                .Select(r => new EvaluationResultDetailDto(
+                    r.Id, r.BenchmarkQuestion.SortOrder, r.BenchmarkQuestion.Question, r.BenchmarkQuestion.ReferenceAnswer,
+                    r.BenchmarkQuestion.IsHoldout, r.Answer, r.Status, r.ErrorMessage, r.ContextPrecision, r.ContextRecall,
+                    r.Faithfulness, r.AnswerRelevancy, r.RetrievalLatencyMs, r.GenerationLatencyMs))
+                .ToList();
+
+            return new EvaluationRunDetailDto(run.Id, run.BenchmarkDefinition.Name, run.BenchmarkDefinition.Version,
+                run.EvaluationProfile.Name, run.ModelName, run.Status, run.TotalQuestions, run.CompletedQuestions,
+                run.CreatedAt, run.CompletedAt, resultDtos);
+        }
+
         public async Task<EvaluationImportResult> ImportRunnerReportAsync(Guid datasetId, Guid userId, string reportJson, CancellationToken cancellationToken = default)
         {
             using var document = JsonDocument.Parse(reportJson);

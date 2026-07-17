@@ -12,4 +12,35 @@ namespace RagChatbotSystem.Business.DTOs
         DateTime CreatedAt, DateTime? CompletedAt);
 
     public sealed record EvaluationImportResult(Guid RunId, int ImportedQuestions, int FailedQuestions);
+
+    public sealed record EvaluationRunDetailDto(
+        Guid Id,
+        string BenchmarkName,
+        string BenchmarkVersion,
+        string ProfileName,
+        string ModelName,
+        string Status,
+        int TotalQuestions,
+        int CompletedQuestions,
+        DateTime CreatedAt,
+        DateTime? CompletedAt,
+        IReadOnlyList<EvaluationResultDetailDto> Results
+    );
+
+    public sealed record EvaluationResultDetailDto(
+        Guid Id,
+        int SortOrder,
+        string Question,
+        string ReferenceAnswer,
+        bool IsHoldout,
+        string GeneratedAnswer,
+        string Status,
+        string ErrorMessage,
+        double? ContextPrecision,
+        double? ContextRecall,
+        double? Faithfulness,
+        double? AnswerRelevancy,
+        long RetrievalLatencyMs,
+        long GenerationLatencyMs
+    );
 }

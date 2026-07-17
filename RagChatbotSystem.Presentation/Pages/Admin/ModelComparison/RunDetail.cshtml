@@ -1,0 +1,86 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.ModelComparison.RunDetailModel
+@{
+    ViewData["Title"] = "Evaluation Run Detail";
+}
+
+<div class="mb-6">
+    <a asp-page="./Benchmark" asp-route-datasetId="@Model.DatasetId" class="text-blue-500 hover:underline">&larr; Back to Benchmarks</a>
+</div>
+
+<h2 class="text-2xl font-bold mb-4">Run @Model.RunDetail!.Id</h2>
+
+<div class="bg-white p-6 rounded-lg shadow mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+            <p class="text-sm text-gray-500">Benchmark</p>
+            <p class="font-semibold">@Model.RunDetail.BenchmarkName @Model.RunDetail.BenchmarkVersion</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500">Profile / Model</p>
+            <p class="font-semibold">@Model.RunDetail.ProfileName / @Model.RunDetail.ModelName</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500">Status</p>
+            <p class="font-semibold">@Model.RunDetail.Status (@Model.RunDetail.CompletedQuestions / @Model.RunDetail.TotalQuestions)</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500">Created At</p>
+            <p class="font-semibold">@Model.RunDetail.CreatedAt.ToString("g")</p>
+        </div>
+    </div>
+</div>
+
+<h3 class="text-xl font-bold mb-4">Result Details</h3>
+
+<div class="overflow-x-auto bg-white rounded-lg shadow">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider"># / Holdout</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Question & Answer</th>
+                <th class="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">Status / Error</th>
+                <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Metrics</th>
+                <th class="px-4 py-3 text-right font-medium text-gray-500 uppercase tracking-wider">Latencies (ms)</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @foreach (var res in Model.RunDetail.Results)
+            {
+                <tr>
+                    <td class="px-4 py-4 align-top whitespace-nowrap">
+                        <span class="font-bold">@res.SortOrder</span><br />
+                        @if (res.IsHoldout)
+                        {
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Holdout</span>
+                        }
+                    </td>
+                    <td class="px-4 py-4 align-top w-2/5">
+                        <p class="font-semibold mb-1">Q: @res.Question</p>
+                        <p class="text-green-700 mb-1"><span class="font-semibold">Ref:</span> @res.ReferenceAnswer</p>
+                        <p class="text-blue-700 italic"><span class="font-semibold not-italic">Gen:</span> @(string.IsNullOrEmpty(res.GeneratedAnswer) ? "—" : res.GeneratedAnswer)</p>
+                    </td>
+                    <td class="px-4 py-4 align-top">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium @(res.Status == "Completed" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800")">
+                            @res.Status
+                        </span>
+                        @if (!string.IsNullOrEmpty(res.ErrorMessage))
+                        {
+                            <p class="mt-2 text-xs text-red-600">@res.ErrorMessage</p>
+                        }
+                    </td>
+                    <td class="px-4 py-4 align-top text-right">
+                        <p>P: @(res.ContextPrecision?.ToString("0.00") ?? "—")</p>
+                        <p>R: @(res.ContextRecall?.ToString("0.00") ?? "—")</p>
+                        <p>F: @(res.Faithfulness?.ToString("0.00") ?? "—")</p>
+                        <p>A: @(res.AnswerRelevancy?.ToString("0.00") ?? "—")</p>
+                    </td>
+                    <td class="px-4 py-4 align-top text-right text-gray-500">
+                        <p>Ret: @res.RetrievalLatencyMs</p>
+                        <p>Gen: @res.GenerationLatencyMs</p>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
