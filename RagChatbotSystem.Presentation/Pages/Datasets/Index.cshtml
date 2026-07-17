@@ -1,21 +1,27 @@
 @page
+@using System.Security.Claims
 @model RagChatbotSystem.Presentation.Pages.Datasets.IndexModel
 @{
     ViewData["Title"] = "Quản lý môn học";
 }
 
-<div class="container py-4">
+<div class="space-y-6">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow" style="color: var(--muted); text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Không gian học tập</p>
-            <h2 class="fw-bold m-0" style="color: var(--ink);">Quản lý môn học</h2>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Không gian học tập</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Quản lý môn học</h1>
+            <p class="text-sm text-gray-500 mt-1">Tổ chức và thiết lập tài liệu cho RAG AI</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="flex gap-3">
             @if (User.IsInRole("Admin"))
             {
-                <a asp-page="/Admin/ModelComparison/Index" class="btn btn-outline-primary" style="border-radius: 8px; font-weight: 600;">So sánh mô hình</a>
-                <a asp-page="/Admin/Index" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600; border-color: var(--line);">Quay lại trang quản trị</a>
+                <a asp-page="/Admin/ModelComparison/Index" class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-accent-strong hover:bg-indigo-700 transition-colors">
+                    So sánh mô hình
+                </a>
+                <a asp-page="/Admin/Index" class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    Quay lại trang quản trị
+                </a>
             }
         </div>
     </div>
@@ -23,45 +29,60 @@
     <!-- Alert Messages -->
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 8px;">
-            @Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        <div class="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-red-800">@Model.ErrorMessage</p>
+            </div>
         </div>
     }
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 8px;">
-            @Model.SuccessMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        <div class="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-green-800">@Model.SuccessMessage</p>
+            </div>
         </div>
     }
 
-    <div class="row g-4">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Create Subject Form (Admin Only) -->
         @if (User.IsInRole("Admin"))
         {
-            <div class="col-lg-4">
-                <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                    <div class="card-header bg-transparent border-0 pt-4 px-4">
-                        <h4 class="fw-bold m-0" style="color: var(--ink);">Tạo môn học</h4>
-                        <p class="text-muted small m-0 mt-1">Thêm môn học mới để tổ chức tài liệu cho RAG.</p>
+            <div class="lg:col-span-4">
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-24">
+                    <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-white">
+                        <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-lg bg-accent-strong/10 text-accent-strong flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                            </span>
+                            Tạo môn học
+                        </h2>
                     </div>
-                    <div class="card-body px-4 pb-4 pt-2">
-                        <form method="post" asp-page-handler="CreateDataset">
+                    <div class="p-6">
+                        <form method="post" asp-page-handler="CreateDataset" class="space-y-5">
                             @Html.AntiForgeryToken()
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold" style="color: var(--ink-soft);">Tên môn học</label>
-                                <input name="name" type="text" class="form-control" placeholder="Ví dụ: PRN222 Lập trình C#" required style="border-radius: 8px; border-color: var(--line);" />
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 tracking-wider uppercase mb-2">Tên môn học</label>
+                                <input name="name" type="text" class="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-strong/50 focus:border-accent-strong focus:bg-white transition-all" placeholder="Ví dụ: PRN222 Lập trình C#" required />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold" style="color: var(--ink-soft);">Mô tả</label>
-                                <textarea name="description" rows="3" class="form-control" placeholder="Mô tả ngắn về nội dung môn học..." style="border-radius: 8px; border-color: var(--line);"></textarea>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 tracking-wider uppercase mb-2">Mô tả</label>
+                                <textarea name="description" rows="3" class="block w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-accent-strong/50 focus:border-accent-strong focus:bg-white transition-all resize-none" placeholder="Mô tả ngắn về nội dung môn học..."></textarea>
                             </div>
-                            <div class="mb-4 d-flex align-items-center gap-2">
-                                <input type="checkbox" name="isPublic" id="isPublic" value="true" checked class="form-check-input" style="cursor: pointer;" />
-                                <label for="isPublic" class="form-check-label small text-muted" style="cursor: pointer; user-select: none;">Cho phép tất cả sinh viên đã được duyệt truy cập</label>
+                            <div class="flex items-start gap-3 p-3 rounded-xl bg-gray-50/80 border border-gray-100">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" name="isPublic" id="isPublic" value="true" checked class="w-4 h-4 text-accent-strong border-gray-300 rounded focus:ring-accent-strong cursor-pointer" />
+                                </div>
+                                <label for="isPublic" class="text-sm text-gray-600 leading-snug cursor-pointer">
+                                    <span class="font-semibold text-ink block mb-0.5">Công khai môn học</span>
+                                    Cho phép tất cả sinh viên truy cập nội dung này
+                                </label>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100" style="border-radius: 8px; font-weight: 600; background: var(--accent); border: none;">Tạo môn học</button>
+                            <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-strong transition-all">
+                                Tạo môn học mới
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -69,77 +90,94 @@
         }
 
         <!-- Subjects List -->
-        <div class="@(User.IsInRole("Admin") ? "col-lg-8" : "col-12")">
-            <div class="card border-0 shadow-soft" style="border-radius: 12px; background: var(--surface); border: 1px solid var(--line) !important;">
-                <div class="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h4 class="fw-bold m-0" style="color: var(--ink);">Danh sách môn học</h4>
-                        <p class="text-muted small m-0 mt-1">Các môn học bạn có thể quản lý tài liệu và sử dụng với AI.</p>
-                    </div>
-                    <span class="badge bg-secondary" data-dataset-count style="border-radius: 20px; padding: 6px 12px; font-weight: 600; background: var(--bg-elevated) !important; color: var(--ink-soft) !important;">
-                        @Model.Datasets.Count môn học
+        <div class="@(User.IsInRole("Admin") ? "lg:col-span-8" : "lg:col-span-12")">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-50 bg-white flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </span>
+                        Danh sách môn học
+                    </h2>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
+                        @Model.Datasets.Count môn
                     </span>
                 </div>
-                <div class="card-body px-4 pb-4 pt-2">
+                
+                <div class="p-0">
                     @if (Model.Datasets.Count == 0)
                     {
-                        <div class="text-center py-5">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-muted mb-3"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
-                            <p class="text-muted">Chưa có môn học nào được phân công hoặc tạo mới.</p>
+                        <div class="text-center py-16 px-4">
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 text-gray-400 mb-4">
+                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            </div>
+                            <h3 class="text-base font-bold text-ink mb-1">Chưa có môn học nào</h3>
+                            <p class="text-sm text-gray-500">Hãy tạo môn học mới để bắt đầu thêm tài liệu.</p>
                         </div>
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table align-middle" style="margin: 0;">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr style="border-bottom: 2px solid var(--line);">
-                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Môn học</th>
-                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Phạm vi truy cập</th>
-                                        <th scope="col" class="pb-3 text-muted small text-uppercase" style="font-weight: 700;">Tài liệu</th>
-                                        <th scope="col" class="pb-3 text-muted small text-uppercase text-end" style="font-weight: 700;">Thao tác</th>
+                                    <tr class="bg-gray-50/50 border-b border-gray-100">
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Môn học</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Truy cập</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-24">Tài liệu</th>
+                                        <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Thao tác</th>
                                     </tr>
                                 </thead>
-                                <tbody data-dataset-list>
+                                <tbody class="divide-y divide-gray-100 bg-white">
                                     @foreach (var ds in Model.Datasets)
                                     {
-                                        <tr data-dataset-id="@ds.DatasetId" style="border-bottom: 1px solid var(--line);">
-                                            <td class="py-3">
-                                                <div class="dataset-name fw-bold" style="color: var(--ink);">@ds.Name</div>
+                                        <tr class="hover:bg-gray-50/50 transition-colors group">
+                                            <td class="py-4 px-6">
+                                                <div class="font-semibold text-ink text-sm">@ds.Name</div>
                                                 @if (!string.IsNullOrWhiteSpace(ds.Description))
                                                 {
-                                                    <div class="dataset-description text-muted small text-truncate" style="max-width: 250px;" title="@ds.Description">@ds.Description</div>
+                                                    <div class="text-gray-500 text-xs mt-1 truncate max-w-xs" title="@ds.Description">@ds.Description</div>
                                                 }
-                                                <div class="text-muted small" style="font-size: 0.75rem;">Tạo lúc: @ds.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                                                <div class="text-gray-400 text-[11px] mt-1.5 flex items-center gap-1.5">
+                                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                    @ds.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                                </div>
                                             </td>
-                                            <td class="py-3">
+                                            <td class="py-4 px-6">
                                                 @if (ds.IsPublic)
                                                 {
-                                                    <span class="badge" style="background: var(--success-soft); color: var(--success); font-weight: 600; border-radius: 4px; padding: 4px 8px;">Công khai</span>
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-green-50 text-green-700 border border-green-200/50">
+                                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
+                                                        Công khai
+                                                    </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge" style="background: var(--bg-elevated); color: var(--muted); font-weight: 600; border-radius: 4px; padding: 4px 8px;">Riêng tư</span>
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200/50">
+                                                        <span class="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5"></span>
+                                                        Riêng tư
+                                                    </span>
                                                 }
                                             </td>
-                                            <td class="py-3">
-                                                <span class="dataset-document-count fw-semibold" style="color: var(--ink-soft);">@ds.DocumentCount</span>
+                                            <td class="py-4 px-6 text-center">
+                                                <div class="inline-flex items-center justify-center min-w-[28px] h-7 px-2 bg-indigo-50 text-accent-strong text-xs font-bold rounded-lg">
+                                                    @ds.DocumentCount
+                                                </div>
                                             </td>
-                                            <td class="py-3 text-end">
-                                                <div class="d-flex justify-content-end gap-2">
-                                                    <a asp-page="/Index" asp-route-datasetId="@ds.DatasetId" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-weight: 600; border-color: var(--accent); color: var(--accent);">
-                                                        Trò chuyện
+                                            <td class="py-4 px-6 text-right">
+                                                <div class="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                    <a asp-page="/Index" asp-route-datasetId="@ds.DatasetId" class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold rounded-lg text-accent-strong bg-indigo-50 hover:bg-accent-strong hover:text-white transition-colors" title="Trò chuyện">
+                                                        Chat
                                                     </a>
-                                                    <a asp-page="/Documents/Index" asp-route-datasetId="@ds.DatasetId" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-weight: 600; border-color: var(--line); color: var(--ink-soft);">
+                                                    <a asp-page="/Documents/Index" asp-route-datasetId="@ds.DatasetId" class="inline-flex items-center px-2.5 py-1.5 text-xs font-semibold rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" title="Quản lý tài liệu">
                                                         Tài liệu
                                                     </a>
                                                     @if (User.IsInRole("Admin") || ds.CreatedBy == Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? ""))
                                                     {
-                                                        <form method="post" asp-page-handler="DeleteDataset" class="d-inline" onsubmit="return confirm('Ngừng sử dụng môn học này? Tài liệu, chunk và dữ liệu truy vết hiện có sẽ được giữ lại.');">
+                                                        <form method="post" asp-page-handler="DeleteDataset" class="inline-block m-0" onsubmit="return confirm('Ngừng sử dụng môn học này? Tài liệu, chunk và dữ liệu truy vết hiện có sẽ được giữ lại.');">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="id" value="@ds.DatasetId" />
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-weight: 600; border-color: rgba(220, 53, 69, 0.2);">
-                                                                Ngừng sử dụng
+                                                            <button type="submit" class="inline-flex items-center justify-center p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Ngừng sử dụng">
+                                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                             </button>
                                                         </form>
                                                     }

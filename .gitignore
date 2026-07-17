@@ -49,3 +49,6 @@ RAG-Retrieval-Indexing-API/**/*.pkl
 RAG-Retrieval-Indexing-API/**/*.pickle
 RAG-Retrieval-Indexing-API/**/*.faiss
 RAG-Retrieval-Indexing-API/**/*.index
+
+# Node
+node_modules/

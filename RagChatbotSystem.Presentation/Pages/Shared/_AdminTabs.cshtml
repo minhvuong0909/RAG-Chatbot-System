@@ -12,11 +12,20 @@
     };
 }
 
-<nav class="admin-tabs" aria-label="Khu vực quản trị">
+<nav class="flex overflow-x-auto custom-scrollbar whitespace-nowrap gap-2" aria-label="Khu vực quản trị">
     @foreach (var tab in tabs)
     {
-        <a class="@(tab.IsActive ? "active" : null)"
+        <a class="px-4 py-2 text-sm font-bold rounded-xl transition-colors @(tab.IsActive ? "bg-accent-strong text-white shadow-sm" : "text-gray-500 hover:bg-gray-100 hover:text-ink")"
            asp-page="@tab.Page"
-           aria-current="@(tab.IsActive ? "page" : null)">@tab.Label</a>
+           aria-current="@(tab.IsActive ? "page" : null)">
+            @tab.Label
+        </a>
     }
 </nav>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>

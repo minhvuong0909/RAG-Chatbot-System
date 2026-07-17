@@ -19,160 +19,217 @@
 
     private static string StatusClass(string? status) => status?.ToLowerInvariant() switch
     {
-        "uploaded" or "pending" => "pending",
-        "processing" => "processing",
-        "completed" => "completed",
-        "failed" => "failed",
-        "deleted" => "deleted",
-        _ => "pending"
+        "uploaded" or "pending" => "bg-gray-100 text-gray-600 border-gray-200",
+        "processing" => "bg-blue-50 text-blue-700 border-blue-200",
+        "completed" => "bg-green-50 text-green-700 border-green-200",
+        "failed" => "bg-red-50 text-red-700 border-red-200",
+        "deleted" => "bg-gray-100 text-gray-500 border-gray-200 line-through",
+        _ => "bg-gray-100 text-gray-600 border-gray-200"
     };
 }
 
-<div id="documents-workspace" data-rag-app data-selected-dataset-id="@Model.DatasetId" class="container py-4 document-workspace">
-    <header class="document-page-header">
+<div id="documents-workspace" data-rag-app data-selected-dataset-id="@Model.DatasetId" class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow"><a asp-page="/Datasets/Index">Môn học</a> <span aria-hidden="true">/</span> <span title="@Model.Dataset.Name">@Model.Dataset.Name</span></p>
-            <h1>Quản lý tài liệu</h1>
-            <p class="helper-text">Tài liệu đã xử lý sẽ được dùng làm nguồn tham khảo khi chatbot trả lời cho môn học này.</p>
+            <p class="text-xs font-bold text-gray-500 tracking-wider uppercase mb-1 flex items-center gap-2">
+                <a asp-page="/Datasets/Index" class="hover:text-accent-strong transition-colors">Môn học</a>
+                <span>/</span>
+                <span title="@Model.Dataset.Name" class="text-accent-strong">@Model.Dataset.Name</span>
+            </p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Quản lý tài liệu</h1>
+            <p class="text-sm text-gray-500 mt-1">Tài liệu đã xử lý sẽ được dùng làm nguồn tham khảo cho chatbot.</p>
         </div>
-        <div class="document-header-actions">
-            <a asp-page="/Datasets/Index" class="btn btn-outline-secondary">Danh sách môn học</a>
-            <a asp-page="/Index" asp-route-datasetId="@Model.DatasetId" class="btn btn-primary">Mở trò chuyện</a>
+        <div class="flex gap-3">
+            <a asp-page="/Datasets/Index" class="inline-flex items-center px-4 py-2 border border-gray-200 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                Danh sách môn học
+            </a>
+            <a asp-page="/Index" asp-route-datasetId="@Model.DatasetId" class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-accent-strong hover:bg-indigo-700 transition-colors">
+                Mở trò chuyện
+            </a>
         </div>
-    </header>
+    </div>
 
+    <!-- Alert Messages -->
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        <div class="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-red-800">@Model.ErrorMessage</p>
+            </div>
+            <button type="button" class="absolute top-4 right-4 text-red-400 hover:text-red-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
     }
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @Model.SuccessMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        <div class="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-green-800">@Model.SuccessMessage</p>
+            </div>
+            <button type="button" class="absolute top-4 right-4 text-green-400 hover:text-green-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
         </div>
     }
 
     @if (!hasCompletedDocument)
     {
-        <div class="document-readiness-notice" role="status">
-            Chatbot chưa thể trả lời dựa trên môn học này vì chưa có tài liệu đã xử lý.
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3 shadow-sm">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1">
+                <p class="text-sm font-bold text-amber-800">Chatbot chưa sẵn sàng</p>
+                <p class="text-sm text-amber-700 mt-1">Chưa thể trả lời dựa trên môn học này vì chưa có tài liệu nào được xử lý hoàn tất.</p>
+            </div>
         </div>
     }
 
-    <div class="row g-4 align-items-start">
-        <div class="col-lg-4">
-            <section class="card border-0 shadow-soft document-upload-card">
-                <div class="card-body p-4">
-                    <h2 class="h4 fw-bold mb-1">Tải tài liệu lên</h2>
-                    <p class="text-muted small mb-3">Tải từng tệp để hệ thống trích xuất nội dung, tạo chunk và lập chỉ mục RAG.</p>
-
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Upload Card -->
+        <div class="lg:col-span-4 sticky top-24">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-white">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-accent-strong/10 text-accent-strong flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        </span>
+                        Tải tài liệu lên
+                    </h2>
+                    <p class="text-xs text-gray-500 mt-2 ml-10">Tải tệp để hệ thống trích xuất nội dung và lập chỉ mục RAG.</p>
+                </div>
+                <div class="p-6">
                     <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" id="upload-doc-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="datasetId" value="@Model.DatasetId" />
 
-                        <div id="upload-dropzone" class="upload-dropzone" role="button" tabindex="0" aria-describedby="upload-support-text" onclick="if (!this.dataset.uploading) document.getElementById('file-upload').click();">
-                            <div id="upload-idle-state">
-                                <div class="upload-icon" aria-hidden="true">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <div id="upload-dropzone" class="relative group cursor-pointer border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-indigo-50/50 hover:border-accent-strong transition-all" role="button" tabindex="0" onclick="if (!this.dataset.uploading) document.getElementById('file-upload').click();">
+                            <div id="upload-idle-state" class="space-y-3">
+                                <div class="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mx-auto group-hover:bg-indigo-100 group-hover:text-accent-strong transition-colors text-gray-400">
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                                 </div>
-                                <span class="upload-primary">Kéo và thả tệp vào đây</span>
-                                <span class="upload-secondary">hoặc bấm để chọn tệp</span>
+                                <div>
+                                    <span class="block text-sm font-bold text-ink">Kéo và thả tệp vào đây</span>
+                                    <span class="block text-xs text-gray-500 mt-1">hoặc bấm để chọn tệp</span>
+                                </div>
                             </div>
-                            <div id="upload-loading-state" class="upload-loading-state" aria-live="polite">
-                                <div class="spinner-border text-primary mb-3" role="status"></div>
-                                <span class="upload-primary">Đang tải lên và xử lý...</span>
-                                <span class="upload-secondary">Hệ thống đang trích xuất nội dung và lập chỉ mục RAG.</span>
+                            <div id="upload-loading-state" class="hidden space-y-4" aria-live="polite">
+                                <svg class="w-10 h-10 text-accent-strong animate-spin mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <div>
+                                    <span class="block text-sm font-bold text-accent-strong">Đang tải lên...</span>
+                                    <span class="block text-xs text-gray-500 mt-1">Hệ thống đang trích xuất & lập chỉ mục</span>
+                                </div>
                             </div>
                             <input id="file-upload" name="file" type="file" accept=".pdf,.txt,.docx" required hidden onchange="triggerUpload();" />
                         </div>
-                        <p id="upload-support-text" class="upload-support-text mb-0">Hỗ trợ PDF, DOCX, TXT. Dung lượng tối đa 50 MB.</p>
+                        <p class="text-xs text-gray-400 text-center mt-4">Hỗ trợ PDF, DOCX, TXT. Tối đa 50MB.</p>
                     </form>
                 </div>
-            </section>
+            </div>
         </div>
 
-        <div class="col-lg-8">
-            <section class="card border-0 shadow-soft document-list-card">
-                <div class="card-body p-4">
-                    <div class="document-list-heading">
-                        <div>
-                            <h2 class="h4 fw-bold mb-1">Tài liệu của môn học</h2>
-                            <p class="text-muted small mb-0">Chỉ các tài liệu đã xử lý mới được chatbot sử dụng để trả lời.</p>
-                        </div>
-                        <span class="document-count" data-document-count>@Model.Documents.Count tệp</span>
-                    </div>
+        <!-- Document List -->
+        <div class="lg:col-span-8">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-50 bg-white flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </span>
+                        Danh sách tài liệu
+                    </h2>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full" data-document-count>
+                        @Model.Documents.Count tệp
+                    </span>
+                </div>
 
-                    <div id="document-list" class="document-list" data-document-list>
-                        @if (Model.Documents.Count == 0)
-                        {
-                            <div class="document-empty-state" id="documents-empty-state">
-                                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                                <p>Chưa có tài liệu nào trong môn học này.</p>
-                                <span>Tải lên một tệp để chatbot có nguồn tham khảo.</span>
+                <div class="p-0" id="document-list" data-document-list>
+                    @if (Model.Documents.Count == 0)
+                    {
+                        <div class="text-center py-16 px-4" id="documents-empty-state">
+                            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 text-gray-400 mb-4">
+                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
                             </div>
-                        }
-                        else
-                        {
+                            <h3 class="text-base font-bold text-ink mb-1">Chưa có tài liệu</h3>
+                            <p class="text-sm text-gray-500">Tải lên một tệp để chatbot có nguồn tham khảo.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="divide-y divide-gray-100">
                             @foreach (var doc in Model.Documents)
                             {
-                                <article class="document-item" data-document-id="@doc.DocumentId">
-                                    <div class="document-item-main">
-                                        <div class="document-file-icon" aria-hidden="true">@doc.FileType.ToUpperInvariant()</div>
-                                        <div class="document-file-details">
-                                            <strong class="document-file-name" title="@doc.FileName">@doc.FileName</strong>
-                                            <span>@Math.Ceiling(doc.FileSize / 1024.0) KB <span aria-hidden="true">·</span> Tải lên @doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                <article class="p-5 hover:bg-gray-50/50 transition-colors group flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-document-id="@doc.DocumentId">
+                                    <div class="flex items-start gap-4">
+                                        <div class="w-10 h-10 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center font-bold text-xs shrink-0 uppercase tracking-wider">
+                                            @doc.FileType
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h3 class="font-semibold text-ink text-sm truncate" title="@doc.FileName">@doc.FileName</h3>
+                                            <div class="text-gray-400 text-xs mt-1 flex items-center gap-2 flex-wrap">
+                                                <span>@Math.Ceiling(doc.FileSize / 1024.0) KB</span>
+                                                <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                                                <span>@doc.UploadedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(doc.ProcessError))
+                                            {
+                                                <p class="text-xs text-red-500 mt-1 font-medium">Lỗi: Không thể xử lý tài liệu này.</p>
+                                            }
                                         </div>
                                     </div>
-                                    <div class="document-item-status">
-                                        <span class="status-badge @StatusClass(doc.Status)" data-document-status>@StatusLabel(doc.Status)</span>
-                                        <div class="progress" aria-label="Tiến độ xử lý tài liệu">
-                                            <div class="progress-bar" data-document-progress role="progressbar" style="width: @(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55%" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100%" : "0%")" aria-valuenow="@(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100" : "0")" aria-valuemin="0" aria-valuemax="100"></div>
+
+                                    <div class="flex items-center gap-6 sm:justify-end shrink-0">
+                                        <div class="w-32 text-right">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border @StatusClass(doc.Status)" data-document-status>
+                                                @StatusLabel(doc.Status)
+                                            </span>
+                                            <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2 overflow-hidden">
+                                                <div class="bg-accent-strong h-1.5 rounded-full transition-all duration-500" data-document-progress style="width: @(doc.Status.Equals("Processing", StringComparison.OrdinalIgnoreCase) ? "55%" : doc.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) ? "100%" : "0%")"></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    @if (!string.IsNullOrWhiteSpace(doc.ProcessError))
-                                    {
-                                        <p class="document-processing-error mb-0">Không thể xử lý tài liệu này. Vui lòng thử lại hoặc tải lên tệp khác.</p>
-                                    }
-                                    <div class="document-item-actions">
-                                        <a asp-page="/Documents/Preview" asp-route-documentId="@doc.DocumentId" class="btn btn-sm btn-outline-secondary">Xem chunk</a>
-                                        <form method="post" asp-page-handler="DeleteDocument" class="d-inline" data-delete-document data-file-name="@doc.FileName">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="datasetId" value="@Model.DatasetId" />
-                                            <input type="hidden" name="documentId" value="@doc.DocumentId" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
-                                        </form>
+
+                                        <div class="flex gap-2">
+                                            <a asp-page="/Documents/Preview" asp-route-documentId="@doc.DocumentId" class="inline-flex items-center justify-center p-2 text-gray-400 hover:text-accent-strong hover:bg-indigo-50 rounded-lg transition-colors" title="Xem chunk">
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+                                            </a>
+                                            <form method="post" asp-page-handler="DeleteDocument" class="m-0" data-delete-document data-file-name="@doc.FileName">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="datasetId" value="@Model.DatasetId" />
+                                                <input type="hidden" name="documentId" value="@doc.DocumentId" />
+                                                <button type="submit" class="inline-flex items-center justify-center p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa tài liệu">
+                                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"></path></svg>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </article>
                             }
-                        }
-                    </div>
+                        </div>
+                    }
                 </div>
-            </section>
+            </div>
         </div>
     </div>
 </div>
 
-<div id="documentProcessingOverlay" class="document-processing-overlay" hidden aria-live="polite">
-    <div class="document-processing-panel">
-        <div class="spinner-border text-primary" role="status"></div>
-        <h2>Đang xử lý tài liệu</h2>
-        <p>Hệ thống đang trích xuất nội dung, tạo chunk và lập chỉ mục RAG. Vui lòng giữ trang này mở cho đến khi hoàn tất.</p>
+<!-- Modal Overlay for Processing -->
+<div id="documentProcessingOverlay" class="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm hidden flex-col items-center justify-center p-4" aria-live="polite">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center animate-bounce-in">
+        <svg class="w-16 h-16 text-accent-strong animate-spin mx-auto mb-6" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <h2 class="text-xl font-bold text-ink mb-2">Đang xử lý tài liệu</h2>
+        <p class="text-sm text-gray-500">Hệ thống đang trích xuất và lập chỉ mục RAG. Vui lòng không đóng trang web này...</p>
     </div>
 </div>
 
-<div id="deleteDocumentModal" class="document-modal" hidden role="dialog" aria-modal="true" aria-labelledby="deleteDocumentTitle">
-    <div class="document-modal-backdrop" data-modal-dismiss></div>
-    <div class="document-modal-panel" role="document">
-        <h2 id="deleteDocumentTitle">Xóa tài liệu</h2>
-        <p>Bạn có chắc muốn xóa <strong id="delete-document-file-name"></strong>?</p>
-        <p class="text-muted small mb-0">Tài liệu sẽ không còn được chatbot sử dụng để trả lời. Bản ghi được giữ lại để truy vết.</p>
-        <div class="document-modal-actions">
-            <button type="button" class="btn btn-outline-secondary" data-modal-dismiss>Hủy</button>
-            <button type="button" class="btn btn-outline-danger" id="confirm-delete-document">Xóa tài liệu</button>
+<!-- Modal for Delete Confirmation -->
+<div id="deleteDocumentModal" class="fixed inset-0 z-[100] bg-gray-900/50 backdrop-blur-sm hidden flex-col items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="deleteDocumentTitle">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 animate-bounce-in" role="document">
+        <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mb-6 mx-auto">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <h2 id="deleteDocumentTitle" class="text-xl font-bold text-center text-ink mb-4">Xóa tài liệu</h2>
+        <p class="text-sm text-gray-600 text-center mb-6">Bạn có chắc muốn xóa <strong id="delete-document-file-name" class="text-ink"></strong>? Tài liệu này sẽ không còn được chatbot sử dụng.</p>
+        <div class="flex gap-3">
+            <button type="button" class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors" data-modal-dismiss>Hủy</button>
+            <button type="button" class="flex-1 px-4 py-2.5 bg-red-500 text-white font-bold rounded-xl shadow-sm hover:bg-red-600 transition-colors" id="confirm-delete-document">Xóa tài liệu</button>
         </div>
     </div>
 </div>
@@ -199,225 +256,177 @@
                 uploaded: "Đang chờ", pending: "Đang chờ", processing: "Đang xử lý",
                 completed: "Đã xử lý", failed: "Xử lý thất bại", deleted: "Đã xóa"
             };
-            const classes = { uploaded: "pending", pending: "pending", processing: "processing", completed: "completed", failed: "failed", deleted: "deleted" };
-            return { label: labels[normalized] || "Đang chờ", cssClass: classes[normalized] || "pending" };
-        }
-
-        function showModal(modal) {
-            if (!modal) return;
-            modal.hidden = false;
-            modal.querySelector("button")?.focus();
-        }
-
-        function hideModal(modal) {
-            if (modal) modal.hidden = true;
-        }
-
-        function showProcessing() {
-            document.getElementById("upload-idle-state").style.display = "none";
-            document.getElementById("upload-loading-state").style.display = "flex";
-            dropzone.dataset.uploading = "true";
-            processingOverlay.hidden = false;
-        }
-
-        function submitUpload() {
-            showProcessing();
-            uploadDocForm.submit();
-        }
-
-        function showUploadNotice(message) {
-            const notice = document.createElement("div");
-            notice.className = "alert alert-warning mt-3 auto-dismiss-alert";
-            notice.setAttribute("role", "alert");
-            notice.textContent = message;
-            uploadDocForm.after(notice);
-            window.setTimeout(() => notice.remove(), 5000);
+            const classes = {
+                uploaded: "bg-gray-100 text-gray-600 border-gray-200", 
+                pending: "bg-gray-100 text-gray-600 border-gray-200", 
+                processing: "bg-blue-50 text-blue-700 border-blue-200",
+                completed: "bg-green-50 text-green-700 border-green-200", 
+                failed: "bg-red-50 text-red-700 border-red-200", 
+                deleted: "bg-gray-100 text-gray-500 border-gray-200 line-through"
+            };
+            return {
+                label: labels[normalized] || "Đang chờ",
+                cssClass: classes[normalized] || classes.pending
+            };
         }
 
         function triggerUpload() {
-            if (!fileUploadInput.files.length || !uploadDocForm) return;
-            const selectedFileName = fileUploadInput.files[0].name.toLowerCase();
-            if (existingDocumentNames.has(selectedFileName)) {
-                showUploadNotice("Môn học đã có tài liệu cùng tên. Vui lòng đổi tên tệp hoặc xóa tài liệu cũ trước khi tải lên.");
-                fileUploadInput.value = "";
+            if (!fileUploadInput.files || fileUploadInput.files.length === 0) return;
+            
+            const file = fileUploadInput.files[0];
+            const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+            
+            if (file.size > maxSizeBytes) {
+                alert("Tệp quá lớn. Kích thước tối đa là 50MB.");
+                fileUploadInput.value = '';
                 return;
             }
-            submitUpload();
+            
+            const fileName = file.name.toLowerCase();
+            if (existingDocumentNames.has(fileName)) {
+                alert("Một tài liệu với tên này đã tồn tại trong môn học.");
+                fileUploadInput.value = '';
+                return;
+            }
+            
+            const ext = fileName.split('.').pop();
+            if (!['pdf', 'txt', 'docx'].includes(ext)) {
+                alert("Định dạng không được hỗ trợ. Vui lòng chọn tệp PDF, TXT hoặc DOCX.");
+                fileUploadInput.value = '';
+                return;
+            }
+            
+            dropzone.dataset.uploading = "true";
+            document.getElementById("upload-idle-state").classList.add("hidden");
+            document.getElementById("upload-loading-state").classList.remove("hidden");
+            processingOverlay.classList.remove("hidden");
+            processingOverlay.classList.add("flex");
+            
+            uploadDocForm.submit();
         }
+
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            if (dropzone.dataset.uploading !== "true") {
+                dropzone.classList.add("border-accent-strong", "bg-indigo-50/50");
+            }
+        });
+
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("border-accent-strong", "bg-indigo-50/50");
+        });
+
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("border-accent-strong", "bg-indigo-50/50");
+            
+            if (dropzone.dataset.uploading !== "true" && e.dataTransfer.files.length > 0) {
+                fileUploadInput.files = e.dataTransfer.files;
+                triggerUpload();
+            }
+        });
+
+        // Delete Modal Logic
+        document.querySelectorAll("[data-delete-document]").forEach(form => {
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                pendingDeleteForm = form;
+                deleteFileName.textContent = form.dataset.fileName;
+                deleteModal.classList.remove("hidden");
+                deleteModal.classList.add("flex");
+            });
+        });
+
+        document.querySelectorAll("[data-modal-dismiss]").forEach(el => {
+            el.addEventListener("click", () => {
+                deleteModal.classList.add("hidden");
+                deleteModal.classList.remove("flex");
+                pendingDeleteForm = null;
+            });
+        });
 
         document.getElementById("confirm-delete-document")?.addEventListener("click", () => {
             if (pendingDeleteForm) {
-                pendingDeleteForm.dataset.confirmed = "true";
-                pendingDeleteForm.requestSubmit();
+                pendingDeleteForm.submit();
             }
         });
-        document.querySelectorAll("[data-modal-dismiss]").forEach(button => button.addEventListener("click", () => {
-            hideModal(deleteModal);
-            pendingDeleteForm = null;
-        }));
 
-        document.addEventListener("submit", event => {
-            const form = event.target;
-            if (!(form instanceof HTMLFormElement) || !form.matches("[data-delete-document]")) return;
-            if (form.dataset.confirmed === "true") {
-                form.dataset.confirmed = "false";
-                return;
-            }
-            event.preventDefault();
-            pendingDeleteForm = form;
-            deleteFileName.textContent = form.dataset.fileName || "tài liệu này";
-            showModal(deleteModal);
-        });
+        // Polling Logic
+        const workspace = document.getElementById("documents-workspace");
+        if (workspace) {
+            const datasetId = workspace.dataset.selectedDatasetId;
+            let pollInterval = null;
 
-        if (uploadDocForm && processingOverlay) {
-            uploadDocForm.addEventListener("submit", () => {
-                if (!dropzone.dataset.uploading) showProcessing();
-            });
-        }
+            function checkProcessingStatus() {
+                const processingDocs = document.querySelectorAll("[data-document-status]");
+                let needsPolling = false;
+                
+                processingDocs.forEach(el => {
+                    if (el.textContent.includes("Đang chờ") || el.textContent.includes("Đang xử lý")) {
+                        needsPolling = true;
+                    }
+                });
 
-        if (dropzone) {
-            dropzone.addEventListener("keydown", event => {
-                if ((event.key === "Enter" || event.key === " ") && !dropzone.dataset.uploading) {
-                    event.preventDefault();
-                    fileUploadInput.click();
+                if (needsPolling && !pollInterval) {
+                    pollInterval = setInterval(async () => {
+                        try {
+                            const response = await fetch(`/api/status/dataset/${datasetId}`);
+                            if (!response.ok) return;
+                            
+                            const data = await response.json();
+                            let allDone = true;
+
+                            data.documents.forEach(doc => {
+                                const article = document.querySelector(`article[data-document-id="${doc.documentId}"]`);
+                                if (article) {
+                                    const statusEl = article.querySelector("[data-document-status]");
+                                    const progressEl = article.querySelector("[data-document-progress]");
+                                    
+                                    if (statusEl && statusEl.textContent !== statusInfo(doc.status).label) {
+                                        const info = statusInfo(doc.status);
+                                        statusEl.textContent = info.label;
+                                        statusEl.className = `inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border ${info.cssClass}`;
+                                        
+                                        if (progressEl) {
+                                            progressEl.style.width = doc.status.toLowerCase() === "completed" ? "100%" 
+                                                : doc.status.toLowerCase() === "processing" ? "55%" : "0%";
+                                        }
+                                        
+                                        if (doc.status.toLowerCase() === "completed" || doc.status.toLowerCase() === "failed") {
+                                            setTimeout(() => window.location.reload(), 1500);
+                                        }
+                                    }
+                                }
+                                
+                                if (doc.status.toLowerCase() === "uploaded" || doc.status.toLowerCase() === "pending" || doc.status.toLowerCase() === "processing") {
+                                    allDone = false;
+                                }
+                            });
+
+                            if (allDone && pollInterval) {
+                                clearInterval(pollInterval);
+                                pollInterval = null;
+                            }
+                        } catch (e) {
+                            console.error("Status polling failed:", e);
+                        }
+                    }, 2000);
+                } else if (!needsPolling && pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
                 }
-            });
-            ["dragenter", "dragover"].forEach(eventName => dropzone.addEventListener(eventName, event => {
-                event.preventDefault();
-                if (!dropzone.dataset.uploading) dropzone.classList.add("is-dragging");
-            }));
-            ["dragleave", "drop"].forEach(eventName => dropzone.addEventListener(eventName, event => {
-                event.preventDefault();
-                dropzone.classList.remove("is-dragging");
-            }));
-            dropzone.addEventListener("drop", event => {
-                if (dropzone.dataset.uploading || !event.dataTransfer.files.length) return;
-                fileUploadInput.files = event.dataTransfer.files;
-                triggerUpload();
-            });
-        }
-
-        function escapeHtml(value) {
-            return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-
-        function antiForgeryInput() {
-            const token = document.querySelector('input[name="__RequestVerificationToken"]');
-            return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
-        }
-
-        function createDocumentRow(payload) {
-            const item = document.createElement("article");
-            item.className = "document-item";
-            item.dataset.documentId = payload.documentId;
-            const status = statusInfo(payload.status || payload.action);
-            const percent = Math.max(0, Math.min(100, payload.percentComplete || 0));
-            const sizeKb = Math.ceil((payload.fileSize || 0) / 1024);
-            const dateStr = new Date().toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
-            item.innerHTML = `
-                <div class="document-item-main"><div class="document-file-icon" aria-hidden="true">${escapeHtml(String(payload.fileType || "").toUpperCase())}</div><div class="document-file-details"><strong class="document-file-name" title="${escapeHtml(payload.fileName)}">${escapeHtml(payload.fileName)}</strong><span>${sizeKb} KB <span aria-hidden="true">·</span> Tải lên ${dateStr}</span></div></div>
-                <div class="document-item-status"><span class="status-badge ${status.cssClass}" data-document-status>${status.label}</span><div class="progress" aria-label="Tiến độ xử lý tài liệu"><div class="progress-bar" data-document-progress role="progressbar" style="width:${percent}%" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div></div></div>
-                <div class="document-item-actions"><a href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" class="btn btn-sm btn-outline-secondary">Xem chunk</a><form method="post" action="?handler=DeleteDocument" class="d-inline" data-delete-document data-file-name="${escapeHtml(payload.fileName)}">${antiForgeryInput()}<input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" /><input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" /><button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button></form></div>`;
-            return item;
-        }
-
-        function showEmptyState(docList) {
-            docList.innerHTML = `<div class="document-empty-state" id="documents-empty-state"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg><p>Chưa có tài liệu nào trong môn học này.</p><span>Tải lên một tệp để chatbot có nguồn tham khảo.</span></div>`;
-        }
-
-        function updateDocumentCount() {
-            const count = document.querySelector("[data-document-count]");
-            const rows = document.querySelectorAll("[data-document-id]");
-            if (count) count.textContent = `${rows.length} tệp`;
-        }
-
-        window.addEventListener("rag:document-progress", event => {
-            const payload = event.detail;
-            if (!payload || !payload.documentId || (payload.datasetId && String(payload.datasetId) !== "@Model.DatasetId")) return;
-            const docList = document.getElementById("document-list");
-            const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
-            if (payload.action === "deleted") {
-                documentRow?.remove();
-                if (docList && !docList.querySelector("[data-document-id]")) showEmptyState(docList);
-                updateDocumentCount();
-                return;
             }
-            if (!documentRow) {
-                if (docList && ["completed", "uploaded", "processing", "failed"].includes(payload.action)) {
-                    document.getElementById("documents-empty-state")?.remove();
-                    docList.prepend(createDocumentRow(payload));
-                    updateDocumentCount();
-                }
-                return;
-            }
-            const status = statusInfo(payload.status || payload.action);
-            const statusBadge = documentRow.querySelector("[data-document-status]");
-            if (statusBadge) {
-                statusBadge.textContent = status.label;
-                statusBadge.className = `status-badge ${status.cssClass}`;
-            }
-            const progressBar = documentRow.querySelector("[data-document-progress]");
-            if (progressBar) {
-                const percent = Math.max(0, Math.min(100, payload.percentComplete || 0));
-                progressBar.style.width = `${percent}%`;
-                progressBar.setAttribute("aria-valuenow", String(percent));
-            }
-        });
+
+            checkProcessingStatus();
+        }
     </script>
     <style>
-        .document-workspace { max-width: 1280px; }
-        .document-page-header, .document-list-heading, .document-item, .document-item-main, .document-header-actions, .document-modal-actions { display: flex; gap: 1rem; }
-        .document-page-header, .document-list-heading, .document-item { justify-content: space-between; }
-        .document-page-header { align-items: flex-start; margin-bottom: 1.5rem; }
-        .document-page-header .eyebrow a { color: inherit; text-decoration: none; }
-        .document-page-header h1 { color: var(--ink); font-size: 1.65rem; font-weight: 700; margin: 0; }
-        .document-page-header .helper-text { margin: .35rem 0 0; }
-        .document-header-actions { flex-wrap: wrap; }
-        .document-readiness-notice { background: var(--warning-soft); border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent); border-radius: 8px; color: var(--ink-soft); margin-bottom: 1.5rem; padding: .8rem 1rem; }
-        .document-upload-card, .document-list-card { border: 1px solid var(--line) !important; border-radius: 8px; background: var(--surface); }
-        .upload-dropzone { align-items: center; background: var(--surface-muted); border: 2px dashed var(--line); border-radius: 8px; cursor: pointer; display: flex; justify-content: center; min-height: 220px; padding: 1.5rem; text-align: center; transition: border-color .2s, background .2s; }
-        .upload-dropzone.is-dragging { background: var(--accent-soft); border-color: var(--accent); }
-        .upload-icon { align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 50%; color: var(--accent); display: inline-flex; height: 48px; justify-content: center; margin-bottom: .75rem; width: 48px; }
-        .upload-primary, .upload-secondary { display: block; }
-        .upload-primary { color: var(--ink); font-weight: 700; }
-        .upload-secondary, .upload-support-text { color: var(--muted); font-size: .8rem; margin-top: .35rem; }
-        .upload-loading-state { align-items: center; display: none; flex-direction: column; }
-        .upload-loading-state .spinner-border { height: 2rem; width: 2rem; }
-        .upload-support-text { line-height: 1.5; margin-top: .75rem; }
-        .document-list-heading { align-items: flex-start; margin-bottom: 1rem; }
-        .document-count { background: var(--bg-elevated); border-radius: 999px; color: var(--ink-soft); font-size: .825rem; font-weight: 600; padding: .35rem .7rem; white-space: nowrap; }
-        .document-list { display: grid; gap: .75rem; }
-        .document-item { align-items: center; background: var(--surface-muted); border: 1px solid var(--line); border-radius: 8px; flex-wrap: wrap; padding: 1rem; }
-        .document-item-main { align-items: center; flex: 1 1 280px; min-width: 0; }
-        .document-file-icon { align-items: center; background: var(--accent-soft); border-radius: 6px; color: var(--accent); display: flex; flex: 0 0 auto; font-size: .65rem; font-weight: 800; height: 34px; justify-content: center; width: 42px; }
-        .document-file-details { min-width: 0; }
-        .document-file-name { color: var(--ink); display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .document-file-details span { color: var(--muted); display: block; font-size: .75rem; margin-top: .2rem; }
-        .document-item-status { flex: 0 1 150px; min-width: 130px; }
-        .status-badge { border-radius: 999px; display: inline-block; font-size: .75rem; font-weight: 700; margin-bottom: .45rem; padding: .3rem .55rem; }
-        .status-badge.pending { background: var(--bg-elevated); color: var(--ink-soft); }
-        .status-badge.processing { background: var(--warning-soft); color: var(--warning); }
-        .status-badge.completed { background: var(--success-soft); color: var(--success); }
-        .status-badge.failed { background: var(--danger-soft); color: var(--danger); }
-        .status-badge.deleted { background: var(--bg-elevated); color: var(--muted); }
-        .document-item .progress { background: var(--line); height: .35rem; }
-        .document-item .progress-bar { background: var(--accent); }
-        .document-item-actions { display: flex; gap: .5rem; margin-left: auto; }
-        .document-processing-error { background: var(--warning-soft); border-radius: 6px; color: var(--ink-soft); flex-basis: 100%; font-size: .8rem; padding: .6rem .75rem; }
-        .document-empty-state { align-items: center; color: var(--muted); display: flex; flex-direction: column; justify-content: center; min-height: 260px; text-align: center; }
-        .document-empty-state p { color: var(--ink-soft); font-weight: 600; margin: .75rem 0 .25rem; }
-        .document-empty-state span { font-size: .875rem; }
-        .document-processing-overlay, .document-modal { inset: 0; position: fixed; z-index: 1055; }
-        .document-processing-overlay { align-items: center; background: rgba(15, 23, 42, .5); display: flex; justify-content: center; padding: 1rem; }
-        .document-processing-panel, .document-modal-panel { background: var(--surface); border-radius: 8px; box-shadow: var(--shadow-lg); max-width: 460px; padding: 1.5rem; width: min(100%, 460px); }
-        .document-processing-panel { text-align: center; }
-        .document-processing-panel h2, .document-modal-panel h2 { color: var(--ink); font-size: 1.15rem; font-weight: 700; margin: 1rem 0 .5rem; }
-        .document-processing-panel p, .document-modal-panel p { color: var(--ink-soft); margin-bottom: 0; }
-        .document-modal[hidden], .document-processing-overlay[hidden] { display: none; }
-        .document-modal { align-items: center; display: flex; justify-content: center; padding: 1rem; }
-        .document-modal-backdrop { background: rgba(15, 23, 42, .5); inset: 0; position: absolute; }
-        .document-modal-panel { position: relative; }
-        .document-modal-actions { flex-wrap: wrap; justify-content: flex-end; margin-top: 1.5rem; }
-        @@media (max-width: 575.98px) { .document-page-header { flex-direction: column; } .document-header-actions { width: 100%; } .document-header-actions .btn { flex: 1 1 auto; } .document-list-heading { gap: .75rem; } .document-item { align-items: stretch; } .document-item-status { flex-basis: 100%; } .document-item-actions { margin-left: 0; } .document-item-actions .btn { flex: 1 1 auto; } .document-modal-actions { flex-direction: column-reverse; } .document-modal-actions .btn { width: 100%; } }
+        .animate-bounce-in {
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @@keyframes bounceIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 }

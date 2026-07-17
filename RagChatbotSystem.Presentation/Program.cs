@@ -233,24 +233,34 @@ namespace RagChatbotSystem.Presentation
                         startupLogger.LogInformation("Admin account seeded successfully for {Email}.", myAdminEmail);
                     }
 
-                    var studentEmail = "student@example.com";
-                    if (!db.Users.Any(u => u.Email == studentEmail))
+                    var seedUsers = new[]
                     {
-                        var studentUser = new RagChatbotSystem.DataAccess.Models.User
+                        new { Email = "s1@test.com", Username = "s1", Role = "Student", FullName = "Student 1" },
+                        new { Email = "s2@test.com", Username = "s2", Role = "Student", FullName = "Student 2" },
+                        new { Email = "t1@test.com", Username = "t1", Role = "Teacher", FullName = "Teacher 1" },
+                        new { Email = "t2@test.com", Username = "t2", Role = "Teacher", FullName = "Teacher 2" }
+                    };
+
+                    foreach (var u in seedUsers)
+                    {
+                        if (!db.Users.Any(x => x.Email == u.Email))
                         {
-                            UserId = Guid.NewGuid(),
-                            FullName = "Demo Student",
-                            Email = studentEmail,
-                            Username = "student",
-                            PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("Student@123456"),
-                            Role = "Student",
-                            IsApproved = true,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        db.Users.Add(studentUser);
-                        db.SaveChanges();
-                        startupLogger.LogInformation("Student account seeded successfully for {Email}.", studentEmail);
+                            var newUser = new RagChatbotSystem.DataAccess.Models.User
+                            {
+                                UserId = Guid.NewGuid(),
+                                FullName = u.FullName,
+                                Email = u.Email,
+                                Username = ResolveAvailableUsername(db, u.Username, Guid.Empty),
+                                PasswordHash = RagChatbotSystem.Business.Helpers.PasswordHasherHelper.HashPassword("123"),
+                                Role = u.Role,
+                                IsApproved = true,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            db.Users.Add(newUser);
+                            startupLogger.LogInformation("{Role} account seeded successfully for {Email}.", u.Role, u.Email);
+                        }
                     }
+                    db.SaveChanges();
                 }
                 catch (Exception ex)
                 {

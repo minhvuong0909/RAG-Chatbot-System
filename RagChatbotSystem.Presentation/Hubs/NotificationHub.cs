@@ -27,12 +27,15 @@ namespace RagChatbotSystem.Presentation.Hubs
         public override async Task OnConnectedAsync()
         {
             var userIdValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (Guid.TryParse(userIdValue, out var userId))
+            var role = Context.User?.FindFirstValue(ClaimTypes.Role);
+            var hasUserId = Guid.TryParse(userIdValue, out var userId);
+            if (hasUserId)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
             }
 
-            if (Context.User?.IsInRole("Admin") == true)
+            var isAdmin = Context.User?.IsInRole("Admin") == true;
+            if (isAdmin)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroupName);
             }
@@ -45,19 +48,42 @@ namespace RagChatbotSystem.Presentation.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, StudentGroupName);
             }
 
+            // Keep authorized teachers/students subscribed even when they are viewing another page.
+            // Admins already receive every document event through the admin group.
+            if (hasUserId && !isAdmin && !string.IsNullOrWhiteSpace(role))
+            {
+                var allowedDatasetIds = await _datasetService.GetAccessibleDatasetIdsAsync(userId, role, Context.ConnectionAborted);
+                foreach (var datasetId in allowedDatasetIds)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, DatasetGroupName(datasetId));
+                }
+            }
+
             await base.OnConnectedAsync();
         }
 
         public async Task RegisterUser(string userId)
         {
-            if (Guid.TryParse(userId, out var userGuid))
+            var currentUserIdValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(currentUserIdValue, out var currentUserId)
+                || !Guid.TryParse(userId, out var requestedUserId)
+                || currentUserId != requestedUserId)
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userGuid}");
+                throw new HubException("You cannot register another user's notification group.");
             }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{currentUserId}");
         }
 
         public async Task JoinDatasetGroup(Guid datasetId)
         {
+            // Admins already receive every document/dataset event through the admin group.
+            // Joining the dataset group as well would deliver the same toast twice.
+            if (Context.User?.IsInRole("Admin") == true)
+            {
+                return;
+            }
+
             var userIdValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             var role = Context.User?.FindFirstValue(ClaimTypes.Role);
             if (!Guid.TryParse(userIdValue, out var userId) || string.IsNullOrWhiteSpace(role))

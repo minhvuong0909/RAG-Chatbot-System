@@ -19,79 +19,143 @@
     var statTokens = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgTotalTokens, 0)));
 }
 
-<section class="admin-page" data-admin-page>
-    <header class="admin-page-header">
+<div class="space-y-6" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
         <div>
-            <p class="eyebrow">Quản trị</p>
-            <h1>Lịch sử &amp; Báo cáo so sánh mô hình</h1>
-            <p class="helper-text">Tổng hợp các lần chạy so sánh model trước đây — độ trễ trung bình và điểm chất lượng do AI chấm.</p>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản trị</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Lịch sử & Báo cáo so sánh</h1>
+            <p class="text-sm text-gray-500 mt-1">Tổng hợp các lần chạy so sánh model trước đây — độ trễ trung bình và điểm chất lượng do AI chấm.</p>
         </div>
-    </header>
-
-    <partial name="_AdminTabs" />
-
-    <section class="admin-section">
-        <div class="section-title">
-            <h2>Tổng hợp theo model</h2>
+        <div class="flex items-center gap-3">
+            <a asp-page="/Admin/ModelComparison/Index" class="inline-flex items-center justify-center px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">
+                <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Quay lại So sánh
+            </a>
         </div>
-        @if (hasStats)
-        {
-            <div class="mc-history-chart-grid">
-                <div class="mc-history-chart-frame"><canvas id="tokensChart"></canvas></div>
-                <div class="mc-history-chart-frame"><canvas id="latencyChart"></canvas></div>
-                <div class="mc-history-chart-frame"><canvas id="scoreChart"></canvas></div>
-            </div>
-        }
-        else
-        {
-            <div class="mc-history-empty">Chưa có dữ liệu lịch sử để tổng hợp.</div>
-        }
-    </section>
+    </div>
 
-    <section class="admin-section">
-        <div class="section-title">
-            <h2>Lịch sử chạy gần đây</h2>
-            <span>@Model.Runs.Count lần chạy</span>
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+        <partial name="_AdminTabs" />
+    </div>
+
+    <!-- Stats Section -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-indigo-50/50 to-white">
+            <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </span>
+                Tổng hợp theo model
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            @if (hasStats)
+            {
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="h-64 relative border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+                        <canvas id="tokensChart"></canvas>
+                    </div>
+                    <div class="h-64 relative border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                    <div class="h-64 relative border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="border border-dashed border-gray-300 rounded-xl p-12 text-center">
+                    <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    </div>
+                    <strong class="text-ink text-lg">Chưa có dữ liệu tổng hợp</strong>
+                    <p class="text-sm text-gray-500 mt-1">Hệ thống cần ghi nhận các lần chạy thử nghiệm so sánh để tạo báo cáo tổng hợp.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- History Section -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-50 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </span>
+                Lịch sử chạy gần đây
+            </h2>
+            <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">@Model.Runs.Count lần chạy</span>
         </div>
 
         @if (Model.Runs.Count == 0)
         {
-            <div class="mc-history-empty">Chưa có lần chạy nào được lưu.</div>
+            <div class="p-12 text-center">
+                <strong class="text-ink text-lg">Chưa có lần chạy nào được lưu</strong>
+                <p class="text-sm text-gray-500 mt-1">Bạn có thể quay lại trang So sánh để tạo các lần chạy đầu tiên.</p>
+            </div>
         }
         else
         {
-            <div class="mc-history-table-scroll">
-                <table class="mc-history-table">
-                    <thead>
-                        <tr>
-                            <th>Thời gian</th>
-                            <th>Môn học</th>
-                            <th>Câu hỏi</th>
-                            <th>Model</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end">Thời gian (ms)</th>
-                            <th class="text-end">Token</th>
-                            <th class="text-end">Điểm</th>
+            <div class="overflow-x-auto h-[500px] custom-scrollbar">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-white shadow-sm z-10">
+                        <tr class="border-b border-gray-100">
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Thời gian</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Môn học</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider w-1/4">Câu hỏi</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Model</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Thời gian (ms)</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Token</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Điểm</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-gray-100">
                         @foreach (var run in Model.Runs)
                         {
+                            var isFirstResult = true;
                             @foreach (var result in run.Results)
                             {
-                                <tr>
-                                    <td>@RagChatbotSystem.Presentation.Pages.Admin.ModelComparison.HistoryModel.FormatVietnamTime(run.CreatedAt)</td>
-                                    <td>@run.DatasetName</td>
-                                    <td><span title="@run.Question">@run.Question</span></td>
-                                    <td>@ProviderLabel(result.ProviderKey)</td>
-                                    <td>
-                                        <span class="status-pill @(result.IsSuccess ? "dataset-approved-pill" : "processing")">
+                                <tr class="hover:bg-gray-50/50 transition-colors">
+                                    @if (isFirstResult)
+                                    {
+                                        <td class="py-3 px-6 text-sm text-gray-500 whitespace-nowrap align-top border-r border-gray-100 bg-gray-50/30" rowspan="@run.Results.Count">
+                                            @RagChatbotSystem.Presentation.Pages.Admin.ModelComparison.HistoryModel.FormatVietnamTime(run.CreatedAt)
+                                        </td>
+                                        <td class="py-3 px-6 text-sm font-medium text-ink align-top border-r border-gray-100 bg-gray-50/30 truncate max-w-[150px]" title="@run.DatasetName" rowspan="@run.Results.Count">
+                                            @run.DatasetName
+                                        </td>
+                                        <td class="py-3 px-6 text-sm text-gray-700 align-top border-r border-gray-100 bg-gray-50/30" rowspan="@run.Results.Count">
+                                            <div class="line-clamp-2 max-w-[250px]" title="@run.Question">@run.Question</div>
+                                        </td>
+                                        isFirstResult = false;
+                                    }
+                                    <td class="py-3 px-6 text-sm font-bold text-ink whitespace-nowrap">
+                                        @ProviderLabel(result.ProviderKey)
+                                    </td>
+                                    <td class="py-3 px-6">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border @(result.IsSuccess ? "bg-teal-50 text-teal-700 border-teal-200" : "bg-red-50 text-red-700 border-red-200")">
                                             @(result.IsSuccess ? "Thành công" : "Lỗi")
                                         </span>
                                     </td>
-                                    <td class="text-end">@result.LatencyMs</td>
-                                    <td class="text-end">@result.TotalTokens</td>
-                                    <td class="text-end">@(result.QualityScore.HasValue ? $"{result.QualityScore}/10" : "-")</td>
+                                    <td class="py-3 px-6 text-right text-sm text-gray-500 font-medium">@result.LatencyMs</td>
+                                    <td class="py-3 px-6 text-right text-sm font-bold text-indigo-600">@result.TotalTokens</td>
+                                    <td class="py-3 px-6 text-right">
+                                        @if (result.QualityScore.HasValue)
+                                        {
+                                            <span class="inline-flex items-center justify-center px-2 py-1 rounded bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+                                                @result.QualityScore<span class="text-emerald-500/50">/10</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-gray-400">-</span>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         }
@@ -99,20 +163,15 @@
                 </table>
             </div>
         }
-    </section>
-</section>
+    </div>
+</div>
 
 @section Scripts {
     <style>
-        .mc-history-chart-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-        .mc-history-chart-frame { position: relative; height: 280px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 12px; }
-        .mc-history-empty { border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); padding: 24px; text-align: center; }
-        .mc-history-table-scroll { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
-        .mc-history-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: .85rem; }
-        .mc-history-table th { position: sticky; top: 0; background: var(--surface-muted); text-align: left; padding: 8px 10px; white-space: nowrap; }
-        .mc-history-table td { border-top: 1px solid var(--line); padding: 8px 10px; vertical-align: top; }
-        .mc-history-table td span[title] { display: block; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .text-end { text-align: right; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 
     @if (hasStats)
@@ -121,67 +180,63 @@
         <script>
             document.addEventListener("DOMContentLoaded", () => {
                 const labels = @Html.Raw(statLabels);
+                Chart.defaults.font.family = '"Inter", "Segoe UI", sans-serif';
+                Chart.defaults.color = '#64748b';
 
-                const tokensCanvas = document.getElementById("tokensChart");
-                if (tokensCanvas && typeof Chart !== "undefined") {
-                    new Chart(tokensCanvas, {
+                const createChart = (id, label, data, color, title, max = null) => {
+                    const canvas = document.getElementById(id);
+                    if (!canvas || typeof Chart === "undefined") return;
+
+                    const options = {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            title: { 
+                                display: true, 
+                                text: title,
+                                font: { family: "'Inter', sans-serif", size: 14, weight: 'bold' },
+                                padding: { bottom: 15 }
+                            },
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                titleColor: '#111827',
+                                bodyColor: '#4b5563',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 1,
+                                padding: 12, 
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { 
+                                grid: { color: "#f3f4f6" },
+                                beginAtZero: true,
+                                ...(max ? { max } : {})
+                            }
+                        }
+                    };
+
+                    new Chart(canvas, {
                         type: "bar",
                         data: {
                             labels: labels,
                             datasets: [{
-                                label: "Token trung bình / lần trả lời",
-                                data: @Html.Raw(statTokens),
-                                backgroundColor: "#d97706"
+                                label: label,
+                                data: data,
+                                backgroundColor: color,
+                                borderRadius: 6,
+                                maxBarThickness: 50
                             }]
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { title: { display: true, text: "Token trung bình theo model (chi phí)" } }
-                        }
+                        options: options
                     });
-                }
+                };
 
-                const latencyCanvas = document.getElementById("latencyChart");
-                if (latencyCanvas && typeof Chart !== "undefined") {
-                    new Chart(latencyCanvas, {
-                        type: "bar",
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: "Độ trễ trung bình (ms)",
-                                data: @Html.Raw(statLatency),
-                                backgroundColor: "#2563eb"
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { title: { display: true, text: "Độ trễ trung bình theo model" } }
-                        }
-                    });
-                }
-
-                const scoreCanvas = document.getElementById("scoreChart");
-                if (scoreCanvas && typeof Chart !== "undefined") {
-                    new Chart(scoreCanvas, {
-                        type: "bar",
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: "Điểm chất lượng trung bình (/10)",
-                                data: @Html.Raw(statScore),
-                                backgroundColor: "#0f766e"
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: { y: { min: 0, max: 10 } },
-                            plugins: { title: { display: true, text: "Điểm chất lượng trung bình theo model" } }
-                        }
-                    });
-                }
+                createChart("tokensChart", "Token trung bình", @Html.Raw(statTokens), "rgba(245, 158, 11, 0.8)", "Token trung bình theo model (chi phí)");
+                createChart("latencyChart", "Độ trễ trung bình (ms)", @Html.Raw(statLatency), "rgba(59, 130, 246, 0.8)", "Độ trễ trung bình theo model");
+                createChart("scoreChart", "Điểm trung bình (/10)", @Html.Raw(statScore), "rgba(16, 185, 129, 0.8)", "Điểm chất lượng trung bình theo model", 10);
             });
         </script>
     }
