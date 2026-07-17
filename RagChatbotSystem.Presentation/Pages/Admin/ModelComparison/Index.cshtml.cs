@@ -30,6 +30,10 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
             _batchComparisonService = batchComparisonService;
         }
 
+        // Giới hạn số câu cho 1 lần chạy hàng loạt — chặn lỡ tay dán quá nhiều làm cháy quota free-tier.
+        // Khai báo 1 chỗ để cả server (validate) lẫn view (cảnh báo) dùng chung, không lệch số.
+        public const int MaxBatchQuestions = 20;
+
         [BindProperty]
         public ComparisonInput Input { get; set; } = new();
 
@@ -47,6 +51,9 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
                 return Challenge();
             }
 
+            // Nhận thông báo do luồng POST (batch) chuyển sang sau khi redirect (PRG).
+            SuccessMessage = TempData["SuccessMessage"] as string;
+            ErrorMessage = TempData["ErrorMessage"] as string;
             Datasets = await _datasetService.GetDatasetsForUserAsync(userId, role);
             BatchStatus = _batchComparisonService.GetStatus();
             return Page();
@@ -92,20 +99,26 @@ namespace RagChatbotSystem.Presentation.Pages.Admin.ModelComparison
                 return Page();
             }
 
+            if (lines.Count > MaxBatchQuestions)
+            {
+                ErrorMessage = $"Bạn nhập {lines.Count} câu, tối đa {MaxBatchQuestions} câu mỗi lần chạy hàng loạt. Vui lòng giảm bớt rồi thử lại.";
+                return Page();
+            }
+
             if (lines.Count > 1)
             {
                 // Chạy ngầm hàng loạt (Batch Benchmark)
                 var started = _batchComparisonService.StartBatch(Input.DatasetId, lines, Input.Providers ?? new List<string>(), userId);
                 if (started)
                 {
-                    SuccessMessage = $"Đã khởi chạy tiến trình Benchmark ngầm cho {lines.Count} câu hỏi thành công. Bạn có thể theo dõi tiến độ bên dưới.";
-                    BatchStatus = _batchComparisonService.GetStatus();
+                    TempData["SuccessMessage"] = $"Đã khởi chạy tiến trình Benchmark ngầm cho {lines.Count} câu hỏi thành công. Bạn có thể theo dõi tiến độ bên dưới.";
                 }
                 else
                 {
-                    ErrorMessage = "Không thể bắt đầu tiến trình chạy ngầm. Có thể đang có một tiến trình khác đang chạy.";
+                    TempData["ErrorMessage"] = "Không thể bắt đầu tiến trình chạy ngầm. Có thể đang có một tiến trình khác đang chạy.";
                 }
-                return Page();
+                // PRG: redirect để trang thành GET — tránh reload/F5 gửi lại POST và vô tình chạy batch lần nữa.
+                return RedirectToPage();
             }
 
             // Chạy đơn câu hỏi (Single Question) đồng bộ như cũ

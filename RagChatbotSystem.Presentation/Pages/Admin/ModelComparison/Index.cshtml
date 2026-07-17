@@ -75,6 +75,7 @@
             <div class="form-group">
                 <label asp-for="Input.Question">Câu hỏi thử nghiệm</label>
                 <textarea asp-for="Input.Question" rows="4" placeholder="Nhập câu hỏi để thử nghiệm. Để chạy benchmark hàng loạt, hãy nhập mỗi câu hỏi trên một dòng..."></textarea>
+                <span class="helper-text">Mỗi dòng là 1 câu hỏi. Chế độ chạy hàng loạt tối đa @IndexModel.MaxBatchQuestions câu mỗi lần.</span>
                 <span asp-validation-for="Input.Question" class="text-danger small"></span>
             </div>
 
@@ -126,11 +127,11 @@
                             }
                             @if (result.Faithfulness.HasValue)
                             {
-                                <span><strong>Độ bám tài liệu (thuật toán):</strong> @result.Faithfulness.Value.ToString("0.00")</span>
+                                <span><strong>Độ bám tài liệu:</strong> @result.Faithfulness.Value.ToString("0.00")</span>
                             }
                             @if (result.Relevance.HasValue)
                             {
-                                <span><strong>Độ liên quan (thuật toán):</strong> @result.Relevance.Value.ToString("0.00")</span>
+                                <span><strong>Độ liên quan:</strong> @result.Relevance.Value.ToString("0.00")</span>
                             }
                         </div>
                         @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
