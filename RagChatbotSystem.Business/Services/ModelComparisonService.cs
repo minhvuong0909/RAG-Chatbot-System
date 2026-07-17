@@ -112,7 +112,9 @@ namespace RagChatbotSystem.Business.Services
                 {
                     stopwatch.Stop();
                     _logger.LogWarning(ex, "Model comparison call failed for provider {Provider}", providerKey);
-                    providerAnswers.Add((providerKey, modelName, null, stopwatch.ElapsedMilliseconds, ex.Message));
+                    // ex.Message chỉ là "Groq API call failed."; lỗi thật (mã HTTP + lý do từ Groq) nằm ở inner exception.
+                    var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                    providerAnswers.Add((providerKey, modelName, null, stopwatch.ElapsedMilliseconds, errorMessage));
                 }
             }
 
@@ -251,12 +253,6 @@ namespace RagChatbotSystem.Business.Services
             if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
             {
                 return query;
-            }
-
-            if (string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase))
-            {
-                return query.Where(r => r.Dataset.TeacherSubjectAssignment != null
-                    && r.Dataset.TeacherSubjectAssignment.TeacherId == userId);
             }
 
             return null;

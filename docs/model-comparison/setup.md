@@ -17,10 +17,10 @@ Cho phép **Admin/Teacher** chạy cùng một câu hỏi qua nhiều model AI k
 - Giám khảo (LLM-as-judge): `openai/gpt-oss-120b`, cũng gọi qua Groq — chọn model **khác dòng huấn luyện** với các model được so sánh để tránh thiên vị tự chấm.
 - Hằng số model được khai báo ở đầu `ModelComparisonService.cs`: `JudgeModel`, `QwenModel`.
 
-### Đổi/bật lại provider
+### Đổi/thêm provider
 - **Đổi model Qwen**: sửa hằng số `QwenModel` trong `ModelComparisonService.cs`.
 - **Đổi model giám khảo**: sửa hằng số `JudgeModel` (không chọn trùng model đang được so sánh).
-- **Bật lại Gemini**: bỏ comment các dòng `Gemini` ở 3 chỗ — `AvailableProviders` + `CreateProvider` (trong `ModelComparisonService.cs`) và `ProviderLabel` (trong `Index.cshtml` + `History.cshtml`). Điều kiện: `.env` phải có `GEMINI_API_KEY` còn quota.
+- **Thêm provider mới**: thêm key vào `AvailableProviders` + nhánh `CreateProvider` (trong `ModelComparisonService.cs`) và `ProviderLabel` (trong `Index.cshtml` + `History.cshtml`).
 
 ## Kiến trúc 3 lớp
 
@@ -36,7 +36,7 @@ flowchart TB
     subgraph business["Business Layer"]
         svc["ModelComparisonService"]
         groq["GroqService (Llama / Qwen / Judge)"]
-        gem["LlmService (Gemini — tạm tắt)"]
+        gem["LlmService (Gemini)"]
     end
 
     subgraph data["Data Access Layer"]
@@ -48,6 +48,7 @@ flowchart TB
     subgraph external["External"]
         ragapi["Python RAG API<br/>FAISS + BM25 + Reranker"]
         groqapi["Groq API"]
+        gemapi["Google Gemini API"]
     end
 
     db["PostgreSQL"]
@@ -65,6 +66,7 @@ flowchart TB
     res --> db
     svc --> ragapi
     groq --> groqapi
+    gem --> gemapi
 ```
 
 **Quy tắc 3 lớp**: Presentation chỉ gọi xuống Business (qua `IModelComparisonService`); Business gọi xuống DataAccess (qua `IGenericRepository<T>`). Presentation **không** tham chiếu trực tiếp DataAccess.
@@ -77,8 +79,8 @@ flowchart TB
 
 ### Business
 - `Services/ModelComparisonService.cs`: điều phối toàn bộ — retrieval, gọi từng provider, chấm điểm so sánh (`JudgeAllAsync`), lưu DB (`PersistRunAsync`), truy vấn lịch sử/thống kê (`GetHistoryAsync`, `GetStatsAsync`), lọc theo vai trò (`ScopeRunsByRole`).
-- `Services/GroqService.cs`: gọi Groq API. Có tham số tùy chọn `modelOverride` → 1 class dùng được cho nhiều model. Có `StripReasoning` để bỏ block `<think>...</think>` của model Qwen.
-- `Services/LlmService.cs`: gọi Gemini (giữ nguyên, tạm không dùng).
+- `Services/GroqService.cs`: gọi Groq API. Có tham số tùy chọn `modelOverride` → 1 class dùng được cho nhiều model (Llama, Qwen, giám khảo). Có `StripReasoning` để bỏ block `<think>...</think>` của model Qwen.
+- `Services/LlmService.cs`: gọi Gemini API.
 - DTOs: `ModelComparisonResultDto`, `ModelComparisonRunResultDto`, `ModelComparisonRunSummaryDto`, `ModelComparisonStatsDto` (+ `ModelComparisonProviderStatDto`).
 
 ### Data Access
@@ -91,12 +93,12 @@ flowchart TB
 Các client `ModelComparison.*` được đăng ký **riêng**, tách khỏi HttpClient dùng cho `ChatService`, để timeout và base address độc lập với luồng chat chính:
 
 - `ModelComparison.Groq` — base `https://api.groq.com/openai/v1/`, gắn sẵn header `Authorization: Bearer <GROQ_API_KEY>`. Dùng cho cả Llama, Qwen và giám khảo (chỉ khác tên model trong payload).
-- `ModelComparison.Gemini` — dùng khi bật lại Gemini.
+- `ModelComparison.Gemini` — dùng cho Google Gemini API.
 
-`ModelComparisonService` tạo `HttpClient` theo tên qua `IHttpClientFactory` rồi `new` trực tiếp concrete class (`GroqService`/`LlmService`) — cách này tách biệt hoàn toàn khỏi DI của `ChatService`, không ảnh hưởng luồng chat sản xuất.
+`ModelComparisonService` tạo `HttpClient` theo tên qua `IHttpClientFactory` rồi `new` trực tiếp concrete class (`GroqService` / `LlmService`) — cách này tách biệt hoàn toàn khỏi DI của `ChatService`, không ảnh hưởng luồng chat sản xuất.
 
 ## Cấu hình cần có (`.env`)
 
 - `GROQ_API_KEY` — **bắt buộc** (dùng cho Llama, Qwen và giám khảo).
-- `GEMINI_API_KEY` — chỉ cần khi bật lại Gemini.
+- `GEMINI_API_KEY` — **bắt buộc** (dùng cho Google Gemini).
 - Không cần key riêng cho Qwen hay giám khảo (dùng chung `GROQ_API_KEY`).
