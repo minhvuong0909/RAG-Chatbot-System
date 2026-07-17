@@ -37,6 +37,17 @@ namespace RagChatbotSystem.Presentation
                 builder.Configuration["Groq:ApiKey"] = groqApiKey;
             }
 
+            var geminiApiKey = builder.Configuration["Gemini:ApiKey"]
+                ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            if (string.IsNullOrWhiteSpace(geminiApiKey) && builder.Environment.IsDevelopment())
+            {
+                geminiApiKey = ReadLocalEnvValue(builder.Environment.ContentRootPath, "GEMINI_API_KEY");
+            }
+            if (!string.IsNullOrWhiteSpace(geminiApiKey))
+            {
+                builder.Configuration["Gemini:ApiKey"] = geminiApiKey;
+            }
+
             var payOsSettings = new[]
             {
                 (ConfigKey: "PayOs:ClientId", EnvironmentKey: "PAYOS_CLIENT_ID"),

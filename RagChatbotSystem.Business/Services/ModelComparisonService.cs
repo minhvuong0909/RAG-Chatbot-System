@@ -33,9 +33,8 @@ namespace RagChatbotSystem.Business.Services
         private readonly ILogger<GroqService> _groqLogger;
         private readonly ILogger<ModelComparisonService> _logger;
 
-        // Đang dùng Qwen (miễn phí qua Groq). Muốn đổi lại Gemini: comment dòng Qwen, bỏ comment dòng Gemini bên dưới.
-        public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Qwen" };
-        // public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Gemini" };
+        // Danh sách các provider so sánh bao gồm Llama (Groq), Qwen (Groq) và Google Gemini.
+        public IReadOnlyList<string> AvailableProviders { get; } = new[] { "Groq", "Qwen", "Gemini" };
 
         public ModelComparisonService(
             IRagApiClient ragApiClient,
@@ -366,7 +365,7 @@ namespace RagChatbotSystem.Business.Services
             {
                 "Groq" => new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger),
                 "Qwen" => new GroqService(_httpClientFactory.CreateClient("ModelComparison.Groq"), _configuration, _groqLogger, QwenModel),
-                // "Gemini" => new LlmService(_httpClientFactory.CreateClient("ModelComparison.Gemini"), _configuration),
+                "Gemini" => new LlmService(_httpClientFactory.CreateClient("ModelComparison.Gemini"), _configuration),
                 _ => null
             };
         }

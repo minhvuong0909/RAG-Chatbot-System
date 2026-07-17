@@ -12,7 +12,7 @@ Cho phép **Admin/Teacher** chạy cùng một câu hỏi qua nhiều model AI k
 |---|---|---|---|
 | `Groq` | `llama-3.3-70b-versatile` | Groq API (miễn phí) | Meta / Llama |
 | `Qwen` | `qwen/qwen3-32b` | Groq API (miễn phí) | Alibaba / Qwen — gọi qua **chính hạ tầng Groq** |
-| `Gemini` | `gemini-2.0-flash` | Google API | **Đang comment tắt** do quota Google bị chặn — sẵn sàng bật lại |
+| `Gemini` | `gemini-3.1-flash-lite` | Google API (yêu cầu GEMINI_API_KEY) | Google Gemini |
 
 - Giám khảo (LLM-as-judge): `openai/gpt-oss-120b`, cũng gọi qua Groq — chọn model **khác dòng huấn luyện** với các model được so sánh để tránh thiên vị tự chấm.
 - Hằng số model được khai báo ở đầu `ModelComparisonService.cs`: `JudgeModel`, `QwenModel`.
