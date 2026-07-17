@@ -13,6 +13,9 @@ namespace RagChatbotSystem.DataAccess.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsPublic { get; set; } = false;
         public bool IsApproved { get; set; } = false;
+        public bool IsArchived { get; set; }
+        public DateTime? ArchivedAt { get; set; }
+        public Guid? ArchivedBy { get; set; }
 
         // Navigation properties
         public virtual User Creator { get; set; } = null!;

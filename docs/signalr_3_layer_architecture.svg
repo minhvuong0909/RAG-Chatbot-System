@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="900" viewBox="0 0 1180 900">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111827" />
+    </marker>
+    <marker id="arrowDash" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111827" />
+    </marker>
+    <style>
+      .title { font: 700 20px Arial, sans-serif; fill: #111827; }
+      .text { font: 16px Arial, sans-serif; fill: #111827; }
+      .small { font: 14px Arial, sans-serif; fill: #111827; }
+      .layer { fill: #fffdf2; stroke: #c9b66c; stroke-width: 1; }
+      .layer-head { fill: #fff3cd; stroke: #c9b66c; stroke-width: 1; }
+      .node { fill: #e8ddec; stroke: #8a7895; stroke-width: 1; rx: 0; }
+      .rt { fill: #dcfce7; stroke: #15803d; stroke-width: 1; rx: 0; }
+      .user { fill: #dbeafe; stroke: #5b7da8; stroke-width: 1; rx: 10; }
+      .line { stroke: #111827; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #111827; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; marker-end: url(#arrowDash); }
+    </style>
+  </defs>
+
+  <rect x="230" y="30" width="300" height="70" class="user" />
+  <text x="380" y="72" text-anchor="middle" class="title">User / Browser</text>
+
+  <rect x="100" y="145" width="560" height="190" class="layer" />
+  <rect x="100" y="145" width="560" height="42" class="layer-head" />
+  <text x="380" y="172" text-anchor="middle" class="title">Presentation Layer</text>
+  <rect x="135" y="220" width="150" height="62" class="node" />
+  <text x="210" y="246" text-anchor="middle" class="text">Razor Pages</text>
+  <text x="210" y="267" text-anchor="middle" class="small">.cshtml + PageModel</text>
+  <rect x="315" y="220" width="145" height="62" class="node" />
+  <text x="387" y="246" text-anchor="middle" class="text">Controllers</text>
+  <text x="387" y="267" text-anchor="middle" class="small">API endpoints</text>
+  <rect x="490" y="210" width="135" height="45" class="rt" />
+  <text x="558" y="238" text-anchor="middle" class="small">SignalR Client JS</text>
+  <rect x="490" y="270" width="135" height="45" class="rt" />
+  <text x="558" y="289" text-anchor="middle" class="small">SignalR Hubs</text>
+  <text x="558" y="306" text-anchor="middle" class="small">Chat / Docs / Notify</text>
+
+  <rect x="135" y="410" width="490" height="160" class="layer" />
+  <rect x="135" y="410" width="490" height="42" class="layer-head" />
+  <text x="380" y="437" text-anchor="middle" class="title">Business Layer</text>
+  <rect x="165" y="485" width="120" height="58" class="node" />
+  <text x="225" y="520" text-anchor="middle" class="text">Services</text>
+  <rect x="315" y="485" width="115" height="58" class="node" />
+  <text x="372" y="520" text-anchor="middle" class="text">DTOs</text>
+  <rect x="460" y="475" width="135" height="78" class="rt" />
+  <text x="528" y="501" text-anchor="middle" class="small">Realtime Event</text>
+  <text x="528" y="520" text-anchor="middle" class="small">Dispatcher</text>
+  <text x="528" y="539" text-anchor="middle" class="small">RAG Orchestration</text>
+
+  <rect x="30" y="620" width="670" height="170" class="layer" />
+  <rect x="30" y="620" width="670" height="42" class="layer-head" />
+  <text x="365" y="647" text-anchor="middle" class="title">Data Access Layer</text>
+  <rect x="80" y="700" width="215" height="62" class="node" />
+  <text x="188" y="726" text-anchor="middle" class="text">Repository /</text>
+  <text x="188" y="747" text-anchor="middle" class="text">UnitOfWork</text>
+  <rect x="330" y="700" width="160" height="62" class="node" />
+  <text x="410" y="736" text-anchor="middle" class="text">AppDbContext</text>
+  <rect x="525" y="700" width="140" height="62" class="node" />
+  <text x="595" y="726" text-anchor="middle" class="text">Models /</text>
+  <text x="595" y="747" text-anchor="middle" class="text">Entities</text>
+
+  <rect x="175" y="825" width="410" height="60" class="layer" />
+  <rect x="175" y="825" width="410" height="28" class="layer-head" />
+  <text x="380" y="846" text-anchor="middle" class="title">Database</text>
+  <text x="380" y="874" text-anchor="middle" class="text">PostgreSQL + pgvector</text>
+
+  <rect x="820" y="350" width="280" height="305" class="layer" />
+  <rect x="820" y="350" width="280" height="42" class="layer-head" />
+  <text x="960" y="377" text-anchor="middle" class="title">External Services</text>
+  <rect x="875" y="420" width="170" height="70" class="node" />
+  <text x="960" y="444" text-anchor="middle" class="small">Python RAG API</text>
+  <text x="960" y="464" text-anchor="middle" class="small">FAISS + BM25</text>
+  <text x="960" y="484" text-anchor="middle" class="small">Reranker</text>
+  <rect x="895" y="515" width="130" height="58" class="node" />
+  <text x="960" y="550" text-anchor="middle" class="text">LLM Provider</text>
+  <rect x="875" y="595" width="170" height="45" class="node" />
+  <text x="960" y="615" text-anchor="middle" class="small">File Storage</text>
+  <text x="960" y="633" text-anchor="middle" class="small">Google Drive optional</text>
+
+  <rect x="820" y="705" width="210" height="95" fill="#ffffff" stroke="#111827" stroke-dasharray="4 4" />
+  <text x="925" y="728" text-anchor="middle" class="small">Note</text>
+  <text x="858" y="758" class="small">Request</text>
+  <line x1="945" y1="753" x2="1005" y2="753" class="line" />
+  <text x="858" y="785" class="small">Response / Realtime</text>
+  <line x1="985" y1="780" x2="1045" y2="780" class="dash" />
+
+  <line x1="380" y1="100" x2="380" y2="145" class="line" />
+  <path d="M530 65 L558 65 L558 210" class="dash" />
+  <line x1="558" y1="315" x2="558" y2="410" class="line" />
+  <line x1="380" y1="335" x2="380" y2="410" class="line" />
+  <line x1="380" y1="570" x2="380" y2="620" class="line" />
+  <line x1="380" y1="790" x2="380" y2="825" class="line" />
+
+  <path d="M625 490 L820 455" class="line" />
+  <path d="M625 520 L820 545" class="line" />
+  <path d="M625 545 L820 617" class="line" />
+  <path d="M625 500 L760 500 L760 292 L625 292" class="dash" />
+  <path d="M490 232 L430 65" class="dash" />
+</svg>

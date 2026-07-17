@@ -30,6 +30,9 @@ Desktop.ini
 .env.local
 .env.*.local
 .env.deployment
+.history/
+.playwright-cli/
+output/
 # Runtime uploaded files
 **/wwwroot/uploads/
 
@@ -46,3 +49,6 @@ RAG-Retrieval-Indexing-API/**/*.pkl
 RAG-Retrieval-Indexing-API/**/*.pickle
 RAG-Retrieval-Indexing-API/**/*.faiss
 RAG-Retrieval-Indexing-API/**/*.index
+
+# Node
+node_modules/

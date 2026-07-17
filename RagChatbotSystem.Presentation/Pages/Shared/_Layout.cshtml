@@ -1,0 +1,153 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
+    var localizedRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value switch
+    {
+        "Student" => "Sinh viên",
+        "Teacher" => "Giảng viên",
+        "Admin" => "Quản trị viên",
+        var role => role
+    };
+    bool isWorkspace = ViewData["IsWorkspace"] as bool? ?? false;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RAG Chatbot</title>
+    <script type="importmap"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/app.tailwind.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/premium.css" asp-append-version="true" />
+</head>
+<body class="bg-surface-muted text-ink min-h-screen flex flex-col font-sans @(isWorkspace ? "overflow-hidden" : "")">
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-border shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center gap-2">
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-page="/Admin/Index" class="flex items-center gap-2 group">
+                                <span class="w-8 h-8 rounded-lg bg-accent-strong text-white flex items-center justify-center font-grotesk font-bold text-lg shadow-glow group-hover:scale-105 transition-transform">R</span>
+                                <span class="font-grotesk font-bold text-xl bg-gradient-to-r from-ink to-accent-strong bg-clip-text text-transparent">RAG Chatbot</span>
+                            </a>
+                        }
+                        else if (User.IsInRole("Teacher"))
+                        {
+                            <a asp-page="/Datasets/Index" class="flex items-center gap-2 group">
+                                <span class="w-8 h-8 rounded-lg bg-accent-strong text-white flex items-center justify-center font-grotesk font-bold text-lg shadow-glow group-hover:scale-105 transition-transform">R</span>
+                                <span class="font-grotesk font-bold text-xl bg-gradient-to-r from-ink to-accent-strong bg-clip-text text-transparent">RAG Chatbot</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-page="/Index" class="flex items-center gap-2 group">
+                                <span class="w-8 h-8 rounded-lg bg-accent-strong text-white flex items-center justify-center font-grotesk font-bold text-lg shadow-glow group-hover:scale-105 transition-transform">R</span>
+                                <span class="font-grotesk font-bold text-xl bg-gradient-to-r from-ink to-accent-strong bg-clip-text text-transparent">RAG Chatbot</span>
+                            </a>
+                        }
+                    </div>
+                    <div class="hidden sm:ml-8 sm:flex sm:space-x-4">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-page="/Admin/Index" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage.StartsWith("/Admin", StringComparison.Ordinal) ? "border-red-500 text-red-600" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Quản trị
+                                </a>
+                            }
+                            else if (User.IsInRole("Teacher"))
+                            {
+                                <a asp-page="/Datasets/Index" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage.StartsWith("/Datasets", StringComparison.Ordinal) || currentPage.StartsWith("/Documents", StringComparison.Ordinal) ? "border-accent-strong text-ink" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Môn học và tài liệu
+                                </a>
+                                <a asp-page="/Teacher/Analytics" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage.StartsWith("/Teacher/Analytics", StringComparison.Ordinal) ? "border-accent-strong text-ink" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Phân tích học tập
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-page="/Index" class="inline-flex items-center px-1 pt-1 border-b-2 @(currentPage == "/Index" ? "border-accent-strong text-ink" : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700") text-sm font-medium transition-colors">
+                                    Không gian học tập
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:items-center gap-4">
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <div class="flex items-center gap-3 px-3 py-1.5 rounded-full bg-surface-muted border border-border">
+                            <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                            <div class="flex flex-col leading-tight">
+                                <span class="text-sm font-semibold text-ink">@User.Identity.Name</span>
+                                <span class="text-[0.65rem] font-bold text-gray-500 uppercase tracking-wider">@localizedRole</span>
+                            </div>
+                        </div>
+                        <form asp-page="/Account/Logout" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm">
+                                Đăng xuất
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-page="/Account/Login" class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-accent-strong hover:bg-indigo-700 shadow-glow transition-all">
+                            Đăng nhập
+                        </a>
+                    }
+                </div>
+                <div class="-mr-2 flex items-center sm:hidden">
+                    <!-- Mobile menu button placeholder -->
+                    <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="flex-grow w-full mx-auto @(isWorkspace ? "max-w-full px-0 py-0 flex flex-col overflow-hidden h-[calc(100vh-64px)]" : "max-w-7xl px-4 sm:px-6 lg:px-8 py-8")">
+        @RenderBody()
+    </main>
+
+    @if (!isWorkspace)
+    {
+        <footer class="bg-white border-t border-border mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-2 text-gray-500">
+                    <span class="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center font-grotesk font-bold text-xs">R</span>
+                    <span class="text-sm">&copy; 2026 RAG Chatbot System</span>
+                </div>
+                <div class="flex items-center gap-6 text-sm text-gray-500">
+                    <a href="#" class="hover:text-ink transition-colors">Tài liệu</a>
+                    <a href="#" class="hover:text-ink transition-colors">Bảo mật</a>
+                    <a href="#" class="hover:text-ink transition-colors">Điều khoản</a>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                        <span>Hệ thống đang hoạt động</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+        <script src="~/js/realtime-notifications.js" asp-append-version="true"></script>
+    }
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+

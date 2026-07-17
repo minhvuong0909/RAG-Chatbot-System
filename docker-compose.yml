@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: ankane/pgvector:latest
@@ -7,10 +5,10 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: RagChatbotSystemDb
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -41,13 +39,23 @@ services:
     ports:
       - "5259:5259"
     environment:
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=RagChatbotSystemDb;Username=postgres;Password=${DB_PASSWORD:-root}
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=RagChatbotSystemDb;Username=postgres;Password=${DB_PASSWORD:?DB_PASSWORD is required}
       - RagApi__BaseUrl=http://rag-api:8000
       - GoogleDrive__CredentialJsonPath=/app/google-credentials.json
       - GoogleDrive__TargetFolderId=${GOOGLE_DRIVE_FOLDER_ID:-}
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Groq__ApiKey=${GROQ_API_KEY:-}
       - OpenAi__ApiKey=${OPENAI_API_KEY:-}
+      - PAYOS_CLIENT_ID=${PAYOS_CLIENT_ID:-}
+      - PAYOS_API_KEY=${PAYOS_API_KEY:-}
+      - PAYOS_CHECKSUM_KEY=${PAYOS_CHECKSUM_KEY:-}
+      - PAYOS_PUBLIC_BASE_URL=${PAYOS_PUBLIC_BASE_URL:-}
+      - Smtp__Host=${SMTP_HOST:-smtp.gmail.com}
+      - Smtp__Port=${SMTP_PORT:-587}
+      - Smtp__Username=${SMTP_USERNAME:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL:-}
+      - Smtp__FromName=${SMTP_FROM_NAME:-RAG Chatbot System}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - ASPNETCORE_ENVIRONMENT=Production

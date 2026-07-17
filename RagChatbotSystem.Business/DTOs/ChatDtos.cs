@@ -36,10 +36,14 @@ namespace RagChatbotSystem.Business.DTOs
         int PageNumber,
         string QuoteText,
         string? SourceLabel,
-        DateTime CreatedAt);
+        DateTime CreatedAt,
+        string? FileType = null,
+        int? ChunkIndex = null);
 
     public sealed record SendChatMessageResponse(
         ChatMessageDto UserMessage,
         ChatMessageDto AssistantMessage,
-        IReadOnlyList<CitationDto> Citations);
+        IReadOnlyList<CitationDto> Citations,
+        CreditSpendResultDto? CreditSpend = null,
+        CreditBalanceDto? CreditBalance = null);
 }

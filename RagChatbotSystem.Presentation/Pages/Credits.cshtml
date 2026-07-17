@@ -1,0 +1,358 @@
+@page
+@using System.Globalization
+@using RagChatbotSystem.Business.DTOs
+@using RagChatbotSystem.DataAccess.Models
+@model RagChatbotSystem.Presentation.Pages.CreditsModel
+@{
+    ViewData["Title"] = "Số dư Credit";
+    var vietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    var packagesById = Model.Packages.ToDictionary(package => package.Id);
+
+    string FormatCurrency(decimal amount, string currency) =>
+        string.Equals(currency, "VND", StringComparison.OrdinalIgnoreCase)
+            ? $"{amount.ToString("N0", vietnameseCulture)} ₫"
+            : $"{amount.ToString("N0", vietnameseCulture)} {currency}";
+
+    string LedgerTypeLabel(CreditLedgerType type) => type switch
+    {
+        CreditLedgerType.DAILY_RESET => "Đặt lại Credit hằng ngày",
+        CreditLedgerType.FREE_GRANT => "Tặng Credit miễn phí",
+        CreditLedgerType.PURCHASE => "Nạp Credit",
+        CreditLedgerType.ADMIN_GRANT => "Quản trị viên cấp Credit",
+        CreditLedgerType.ADJUSTMENT => "Điều chỉnh",
+        CreditLedgerType.SPEND => "Sử dụng",
+        CreditLedgerType.REFUND => "Hoàn Credit",
+        CreditLedgerType.EXPIRED => "Hết hạn",
+        _ => type.ToString()
+    };
+
+    string PurchaseStatusLabel(CreditPurchaseStatus status) => status switch
+    {
+        CreditPurchaseStatus.PENDING => "Đang chờ",
+        CreditPurchaseStatus.COMPLETED => "Hoàn tất",
+        CreditPurchaseStatus.FAILED => "Thất bại",
+        CreditPurchaseStatus.CANCELLED => "Đã hủy",
+        CreditPurchaseStatus.REFUNDED => "Đã hoàn",
+        _ => status.ToString()
+    };
+
+    string PackageLabel(CreditPurchaseDto purchase) =>
+        purchase.PackageId.HasValue && packagesById.TryGetValue(purchase.PackageId.Value, out var package)
+            ? PackageDisplayName(package)
+            : "Nạp Credit thủ công";
+
+    string PackageDisplayName(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói học cơ bản",
+        "Study Plus" => "Gói học nâng cao",
+        "Exam Boost" => "Gói ôn thi",
+        "Final Sprint" => "Gói nước rút",
+        _ => package.Name
+    };
+
+    string PackageDescription(CreditPackageDto package) => package.Name switch
+    {
+        "Study Lite" => "Gói nhỏ cho nhu cầu học tập thường xuyên.",
+        "Study Plus" => "Giá trị tốt hơn cho nhu cầu học tập thường xuyên.",
+        "Exam Boost" => "Phù hợp cho ôn tập kiểm tra hoặc thi cuối kỳ.",
+        "Final Sprint" => "Giá trị tốt cho giai đoạn ôn thi nước rút.",
+        _ => package.Description
+    };
+
+    string LedgerNote(CreditLedgerDto entry) => entry.Note switch
+    {
+        "Initial daily free credit reset." => "Credit miễn phí được khởi tạo theo hạn mức hằng ngày.",
+        "Daily free credits reset to fixed amount." => "Credit miễn phí được đặt lại theo hạn mức hằng ngày.",
+        _ => entry.Note ?? "-"
+    };
+}
+
+<div class="max-w-7xl mx-auto py-8">
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="p-4 mb-6 text-green-700 bg-green-50 rounded-xl border border-green-200 shadow-sm" role="alert">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="p-4 mb-6 text-red-700 bg-red-50 rounded-xl border border-red-200 shadow-sm" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <header class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <p class="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Credit</p>
+            <h1 class="text-3xl font-bold text-ink mb-2">Số dư Credit</h1>
+            <p class="text-gray-500 max-w-2xl text-sm">Credit chỉ được trừ sau khi AI trả lời thành công. Credit miễn phí được đặt lại mỗi ngày và không cộng dồn.</p>
+        </div>
+        <a asp-page="/Index" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            Quay lại không gian học tập
+        </a>
+    </header>
+
+    <!-- Stat Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <!-- Tổng số dư -->
+        <article class="bg-white border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-soft transition-shadow">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-500 text-white shadow-glow shrink-0">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Tổng số dư</div>
+                <div class="text-2xl font-bold text-ink">@Model.Balance.TotalCredits.ToString("N0", vietnameseCulture)</div>
+            </div>
+        </article>
+        <!-- Miễn phí -->
+        <article class="bg-white border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-soft transition-shadow">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm shrink-0">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Miễn phí</div>
+                <div class="text-2xl font-bold text-ink">@Model.Balance.FreeCredits.ToString("N0", vietnameseCulture)</div>
+            </div>
+        </article>
+        <!-- Đã mua -->
+        <article class="bg-white border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-soft transition-shadow">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm shrink-0">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Đã mua</div>
+                <div class="text-2xl font-bold text-ink">@Model.Balance.PaidCredits.ToString("N0", vietnameseCulture)</div>
+            </div>
+        </article>
+        <!-- Mỗi ngày -->
+        <article class="bg-white border border-border rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-soft transition-shadow">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500 text-white shadow-sm shrink-0">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Mỗi ngày</div>
+                <div class="text-2xl font-bold text-ink">@Model.Balance.Settings.DailyFreeCredits.ToString("N0", vietnameseCulture)</div>
+            </div>
+        </article>
+    </section>
+
+    <!-- Credit Packages -->
+    <section class="mb-14">
+        <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-2">
+            <div>
+                <p class="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Nạp Credit</p>
+                <h2 class="text-2xl font-bold text-ink">Các gói Credit</h2>
+                <p class="text-gray-500 text-sm mt-1">Chọn gói và thanh toán chuyển khoản an toàn qua PayOS.</p>
+            </div>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium @(Model.IsPayOsConfigured ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800")">
+                @(Model.IsPayOsConfigured ? "Thanh toán qua PayOS" : "PayOS chưa được cấu hình")
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach (var package in Model.Packages)
+            {
+                <article class="bg-white border border-border rounded-2xl p-6 flex flex-col shadow-sm hover:shadow-soft hover:-translate-y-1 hover:border-accent-light transition-all duration-300">
+                    <div class="mb-5">
+                        <h3 class="text-lg font-bold text-ink mb-2" title="@PackageDisplayName(package)">@PackageDisplayName(package)</h3>
+                        @if (!string.IsNullOrWhiteSpace(PackageDescription(package)))
+                        {
+                            <p class="text-gray-500 text-xs line-clamp-2" title="@PackageDescription(package)">@PackageDescription(package)</p>
+                        }
+                    </div>
+                    <div class="flex justify-between items-center bg-surface-muted rounded-xl p-3 mb-6 text-sm">
+                        <div class="text-center">
+                            <div class="text-gray-500 text-xs mb-1">Cơ bản</div>
+                            <div class="font-bold text-ink">@package.BaseCredits.ToString("N0", vietnameseCulture)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-gray-500 text-xs mb-1">Tặng thêm</div>
+                            <div class="font-bold text-green-600">@package.BonusCredits.ToString("N0", vietnameseCulture)</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-gray-500 text-xs mb-1">Tổng</div>
+                            <div class="font-bold text-accent-strong">@package.TotalCredits.ToString("N0", vietnameseCulture)</div>
+                        </div>
+                    </div>
+                    <div class="mt-auto">
+                        <div class="text-2xl font-bold text-accent-strong mb-4">@FormatCurrency(package.Price, package.Currency)</div>
+                        <form method="post" asp-page-handler="Buy">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="packageId" value="@package.Id" />
+                            <button type="submit" class="w-full py-2.5 rounded-xl font-semibold text-white bg-accent-strong hover:bg-indigo-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed" @(Model.IsPayOsConfigured ? "" : "disabled")>
+                                Thanh toán qua PayOS
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+        @if (!Model.IsPayOsConfigured)
+        {
+            <p class="mt-4 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">Quản trị viên cần bổ sung cấu hình PayOS trước khi mở thanh toán.</p>
+        }
+    </section>
+
+    <!-- History section -->
+    <section>
+        <div class="mb-6">
+            <p class="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">LỊCH SỬ HOẠT ĐỘNG</p>
+            <h2 class="text-2xl font-bold text-ink">Chi tiết biến động và đơn hàng</h2>
+            <p class="text-gray-500 text-sm mt-1">Theo dõi sự thay đổi của số dư Credit và trạng thái các đơn nạp tiền.</p>
+        </div>
+
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button type="button" class="tab-btn active whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium border-accent-strong text-accent-strong" data-target="ledger-pane">
+                    Biến động số dư
+                </button>
+                <button type="button" class="tab-btn whitespace-nowrap border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700" data-target="purchase-pane">
+                    Lịch sử đơn hàng nạp
+                </button>
+            </nav>
+        </div>
+
+        <div>
+            <!-- Tab 1: Ledger -->
+            <div id="ledger-pane" class="tab-content block">
+                @if (Model.Ledger.Any())
+                {
+                    <div class="overflow-x-auto bg-white rounded-xl border border-border shadow-sm">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Loại giao dịch</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Đã cộng</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Đã dùng</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Số dư sau</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach (var entry in Model.Ledger)
+                                {
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-600">@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">@LedgerTypeLabel(entry.Type)</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-bold text-green-600">
+                                            @((entry.FreeCreditsAdded + entry.PaidCreditsAdded) > 0 ? "+" + (entry.FreeCreditsAdded + entry.PaidCreditsAdded).ToString("N0", vietnameseCulture) : "0")
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-bold text-red-500">
+                                            @((entry.FreeCreditsUsed + entry.PaidCreditsUsed) > 0 ? "-" + (entry.FreeCreditsUsed + entry.PaidCreditsUsed).ToString("N0", vietnameseCulture) : "0")
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-bold text-ink">
+                                            @((entry.BalanceAfterFree + entry.BalanceAfterPaid).ToString("N0", vietnameseCulture))
+                                        </td>
+                                        <td class="px-6 py-4 text-gray-500 text-xs max-w-xs truncate" title="@LedgerNote(entry)">
+                                            @LedgerNote(entry)
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 class="text-lg font-bold text-ink">Chưa có biến động số dư</h3>
+                        <p class="mt-1 text-sm text-gray-500">Các lần nạp, cấp hoặc sử dụng Credit sẽ được ghi nhận tại đây.</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Tab 2: Purchase -->
+            <div id="purchase-pane" class="tab-content hidden">
+                @if (Model.Purchases.Any())
+                {
+                    <div class="overflow-x-auto bg-white rounded-xl border border-border shadow-sm">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Thời gian</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Gói Credit</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cơ bản</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tặng thêm</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tổng cộng</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Giá</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach (var purchase in Model.Purchases)
+                                {
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-600">@purchase.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-ink">@PackageLabel(purchase)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-600">@purchase.BaseCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-600">@purchase.BonusCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-bold text-accent-strong">@purchase.TotalCredits.ToString("N0", vietnameseCulture)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-bold text-ink">@FormatCurrency(purchase.Amount, purchase.Currency)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @{
+                                                var badgeClass = purchase.Status switch
+                                                {
+                                                    CreditPurchaseStatus.COMPLETED => "bg-green-100 text-green-800",
+                                                    CreditPurchaseStatus.PENDING => "bg-yellow-100 text-yellow-800",
+                                                    CreditPurchaseStatus.FAILED or CreditPurchaseStatus.CANCELLED => "bg-red-100 text-red-800",
+                                                    _ => "bg-gray-100 text-gray-800"
+                                                };
+                                            }
+                                            <span class="px-2.5 py-1 text-xs font-medium rounded-full @badgeClass">@PurchaseStatusLabel(purchase.Status)</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <h3 class="text-lg font-bold text-ink">Chưa có đơn hàng nạp Credit</h3>
+                        <p class="mt-1 text-sm text-gray-500">Thông tin nạp Credit sẽ xuất hiện tại đây sau khi bạn tạo yêu cầu nạp.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.getAttribute('data-target');
+                    
+                    // Update tab buttons
+                    tabs.forEach(t => {
+                        t.classList.remove('border-accent-strong', 'text-accent-strong');
+                        t.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    tab.classList.remove('border-transparent', 'text-gray-500');
+                    tab.classList.add('border-accent-strong', 'text-accent-strong');
+
+                    // Update contents
+                    contents.forEach(c => {
+                        if(c.id === targetId) {
+                            c.classList.remove('hidden');
+                            c.classList.add('block');
+                        } else {
+                            c.classList.remove('block');
+                            c.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+}

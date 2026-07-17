@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using RagChatbotSystem.Business.DTOs;
 using RagChatbotSystem.Business.Interfaces;
 
 namespace RagChatbotSystem.Business.Services
@@ -16,25 +19,48 @@ namespace RagChatbotSystem.Business.Services
         private readonly string _model;
         private readonly bool _hasApiKey;
 
-        public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger)
+        private int _lastPromptTokens;
+        private int _lastCompletionTokens;
+        private int _lastTotalTokens;
+        private bool _lastWasActualTokenUsage;
+        private bool _lastIsProviderFallback;
+        private string? _lastErrorMessage;
+
+        public int LastPromptTokens => _lastPromptTokens;
+        public int LastCompletionTokens => _lastCompletionTokens;
+        public int LastTotalTokens => _lastTotalTokens;
+        public bool LastWasActualTokenUsage => _lastWasActualTokenUsage;
+        public bool LastIsProviderFallback => _lastIsProviderFallback;
+        public string? LastErrorMessage => _lastErrorMessage;
+        public string ModelName => _model;
+
+        public GroqService(HttpClient httpClient, IConfiguration configuration, ILogger<GroqService> logger, string? modelOverride = null)
         {
             _httpClient = httpClient;
             _logger = logger;
-            _model = configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
-            // Kiểm tra API key đã được cấu hình ở DI level 
+            _model = modelOverride ?? configuration["Groq:Model"] ?? "llama-3.3-70b-versatile";
+            // Kiểm tra API key đã được cấu hình ở DI level
             _hasApiKey = !string.IsNullOrWhiteSpace(configuration["Groq:ApiKey"]);
         }
 
         public async Task<string> GenerateAnswerAsync(string prompt)
         {
+            _lastPromptTokens = 0;
+            _lastCompletionTokens = 0;
+            _lastTotalTokens = 0;
+            _lastWasActualTokenUsage = false;
+            _lastIsProviderFallback = false;
+            _lastErrorMessage = null;
+
             if (!_hasApiKey)
             {
-                return ExtractFallbackAnswer(prompt, "[MOCK ANSWER - Hãy cấu hình Groq:ApiKey trong appsettings.json]");
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = "Groq API key is not configured.";
+                throw new InvalidOperationException(_lastErrorMessage);
             }
 
             try
             {
-                // BaseAddress + Authorization header đã được cấu hình sẵn từ Program.cs
                 var payload = new
                 {
                     model = _model,
@@ -45,18 +71,162 @@ namespace RagChatbotSystem.Business.Services
                     temperature = 0.5
                 };
 
-                // Gọi trực tiếp endpoint tương đối (BaseAddress đã có sẵn)
                 var response = await _httpClient.PostAsJsonAsync("chat/completions", payload);
                 response.EnsureSuccessStatusCode();
 
                 var result = await response.Content.ReadFromJsonAsync<GroqResponse>();
-                return result?.Choices?[0]?.Message?.Content ?? "Không nhận được phản hồi từ Groq.";
+                var content = StripReasoning(result?.Choices?[0]?.Message?.Content ?? string.Empty);
+
+                if (result?.Usage != null)
+                {
+                    _lastPromptTokens = result.Usage.PromptTokens;
+                    _lastCompletionTokens = result.Usage.CompletionTokens;
+                    _lastTotalTokens = result.Usage.TotalTokens;
+                    _lastWasActualTokenUsage = true;
+                }
+                else
+                {
+                    _lastPromptTokens = EstimateTokens(prompt);
+                    _lastCompletionTokens = EstimateTokens(content);
+                    _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                }
+
+                return content;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Groq API call failed.");
-                
-                return ExtractFallbackAnswer(prompt, $"[LƯU Ý: Lỗi kết nối Groq API ({ex.Message}). Câu trả lời được trích xuất trực tiếp từ tài liệu của bạn]");
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = ex.Message;
+                throw new InvalidOperationException("Groq API call failed.", ex);
+            }
+        }
+        public async Task<LlmAnswerResult> GenerateAnswerWithUsageAsync(string prompt)
+        {
+            var content = await GenerateAnswerAsync(prompt);
+            return new LlmAnswerResult(
+                content,
+                _model,
+                _lastPromptTokens,
+                _lastCompletionTokens,
+                _lastTotalTokens,
+                _lastWasActualTokenUsage,
+                !_lastIsProviderFallback,
+                _lastIsProviderFallback,
+                _lastErrorMessage);
+        }
+
+        public async IAsyncEnumerable<string> GenerateAnswerStreamAsync(string prompt)
+        {
+            _lastPromptTokens = 0;
+            _lastCompletionTokens = 0;
+            _lastTotalTokens = 0;
+            _lastWasActualTokenUsage = false;
+            _lastIsProviderFallback = false;
+            _lastErrorMessage = null;
+
+            if (!_hasApiKey)
+            {
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = "Groq API key is not configured.";
+                throw new InvalidOperationException(_lastErrorMessage);
+            }
+
+            HttpResponseMessage? response = null;
+            var accumulatedText = new System.Text.StringBuilder();
+            try
+            {
+                var payload = new
+                {
+                    model = _model,
+                    messages = new[]
+                    {
+                        new { role = "user", content = prompt }
+                    },
+                    temperature = 0.5,
+                    stream = true,
+                    stream_options = new { include_usage = true }
+                };
+
+                // ResponseHeadersRead is required for true SSE streaming. PostAsJsonAsync
+                // uses ResponseContentRead and buffers the whole completion first.
+                using var request = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
+                {
+                    Content = JsonContent.Create(payload)
+                };
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    CancellationToken.None);
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Groq streaming API call failed.");
+                _lastIsProviderFallback = true;
+                _lastErrorMessage = ex.Message;
+                throw new InvalidOperationException("Groq streaming API call failed.", ex);
+            }
+
+            try
+            {
+                using var stream = await response!.Content.ReadAsStreamAsync();
+                using var reader = new System.IO.StreamReader(stream);
+
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    var trimmed = line.Trim();
+                    if (trimmed.StartsWith("data: "))
+                    {
+                        var data = trimmed.Substring(6).Trim();
+                        if (data == "[DONE]")
+                        {
+                            break;
+                        }
+
+                        GroqStreamResponse? chunk = null;
+                        try
+                        {
+                            chunk = System.Text.Json.JsonSerializer.Deserialize<GroqStreamResponse>(data);
+                        }
+                        catch
+                        {
+                            // Ignore json deserialization issues on stream progress
+                        }
+
+                        if (chunk?.Usage != null)
+                        {
+                            _lastPromptTokens = chunk.Usage.PromptTokens;
+                            _lastCompletionTokens = chunk.Usage.CompletionTokens;
+                            _lastTotalTokens = chunk.Usage.TotalTokens;
+                            _lastWasActualTokenUsage = true;
+                        }
+
+                        // The final usage frame from Groq legitimately has an empty choices array.
+                        var text = chunk?.Choices?.FirstOrDefault()?.Delta?.Content;
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            accumulatedText.Append(text);
+                            yield return text;
+                        }
+                    }
+                }
+
+                // Fallback if Usage wasn't provided in the stream
+                if (_lastTotalTokens == 0)
+                {
+                    _lastPromptTokens = EstimateTokens(prompt);
+                    _lastCompletionTokens = EstimateTokens(accumulatedText.ToString());
+                    _lastTotalTokens = _lastPromptTokens + _lastCompletionTokens;
+                }
+            }
+            finally
+            {
+                response?.Dispose();
             }
         }
 
@@ -122,11 +292,42 @@ namespace RagChatbotSystem.Business.Services
             return responseBuilder.ToString();
         }
 
+        private static int EstimateTokens(string value)
+        {
+            return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));
+        }
+
+        // Một số model (ví dụ qwen/qwen3-32b) trả về block suy luận <think>...</think> lẫn trong content.
+        // Bỏ block này trước khi hiển thị; các model không có <think> (Llama...) không bị ảnh hưởng gì.
+        private static string StripReasoning(string content)
+        {
+            return System.Text.RegularExpressions.Regex.Replace(
+                content,
+                @"<think>.*?</think>",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.Singleline | System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+        }
+
         // Các class để deserialize phản hồi từ Groq API
+        private class UsageInfo
+        {
+            [JsonPropertyName("prompt_tokens")]
+            public int PromptTokens { get; set; }
+
+            [JsonPropertyName("completion_tokens")]
+            public int CompletionTokens { get; set; }
+
+            [JsonPropertyName("total_tokens")]
+            public int TotalTokens { get; set; }
+        }
+
         private class GroqResponse
         {
             [JsonPropertyName("choices")]
             public Choice[]? Choices { get; set; }
+
+            [JsonPropertyName("usage")]
+            public UsageInfo? Usage { get; set; }
         }
 
         private class Choice
@@ -139,6 +340,28 @@ namespace RagChatbotSystem.Business.Services
         {
             [JsonPropertyName("content")]
             public string Content { get; set; } = string.Empty;
+        }
+
+        // Classes for streaming
+        private class GroqStreamResponse
+        {
+            [JsonPropertyName("choices")]
+            public ChoiceStream[]? Choices { get; set; }
+
+            [JsonPropertyName("usage")]
+            public UsageInfo? Usage { get; set; }
+        }
+
+        private class ChoiceStream
+        {
+            [JsonPropertyName("delta")]
+            public DeltaMessage? Delta { get; set; }
+        }
+
+        private class DeltaMessage
+        {
+            [JsonPropertyName("content")]
+            public string? Content { get; set; }
         }
     }
 }

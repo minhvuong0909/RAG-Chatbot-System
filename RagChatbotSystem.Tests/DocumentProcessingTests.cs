@@ -41,19 +41,19 @@ public class DocumentProcessingTests
     }
 
     [Fact]
-    public async Task ExtractTextSegmentsAsync_ReadsTxtAsPageOne()
+    public async Task ExtractTextSegmentsAsync_ReadsTxtWithoutInventingPageNumber()
     {
         await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("hello from txt"));
 
         var segments = await DocumentService.ExtractTextSegmentsAsync(stream, "txt");
 
         var segment = Assert.Single(segments);
-        Assert.Equal(1, segment.PageNumber);
+        Assert.Equal(0, segment.PageNumber);
         Assert.Equal("hello from txt", segment.Text);
     }
 
     [Fact]
-    public async Task ExtractTextSegmentsAsync_ReadsDocxAsPageOne()
+    public async Task ExtractTextSegmentsAsync_ReadsDocxWithoutInventingPageNumber()
     {
         await using var stream = new MemoryStream();
         using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document, true))
@@ -68,7 +68,7 @@ public class DocumentProcessingTests
         var segments = await DocumentService.ExtractTextSegmentsAsync(stream, "docx");
 
         var segment = Assert.Single(segments);
-        Assert.Equal(1, segment.PageNumber);
+        Assert.Equal(0, segment.PageNumber);
         Assert.Contains("hello from docx", segment.Text);
     }
 
@@ -79,5 +79,14 @@ public class DocumentProcessingTests
 
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             DocumentService.ExtractTextSegmentsAsync(stream, "png"));
+    }
+
+    [Fact]
+    public async Task ExtractTextSegmentsAsync_RejectsMarkdownForMvp()
+    {
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("# markdown"));
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            DocumentService.ExtractTextSegmentsAsync(stream, "md"));
     }
 }

@@ -1,0 +1,296 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.Admin.Datasets.IndexModel
+@{
+    ViewData["Title"] = "Quản lý môn học";
+}
+
+<div class="space-y-6" data-admin-page>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white shadow-sm p-6 rounded-2xl">
+        <div>
+            <p class="text-xs font-bold text-accent-strong tracking-wider uppercase mb-1">Quản trị / Môn học</p>
+            <h1 class="text-2xl font-grotesk font-extrabold text-ink tracking-tight">Quản lý môn học</h1>
+            <p class="text-sm text-gray-500 mt-1">Tạo môn học, kiểm soát phạm vi truy cập, cập nhật nội dung và phân quyền sinh viên.</p>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-2">
+        <partial name="_AdminTabs" />
+    </div>
+
+    <!-- Alerts -->
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="p-4 rounded-xl bg-green-50 border border-green-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-green-800">@Model.SuccessMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-green-400 hover:text-green-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 relative">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div class="flex-1"><p class="text-sm font-medium text-red-800">@Model.ErrorMessage</p></div>
+            <button type="button" class="absolute top-4 right-4 text-red-400 hover:text-red-600" onclick="this.parentElement.remove();"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+    }
+
+    <div id="realtimeDatasetStatus" class="p-4 rounded-xl bg-indigo-50 border border-indigo-100 items-start gap-3 relative animate-pulse hidden">
+        <svg class="w-5 h-5 text-accent-strong flex-shrink-0 mt-0.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <div class="flex-1"><p class="text-sm font-bold text-accent-strong" id="realtimeDatasetStatusText"></p></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Create Dataset Panel -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-6">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gradient-to-r from-gray-50/50 to-white">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-indigo-50 text-accent-strong flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        </span>
+                        Tạo môn học
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <form method="post" asp-page-handler="Create" class="flex flex-col gap-4">
+                        <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm mb-2"></div>
+                        
+                        <div>
+                            <label asp-for="CreateInput.Name" class="block text-sm font-bold text-gray-700 mb-1.5">Tên môn học <span class="text-red-500">*</span></label>
+                            <input asp-for="CreateInput.Name" placeholder="Ví dụ: PRN222" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-gray-400" />
+                            <span asp-validation-for="CreateInput.Name" class="text-red-500 text-xs mt-1.5 block"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="CreateInput.Description" class="block text-sm font-bold text-gray-700 mb-1.5">Mô tả</label>
+                            <textarea asp-for="CreateInput.Description" rows="3" placeholder="Mô tả ngắn về môn học này..." class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 border placeholder-gray-400 resize-none"></textarea>
+                            <span asp-validation-for="CreateInput.Description" class="text-red-500 text-xs mt-1.5 block"></span>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-gray-50 border border-gray-100 mt-2">
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input asp-for="CreateInput.IsPublic" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-accent-strong border-gray-300 rounded" />
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label asp-for="CreateInput.IsPublic" class="font-bold text-gray-700 cursor-pointer">Công khai môn học</label>
+                                    <p class="text-gray-500 text-xs mt-0.5 leading-relaxed">Cho phép tất cả người dùng đã được duyệt truy cập môn học này.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl text-white bg-accent-strong hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm mt-2">
+                            Tạo môn học
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datasets List Panel -->
+        <div class="lg:col-span-3">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-50 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 class="text-lg font-bold text-ink flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </span>
+                        Danh sách môn học
+                    </h2>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full" id="datasetCountBadge">@Model.Datasets.Count môn học</span>
+                </div>
+                
+                @if (Model.Datasets.Count == 0)
+                {
+                    <div class="flex flex-col items-center justify-center p-12 text-center">
+                        <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                        </div>
+                        <strong class="text-lg font-bold text-ink">Chưa có môn học</strong>
+                        <p class="text-sm text-gray-500 mt-1 max-w-sm">Hãy sử dụng form bên trái để tạo môn học đầu tiên cho hệ thống.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50/50 border-b border-gray-100">
+                                    <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Thông tin môn học</th>
+                                    <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                    <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Tài liệu</th>
+                                    <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">Giảng viên</th>
+                                    <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right w-1/4">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white dataset-table-body">
+                                @foreach (var dataset in Model.Datasets)
+                                {
+                                    <tr data-dataset-row="@dataset.DatasetId" class="hover:bg-gray-50/50 transition-colors group">
+                                        <td class="py-4 px-6 align-top">
+                                            <form id="edit-@dataset.DatasetId" method="post" asp-page-handler="Edit" class="flex flex-col gap-2">
+                                                <input type="hidden" name="EditInput.DatasetId" value="@dataset.DatasetId" />
+                                                <div class="flex items-center gap-2">
+                                                    <input name="EditInput.Name" value="@dataset.Name" aria-label="Tên môn học" required maxlength="120" class="block w-full rounded-lg border-transparent hover:border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-1.5 bg-transparent hover:bg-white focus:bg-white transition-colors font-bold text-ink" />
+                                                    @if (dataset.IsArchived)
+                                                    {
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border bg-gray-100 text-gray-500 border-gray-200 whitespace-nowrap">Đã lưu trữ</span>
+                                                    }
+                                                </div>
+                                                <textarea name="EditInput.Description" rows="2" aria-label="Mô tả môn học" maxlength="500" class="block w-full rounded-lg border-transparent hover:border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-xs px-3 py-1.5 bg-transparent hover:bg-white focus:bg-white transition-colors text-gray-500 resize-none" placeholder="Không có mô tả">@(dataset.Description ?? string.Empty)</textarea>
+                                                <div class="flex items-center mt-1 px-3">
+                                                    <input type="checkbox" name="EditInput.IsPublic" value="true" class="focus:ring-indigo-500 h-3.5 w-3.5 text-accent-strong border-gray-300 rounded cursor-pointer" checked="@dataset.IsPublic" id="public-@dataset.DatasetId" />
+                                                    <input type="hidden" name="EditInput.IsPublic" value="false" />
+                                                    <label class="ml-2 text-xs text-gray-500 cursor-pointer font-medium" for="public-@dataset.DatasetId">Công khai</label>
+                                                </div>
+                                            </form>
+                                        </td>
+                                        <td class="py-4 px-6 align-top pt-5">
+                                            @if (dataset.IsPublic)
+                                            {
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border bg-green-50 text-green-700 border-green-200"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>Công khai</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border bg-gray-50 text-gray-600 border-gray-200"><span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>Riêng tư</span>
+                                            }
+                                        </td>
+                                        <td class="py-4 px-6 align-top pt-5">
+                                            <span class="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">@dataset.DocumentCount</span>
+                                        </td>
+                                        <td class="py-4 px-6 align-top pt-5">
+                                            <div class="text-sm font-medium text-gray-700" title="@(dataset.AssignedTeacherName ?? "Chưa phân công")">
+                                                @(dataset.AssignedTeacherName ?? "Chưa phân công")
+                                            </div>
+                                        </td>
+                                        <td class="py-4 px-6 align-top pt-5 text-right">
+                                            <div class="flex flex-col items-end gap-2">
+                                                @if (dataset.IsArchived)
+                                                {
+                                                    <form method="post" asp-page-handler="Restore" class="m-0">
+                                                        <input type="hidden" name="id" value="@dataset.DatasetId" />
+                                                        <button type="submit" class="inline-flex items-center justify-center px-3 py-1.5 border border-indigo-200 rounded-lg text-xs font-bold text-accent-strong bg-indigo-50 hover:bg-indigo-100 transition-colors w-full">Khôi phục</button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <div class="flex items-center gap-2">
+                                                        <button type="submit" form="edit-@dataset.DatasetId" class="inline-flex items-center justify-center px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">Lưu</button>
+                                                        <a asp-page="/Admin/Datasets/Permissions" asp-route-id="@dataset.DatasetId" class="inline-flex items-center justify-center px-3 py-1.5 border border-blue-200 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">Phân quyền</a>
+                                                    </div>
+                                                    <form method="post" asp-page-handler="Delete" class="m-0 mt-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" onsubmit="return confirm('Lưu trữ môn học này? Người dùng sẽ không thể tiếp tục thao tác, nhưng tài liệu, lịch sử trò chuyện và trích dẫn vẫn được giữ lại.');">
+                                                        <input type="hidden" name="id" value="@dataset.DatasetId" />
+                                                        <button type="submit" class="inline-flex items-center justify-center px-3 py-1 border border-transparent rounded text-[11px] font-medium text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors">Lưu trữ</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        window.addEventListener("rag:dataset-changed", function (event) {
+            const status = document.getElementById("realtimeDatasetStatus");
+            const statusText = document.getElementById("realtimeDatasetStatusText");
+            if (!status || !statusText || !event.detail) return;
+            const payload = event.detail;
+            status.classList.remove("hidden");
+            status.classList.add("flex");
+            statusText.textContent = `Cập nhật trực tiếp: Môn học ${payload.name} đã được ${datasetActionLabel(payload.action)}.`;
+            syncDatasetRow(payload);
+            
+            // Auto hide status after 5s
+            setTimeout(() => { 
+                status.classList.add("hidden"); 
+                status.classList.remove("flex"); 
+            }, 5000);
+        });
+
+        function syncDatasetRow(payload) {
+            if (!payload || !payload.datasetId) return;
+
+            const tableBody = document.querySelector(".dataset-table-body");
+            if (!tableBody) return; // Might be empty state
+
+            const row = tableBody.querySelector(`[data-dataset-row="${payload.datasetId}"]`);
+            if (payload.action === "deleted" || payload.action === "archived") {
+                if (row) row.remove();
+                updateDatasetCount();
+                
+                // If no rows left, reload to show empty state properly
+                if (tableBody.querySelectorAll('tr').length === 0) {
+                    window.location.reload();
+                }
+                return;
+            }
+
+            if (row) {
+                updateDatasetRow(row, payload);
+            } else {
+                // Prepend new row if we have the payload and it's created
+                // To keep it simple and ensure complex Razor syntax (anti-forgery, icons) is correct,
+                // for newly created datasets via SignalR (if it happens), reloading might be safer
+                if (payload.action === "created") {
+                    window.location.reload();
+                }
+            }
+
+            updateDatasetCount();
+        }
+
+        function updateDatasetRow(row, payload) {
+            const nameInput = row.querySelector('input[name="EditInput.Name"]');
+            const descriptionInput = row.querySelector('textarea[name="EditInput.Description"]');
+            const publicInput = row.querySelector('input[type="checkbox"][name="EditInput.IsPublic"]');
+            const cells = row.querySelectorAll("td");
+
+            if (nameInput) nameInput.value = payload.name || "";
+            if (descriptionInput) descriptionInput.value = payload.description || "";
+            if (publicInput) publicInput.checked = payload.isPublic === true;
+            
+            if (cells[1]) cells[1].innerHTML = visibilityPill(payload);
+            if (cells[2]) cells[2].innerHTML = `<span class="inline-flex items-center justify-center min-w-[2rem] px-1.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">${payload.documentCount || 0}</span>`;
+            if (cells[3]) cells[3].innerHTML = `<div class="text-sm font-medium text-gray-700">${escapeHtml(payload.assignedTeacherName || "Chưa phân công")}</div>`;
+        }
+
+        function visibilityPill(payload) {
+            if(payload.isPublic) {
+                return `<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border bg-green-50 text-green-700 border-green-200"><span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>Công khai</span>`;
+            } else {
+                return `<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border bg-gray-50 text-gray-600 border-gray-200"><span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>Riêng tư</span>`;
+            }
+        }
+
+        function datasetActionLabel(action) {
+            return ({ created: "tạo mới", updated: "cập nhật", archived: "lưu trữ", restored: "khôi phục", deleted: "xóa" })[action] || "cập nhật";
+        }
+
+        function updateDatasetCount() {
+            const countBadge = document.getElementById("datasetCountBadge");
+            const rows = document.querySelectorAll(".dataset-table-body tr[data-dataset-row]");
+            if (countBadge) countBadge.textContent = `${rows.length} môn học`;
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+}

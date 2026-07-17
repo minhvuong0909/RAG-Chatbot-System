@@ -1,0 +1,1849 @@
+@page
+@model RagChatbotSystem.Presentation.Pages.IndexModel
+@{
+    ViewData["Title"] = "Không gian học tập";
+    ViewData["IsWorkspace"] = true;
+    var defaultMobileTab = Model.SelectedMessageId.HasValue ? "reference-panel" : "chat-panel";
+    var roleValue = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    var localizedRole = roleValue switch
+    {
+        "Student" => "Sinh viên",
+        "Teacher" => "Giảng viên",
+        "Admin" => "Quản trị viên",
+        _ => roleValue
+    };
+    Func<string?, string> localizeDocumentStatus = status => status?.Trim().ToLowerInvariant() switch
+    {
+        "completed" => "Đã xử lý",
+        "processing" => "Đang xử lý",
+        "uploaded" => "Đã tải lên",
+        "failed" => "Thất bại",
+        "hidden" => "Đã ẩn",
+        _ => status ?? "Chưa xác định"
+    };
+    Func<string?, string> localizeSessionTitle = title => title?.Trim().ToLowerInvariant() switch
+    {
+        "new chat" => "Trò chuyện mới",
+        "new session" => "Trò chuyện mới",
+        "subject chat" => "Trò chuyện môn học",
+        _ => title ?? "Trò chuyện mới"
+    };
+}
+
+@if (!Model.SelectedDatasetId.HasValue)
+{
+    <!-- Subject Portal Page -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div>
+                <p class="text-xs font-bold tracking-widest text-gray-500 uppercase mb-2">Cổng học tập</p>
+                <h1 class="text-4xl font-bold text-ink tracking-tight mb-2">Chọn không gian học tập</h1>
+                <p class="text-gray-500">Chọn môn học để bắt đầu trò chuyện dựa trên nguồn tài liệu đã cung cấp.</p>
+            </div>
+            <div class="flex gap-4">
+                @if (User.IsInRole("Admin") || User.IsInRole("Teacher"))
+                {
+                    <a asp-page="/Datasets/Index" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-accent-strong text-accent-strong font-semibold hover:bg-accent-strong hover:text-white transition-all shadow-sm">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        Quản lý môn học
+                    </a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-page="/Admin/ModelComparison/Index" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-accent-strong text-accent-strong font-semibold hover:bg-accent-strong hover:text-white transition-all shadow-sm">
+                            So sánh mô hình
+                        </a>
+                    }
+                }
+                @if (User.IsInRole("Student"))
+                {
+                    @if (Model.CreditBalance != null)
+                    {
+                        <div class="p-4 bg-white border border-border rounded-2xl shadow-sm min-w-[280px]">
+                            <div class="flex justify-between items-center text-sm mb-2">
+                                <span class="text-gray-500 font-semibold">Số dư Credit</span>
+                                <span class="text-lg font-bold text-ink">@Model.CreditBalance.TotalCredits.ToString("N0")</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <span class="text-gray-400">Credit miễn phí</span>
+                                <span class="font-medium text-gray-600">@Model.CreditBalance.FreeCredits.ToString("N0")</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs mb-3">
+                                <span class="text-gray-400">Credit đã mua</span>
+                                <span class="font-medium text-gray-600">@Model.CreditBalance.PaidCredits.ToString("N0")</span>
+                            </div>
+                            <a asp-page="/Credits" class="text-sm font-bold text-accent-strong hover:text-indigo-700 transition-colors">Nạp Credit &rarr;</a>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="p-4 mb-6 text-red-700 bg-red-50 rounded-xl border border-red-200">@Model.ErrorMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="p-4 mb-6 text-green-700 bg-green-50 rounded-xl border border-green-200">@Model.SuccessMessage</div>
+        }
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-dataset-list>
+            @if (Model.Datasets.Count == 0)
+            {
+                <div class="col-span-full text-center py-20">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white border border-border flex items-center justify-center shadow-sm">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h10"></path><path d="M6 10h10"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-ink mb-2">Chưa có môn học khả dụng</h3>
+                    <p class="text-gray-500 max-w-md mx-auto">Bạn chưa có quyền truy cập môn học nào. Vui lòng liên hệ quản trị viên hoặc giảng viên.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var ds in Model.Datasets)
+                {
+                    <div class="group" data-dataset-id="@ds.DatasetId">
+                        <a href="?datasetId=@ds.DatasetId" class="block h-full bg-white border border-border rounded-2xl p-6 shadow-sm hover:shadow-soft hover:-translate-y-1 hover:border-accent-light transition-all duration-300">
+                            <div class="flex flex-col h-full">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h4 class="text-xl font-bold text-ink leading-tight group-hover:text-accent-strong transition-colors">@ds.Name</h4>
+                                    @if (!ds.IsApproved)
+                                    {
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-50 text-amber-600 border border-amber-200">Chờ duyệt</span>
+                                    }
+                                </div>
+                                <p class="text-gray-500 text-sm flex-grow line-clamp-3 mb-6">
+                                    @(string.IsNullOrWhiteSpace(ds.Description) ? "Chưa có mô tả." : ds.Description)
+                                </p>
+                                <div class="flex justify-between items-center pt-4 border-t border-gray-100 mt-auto">
+                                    <span class="flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                        @ds.DocumentCount tài liệu
+                                    </span>
+                                    <span class="text-sm font-bold text-accent-strong group-hover:translate-x-1 transition-transform">
+                                        Vào học &rarr;
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+else
+{
+    <section class="workspace flex flex-col md:flex-row h-[calc(100vh-64px)] w-full bg-gray-50 overflow-hidden" data-rag-app data-active-tab="@defaultMobileTab" data-selected-dataset-id="@Model.SelectedDatasetId" data-selected-session-id="@Model.SelectedSessionId">
+        <!-- Mobile Navigation Tabs (Only visible on mobile screens) -->
+        <div class="mobile-workspace-tabs flex md:hidden bg-white border-b border-gray-200" aria-label="Điều hướng không gian học tập">
+            <button class="mobile-tab-btn flex-1 py-3 text-sm font-medium text-center border-b-2 @(defaultMobileTab == "chat-panel" ? "border-accent-strong text-accent-strong" : "border-transparent text-gray-500")" data-target="chat-panel">Trò chuyện</button>
+            <button class="mobile-tab-btn flex-1 py-3 text-sm font-medium text-center border-b-2 @(defaultMobileTab == "management-panel" ? "border-accent-strong text-accent-strong" : "border-transparent text-gray-500")" data-target="management-panel">Môn học</button>
+            <button class="mobile-tab-btn flex-1 py-3 text-sm font-medium text-center border-b-2 @(defaultMobileTab == "reference-panel" ? "border-accent-strong text-accent-strong" : "border-transparent text-gray-500")" data-target="reference-panel">
+                Nguồn @(Model.Citations.Count > 0 ? $"({Model.Citations.Count})" : "")
+            </button>
+        </div>
+
+        <!-- Cột 1: Quản lý môn học (Management Panel) -->
+        <aside class="workspace-panel management-panel w-full md:w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto hidden md:flex" aria-label="Quản lý môn học">
+            <div class="p-5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-start sticky top-0 z-10">
+                <div>
+                    <a asp-page="/Index" class="inline-flex items-center gap-1 mb-2 text-xs font-semibold text-gray-500 hover:text-accent-strong transition-colors">
+                        &larr; Quay lại danh sách
+                    </a>
+                    <h1 class="text-xl font-bold text-ink leading-tight truncate max-w-[220px]" title="@Model.SelectedDataset?.Name">@Model.SelectedDataset?.Name</h1>
+                    <p class="text-xs text-gray-500">Không gian học tập</p>
+                </div>
+                <a href="?datasetId=@Model.SelectedDatasetId&sessionId=@Model.SelectedSessionId" class="p-1.5 text-gray-400 hover:text-accent-strong hover:bg-indigo-50 rounded-lg transition-colors" title="Làm mới" aria-label="Làm mới">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                </a>
+            </div>
+
+            <div class="p-5 flex-1 overflow-y-auto">
+                <!-- Thong bao loi hoac thanh cong -->
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="p-3 mb-4 text-xs font-medium text-red-700 bg-red-50 rounded-xl border border-red-200">
+                        @Model.ErrorMessage
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                {
+                    <div class="p-3 mb-4 text-xs font-medium text-green-700 bg-green-50 rounded-xl border border-green-200">
+                        @Model.SuccessMessage
+                    </div>
+                }
+
+                <!-- User Info & Credits -->
+                <div class="pb-5 mb-5 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-700 shadow-sm shrink-0">
+                            @(Model.SelectedUser?.FullName?.Substring(0,1).ToUpper() ?? "U")
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="text-sm font-bold text-ink truncate">@Model.SelectedUser?.FullName</div>
+                            <div class="text-xs font-semibold text-gray-500">Vai trò: @localizedRole</div>
+                        </div>
+                    </div>
+                    @if (User.IsInRole("Student") && Model.CreditBalance != null)
+                    {
+                        <div class="mt-4 p-3.5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-indigo-100/50 rounded-xl shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs font-bold text-gray-600">Số dư Credit</span>
+                                <span class="text-sm font-bold text-accent-strong" id="creditTotalText">@Model.CreditBalance.TotalCredits.ToString("N0")</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <span class="text-gray-500">Miễn phí</span>
+                                <span class="font-medium text-gray-700" id="creditFreeText">@Model.CreditBalance.FreeCredits.ToString("N0")</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-gray-500">Đã mua</span>
+                                <span class="font-medium text-gray-700" id="creditPaidText">@Model.CreditBalance.PaidCredits.ToString("N0")</span>
+                            </div>
+                            <a asp-page="/Credits" class="mt-2 text-xs font-bold text-accent-strong hover:text-indigo-800 transition-colors inline-block">Nạp Credit &rarr;</a>
+                            <p id="latestCreditChargeText" class="text-[10px] text-gray-500 mt-1.5 leading-tight"></p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Tài liệu -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-sm font-bold text-ink">Tài liệu</h2>
+                        <div class="flex items-center gap-2">
+                            @if (Model.SelectedDatasetId.HasValue && (User.IsInRole("Teacher") || User.IsInRole("Admin")))
+                            {
+                                <a asp-page="/Documents/Index" asp-route-datasetId="@Model.SelectedDatasetId" class="text-xs font-semibold text-accent-strong hover:underline">Quản lý</a>
+                            }
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-[10px] font-bold text-gray-600">@Model.Documents.Count</span>
+                        </div>
+                    </div>
+                    
+                    @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
+                    {
+                        <div class="space-y-2 document-list" aria-live="polite" data-document-list>
+                            @if (Model.Documents.Count == 0)
+                            {
+                                <p class="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">Môn học này chưa có tài liệu. Định dạng hỗ trợ: TXT, PDF, DOCX.</p>
+                            }
+                            @foreach (var doc in Model.Documents)
+                            {
+                                <div class="document-item p-3 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all group" data-document-id="@doc.DocumentId">
+                                    <div class="flex items-start gap-2">
+                                        <div class="shrink-0 mt-0.5">
+                                            @if(doc.FileType.ToLower() == "pdf") {
+                                                <svg class="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                            } else {
+                                                <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                            }
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-sm font-semibold text-ink truncate" title="@doc.FileName">@doc.FileName</div>
+                                            <div class="text-[11px] text-gray-500">@doc.FileType.ToUpper() - @Math.Ceiling(doc.FileSize / 1024.0) KB</div>
+                                            <div class="mt-1.5">
+                                                <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold rounded status-pill @doc.Status.ToLower()" data-document-status>@localizeDocumentStatus(doc.Status)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-xs text-gray-500 italic">Chọn một môn học để xem tài liệu.</p>
+                    }
+                </div>
+
+                <!-- Cuộc trò chuyện -->
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-sm font-bold text-ink">Cuộc trò chuyện</h2>
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-[10px] font-bold text-gray-600">@Model.Sessions.Count</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3">Chọn hoặc tạo cuộc trò chuyện mới để lưu phiên.</p>
+                    
+                    @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
+                    {
+                        <form method="post" asp-page-handler="CreateSession" class="flex gap-2 mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                            <input name="title" type="text" placeholder="Tên trò chuyện..." class="w-full text-xs px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-accent-strong focus:border-accent-strong outline-none" aria-label="Tên cuộc trò chuyện" />
+                            <button type="submit" class="shrink-0 bg-accent-strong hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors shadow-sm">Tạo mới</button>
+                        </form>
+                        <div class="space-y-1.5 session-list" aria-live="polite" data-session-list>
+                            @if (Model.Sessions.Count == 0)
+                            {
+                                <p class="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-lg border border-dashed border-gray-200">Chưa có cuộc trò chuyện nào.</p>
+                            }
+                            @foreach (var ss in Model.Sessions)
+                            {
+                                <a class="block p-3 rounded-xl border transition-all session-item @(Model.SelectedSessionId == ss.SessionId ? "bg-indigo-50 border-indigo-200" : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50")" 
+                                   data-session-id="@ss.SessionId"
+                                   href="?datasetId=@Model.SelectedDatasetId&sessionId=@ss.SessionId">
+                                    <div class="text-sm font-semibold truncate @(Model.SelectedSessionId == ss.SessionId ? "text-accent-strong" : "text-ink")">@localizeSessionTitle(ss.Title)</div>
+                                    <div class="text-[11px] text-gray-500 mt-0.5">Cập nhật @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(ss.UpdatedAt, "HH:mm dd/MM")</div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Thống kê -->
+            <div class="p-5 border-t border-gray-100 bg-gray-50/50 mt-auto">
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Thống kê</h2>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Tổng tài liệu</span>
+                        <strong class="text-accent-strong">@Model.Documents.Count</strong>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Cuộc trò chuyện</span>
+                        <strong class="text-purple-600">@Model.Sessions.Count</strong>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Tin nhắn phiên này</span>
+                        <strong class="text-emerald-600">@Model.MessageHistory.Count</strong>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Cột 2: Không gian trò chuyện (Chat Panel) -->
+        <main class="chat-panel flex-1 flex flex-col h-full bg-white relative hidden md:flex" aria-label="Không gian trò chuyện">
+            <div class="px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                <div>
+                    <p class="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">KHÔNG GIAN TRÒ CHUYỆN</p>
+                    @if (Model.SelectedSession != null)
+                    {
+                        <h2 class="text-lg font-bold text-ink" data-chat-title>@localizeSessionTitle(Model.SelectedSession.Title)</h2>
+                    }
+                    else if (Model.SelectedDataset != null)
+                    {
+                        <h2 class="text-lg font-bold text-ink" data-chat-title>Chọn hoặc tạo cuộc trò chuyện</h2>
+                    }
+                    else
+                    {
+                        <h2 class="text-lg font-bold text-ink" data-chat-title>Chọn môn học để bắt đầu</h2>
+                    }
+                </div>
+                @if (Model.SelectedDatasetId.HasValue && Model.SelectedDataset?.IsArchived != true)
+                {
+                    <form method="post" asp-page-handler="CreateSession" class="m-0 p-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                        <input type="hidden" name="title" value="Trò chuyện môn học" />
+                        <button type="submit" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">Phiên mới</button>
+                    </form>
+                }
+            </div>
+
+            <div class="flex-1 overflow-y-auto px-4 md:px-8 lg:px-16 py-6 bg-gray-50/30 chat-stream" id="chatStream" aria-live="polite">
+                @if (Model.SelectedDatasetId.HasValue && Model.SelectedSessionId.HasValue)
+                {
+                    <section class="question-suggestions mb-8" data-question-suggestions data-dataset-id="@Model.SelectedDatasetId">
+                        <div class="flex justify-between items-end mb-3 border-b border-gray-200 pb-3">
+                            <div>
+                                <p class="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">GỢI Ý CÂU HỎI AI</p>
+                                <h3 class="text-sm font-bold text-ink">Gợi ý học tập cho môn này</h3>
+                            </div>
+                            <button type="button" class="text-xs font-semibold text-accent-strong border border-accent-strong/30 bg-indigo-50 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors" data-generate-questions>Tạo gợi ý mới</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mb-2 suggestion-list" data-suggestion-list>
+                            <button type="button" class="suggestion-chip px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:border-accent-strong hover:text-accent-strong transition-colors shadow-sm" data-question-template="Tóm tắt các ý chính của môn học này theo tài liệu đã tải lên?">Tóm tắt ý chính</button>
+                            <button type="button" class="suggestion-chip px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:border-accent-strong hover:text-accent-strong transition-colors shadow-sm" data-question-template="Những khái niệm quan trọng nhất trong tài liệu này là gì?">Khái niệm quan trọng</button>
+                            <button type="button" class="suggestion-chip px-3 py-1.5 bg-white border border-gray-300 rounded-full text-xs font-medium text-gray-700 hover:border-accent-strong hover:text-accent-strong transition-colors shadow-sm" data-question-template="Hãy tạo 5 câu hỏi ôn tập từ tài liệu của môn học này.">Câu hỏi ôn tập</button>
+                        </div>
+                        <p class="text-xs text-gray-500 italic suggestion-helper" data-suggestion-helper>Chọn một gợi ý để điền vào ô chat.</p>
+                    </section>
+                }
+
+                @if (Model.SelectedSession != null)
+                {
+                    if (Model.MessageHistory.Count == 0)
+                    {
+                        <div class="empty-state flex flex-col items-center justify-center h-full text-center p-8 opacity-80 mt-10">
+                            <div class="w-16 h-16 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-strong"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-ink mb-2">Đặt câu hỏi dựa trên tài liệu</h3>
+                            <p class="text-gray-500 max-w-sm text-sm">Nhập câu hỏi bên dưới. AI sẽ tìm các phần liên quan nhất trong tài liệu để trả lời.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="space-y-6 pb-6">
+                            @foreach (var msg in Model.MessageHistory)
+                            {
+                                <div class="message flex flex-col @msg.Role.ToLower() @(msg.Role == "User" ? "items-end" : "items-start")" data-message-id="@msg.MessageId">
+                                    <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm @(msg.Role == "User" ? "bg-accent-strong text-white rounded-br-sm" : "bg-white border border-gray-200 text-ink rounded-bl-sm")">
+                                        <div class="message-content text-[15px] leading-relaxed @(msg.Role == "Assistant" ? "ai-markdown prose prose-sm prose-indigo max-w-none" : "user-message-text whitespace-pre-wrap")">@msg.Content</div>
+                                    </div>
+                                    <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
+                                        @(msg.Role == "User" ? "Bạn" : "Trợ lý") &bull; @RagChatbotSystem.Presentation.Helpers.VietnamTime.Format(msg.CreatedAt, "HH:mm")
+                                    </div>
+                                    @if (msg.Role == "Assistant" && Model.MessageIdsWithCitations.Contains(msg.MessageId))
+                                    {
+                                        <div class="citation-row mt-2">
+                                            <button class="citation-chip view-sources-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-ink hover:border-gray-400 transition-colors shadow-sm" 
+                                               data-message-id="@msg.MessageId">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                                 Xem 1 nguồn trích dẫn
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state flex flex-col items-center justify-center h-full text-center p-8 opacity-80 mt-10">
+                        <div class="w-16 h-16 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center mb-4">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent-strong"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-ink mb-2">Chào mừng đến với trợ lý học tập</h3>
+                        <p class="text-gray-500 max-w-sm text-sm">Hãy chọn một môn học, tải tài liệu lên, sau đó bắt đầu cuộc trò chuyện.</p>
+                    </div>
+                }
+            </div>
+
+            <div class="p-4 bg-white border-t border-gray-200">
+                @if (Model.SelectedDataset?.IsArchived == true)
+                {
+                    <div class="p-3 text-sm text-yellow-700 bg-yellow-50 rounded-xl border border-yellow-200 text-center">
+                        Môn học đã lưu trữ. Chỉ xem lịch sử, không thể chat thêm.
+                    </div>
+                }
+                else if (Model.SelectedSessionId.HasValue)
+                {
+                    <form method="post" asp-page-handler="SendMessage" class="composer max-w-4xl mx-auto relative flex items-end gap-2 bg-gray-50 border border-gray-300 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-accent-strong/20 focus-within:border-accent-strong transition-all shadow-sm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="datasetId" value="@Model.SelectedDatasetId" />
+                        <input type="hidden" name="sessionId" value="@Model.SelectedSessionId" />
+                        <textarea name="question" rows="1" placeholder="Hỏi AI về môn học này..." required id="chatQuestionTextarea" aria-label="Câu hỏi" class="w-full bg-transparent border-0 resize-none max-h-32 px-3 py-2 text-[15px] focus:ring-0 text-ink placeholder-gray-400 outline-none"></textarea>
+                        <button type="submit" class="composer-send-btn shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-accent-strong text-white hover:bg-indigo-700 shadow-sm transition-colors mb-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </form>
+                }
+            </div>
+        </main>
+
+        <!-- Cột 3: Tài liệu tham khảo (Reference Panel) -->
+        <aside class="workspace-panel reference-panel w-full md:w-80 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col h-full overflow-y-auto hidden md:flex" aria-label="Tài liệu tham khảo">
+            <div class="px-5 py-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                    <p class="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">TÀI LIỆU THAM KHẢO</p>
+                    <h2 class="text-base font-bold text-ink">Nguồn trích dẫn</h2>
+                </div>
+                <button type="button" class="reference-close-btn p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors" aria-label="Đóng" title="Đóng" data-close-references>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <div class="p-5 flex-1 overflow-y-auto">
+                @if (Model.SelectedMessageId.HasValue && Model.Citations.Count > 0)
+                {
+                    <div class="reference-content space-y-4">
+                        @foreach (var c in Model.Citations)
+                        {
+                            <div class="reference-card bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-gray-300 transition-colors">
+                                <h3 class="text-sm font-bold text-ink mb-2 truncate" title="@c.FileName">@c.FileName</h3>
+                                <div class="text-xs text-gray-500 space-y-1 mb-3">
+                                    @if (string.Equals(c.FileType, "pdf", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <p><span class="font-semibold text-gray-700">Trang:</span> @(c.PageNumber > 0 ? c.PageNumber.ToString() : "Không xác định")</p>
+                                    }
+                                    else
+                                    {
+                                        <p><span class="font-semibold text-gray-700">Đoạn:</span> @(c.ChunkIndex?.ToString() ?? "Không xác định")</p>
+                                    }
+                                    <p><span class="font-semibold text-gray-700">Nhãn nguồn:</span> <span class="px-1.5 py-0.5 bg-gray-100 rounded">@c.SourceLabel</span></p>
+                                </div>
+                                <div class="text-xs italic bg-amber-50/50 text-gray-700 p-3 rounded-lg border-l-2 border-amber-400 leading-relaxed max-h-48 overflow-y-auto">
+                                    "@c.QuoteText"
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="reference-empty text-center py-12 px-4 border-2 border-dashed border-gray-200 rounded-xl mt-4">
+                        <svg class="mx-auto h-10 w-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <h3 class="text-sm font-bold text-gray-700 mb-1">Chưa chọn nguồn</h3>
+                        <p class="text-xs text-gray-500">Bấm "Xem nguồn trích dẫn" ở câu trả lời của AI để xem chi tiết.</p>
+                    </div>
+                }
+            </div>
+        </aside>
+
+        <!-- Document Preview Modal -->
+        <div id="docPreviewModal" class="modal hidden fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm items-center justify-center p-4 sm:p-6" style="display: none;">
+            <div class="modal-content bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden transform transition-all">
+                <div class="modal-header flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold block mb-1">XEM TRƯỚC</span>
+                        <h3 id="docPreviewTitle" class="text-base font-bold text-ink">Tài liệu</h3>
+                    </div>
+                    <button type="button" onclick="closeDocPreviewModal()" class="text-gray-400 hover:text-gray-700 hover:bg-gray-200 p-1.5 rounded-lg transition-colors">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div id="docPreviewBody" class="p-6 overflow-y-auto flex-1 bg-white space-y-4">
+                    <!-- Chunks injected here -->
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+@section Scripts {
+    <style>
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .upload-dropzone {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 112px;
+            border: 2px dashed var(--line);
+            border-radius: 12px;
+            padding: 18px 12px;
+            background: var(--surface-muted);
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            overflow: hidden;
+        }
+
+        .upload-dropzone:hover {
+            border-color: var(--accent);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .upload-title,
+        .upload-subtitle {
+            display: block;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            line-height: 1.25;
+        }
+
+        .upload-title {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--ink);
+        }
+
+        .upload-subtitle {
+            font-size: 0.74rem;
+            color: var(--muted);
+        }
+
+        .document-card-header,
+        .document-card-main {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .document-name {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .document-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .document-preview-link,
+        .document-delete-button {
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 5px 8px;
+            line-height: 1;
+            text-decoration: none;
+        }
+
+        .document-preview-link {
+            border: 1px solid rgba(14, 165, 233, 0.28);
+            background: rgba(14, 165, 233, 0.08);
+            color: var(--accent-strong);
+        }
+
+        .document-delete-button {
+            border: 1px solid rgba(220, 38, 38, 0.25);
+            background: rgba(220, 38, 38, 0.05);
+            color: var(--danger);
+            cursor: pointer;
+        }
+
+        .credit-summary-row {
+            gap: 12px;
+        }
+
+        .credit-summary-row > span:first-child {
+            min-width: 0;
+        }
+
+        .credit-summary-row > span:last-child {
+            flex: 0 0 auto;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .credit-summary-total {
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(37, 99, 235, 0.12);
+        }
+
+        .reference-card h3 {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .message.pending-message .message-bubble,
+        .message.loading-bubble .message-bubble {
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            background: rgba(37, 99, 235, 0.045);
+        }
+
+        .message.failed-message .message-bubble {
+            border: 1px solid rgba(180, 122, 32, 0.3);
+            background: rgba(245, 158, 11, 0.09);
+            color: var(--ink);
+        }
+
+        .message.failed-message .message-meta {
+            color: #9a6700;
+            font-weight: 700;
+        }
+
+        @@media (max-width: 820px) {
+            body:has(.workspace) .app-shell {
+                padding: 12px;
+            }
+
+            body:has(.workspace) .workspace {
+                width: 100%;
+                grid-template-columns: minmax(0, 1fr) !important;
+            }
+
+            body:has(.workspace) .chat-panel {
+                width: 100% !important;
+            }
+
+            .question-suggestions-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .question-suggestions-header .secondary-button {
+                width: 100%;
+            }
+
+            .credit-summary {
+                padding: 12px !important;
+            }
+        }
+    </style>
+    <script>
+        // Tá»± Ä‘á»™ng cuá»™n khung chat xuá»‘ng dÆ°á»›i cÃ¹ng khi cÃ³ tin nháº¯n má»›i hoáº·c táº£i trang
+        if (document.querySelector(".workspace")) {
+            window.scrollTo(0, 0);
+        }
+
+        const chatStream = document.getElementById("chatStream");
+        if (chatStream) {
+            chatStream.scrollTop = chatStream.scrollHeight;
+        }
+        const pendingAssistantMessages = new Map();
+        const failedAssistantMessageIds = new Set();
+        const friendlyAiUnavailableMessage = "Hiện chưa thể tạo câu trả lời từ AI. Vui lòng thử lại sau hoặc liên hệ quản trị viên.";
+
+        function localizeDocumentStatus(status) {
+            const normalized = String(status || "").trim().toLowerCase();
+            const labels = {
+                completed: "Đã xử lý",
+                processing: "Đang xử lý",
+                uploaded: "Đã tải lên",
+                failed: "Thất bại",
+                hidden: "Đã ẩn"
+            };
+            return labels[normalized] || "Chưa xác định";
+        }
+
+        function localizeSessionTitle(title) {
+            const normalized = String(title || "").trim().toLowerCase();
+            const labels = {
+                "new chat": "Trò chuyện mới",
+                "new session": "Trò chuyện mới",
+                "subject chat": "Trò chuyện môn học"
+            };
+            return labels[normalized] || title || "Trò chuyện mới";
+        }
+
+        const uploadDocForm = document.getElementById("upload-doc-form");
+        const fileUploadInput = document.getElementById("file-upload");
+        const processingOverlay = document.getElementById("documentProcessingOverlay");
+        if (uploadDocForm && processingOverlay) {
+            uploadDocForm.addEventListener("submit", function () {
+                processingOverlay.style.display = "flex";
+            });
+        }
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderInlineMarkdown(value) {
+            const codeSpans = [];
+            let html = escapeHtml(String(value || "")).replace(/`([^`\n]+)`/g, function (_, code) {
+                const token = `@@CODE_SPAN_${codeSpans.length}@@`;
+                codeSpans.push(`<code>${code}</code>`);
+                return token;
+            });
+            html = html
+                .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+                .replace(/__([^_\n]+)__/g, "<strong>$1</strong>")
+                .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+                .replace(/(^|[^_])_([^_\n]+)_/g, "$1<em>$2</em>");
+            codeSpans.forEach(function (code, index) {
+                html = html.replace(`@@CODE_SPAN_${index}@@`, code);
+            });
+            return html;
+        }
+
+        function renderMarkdown(value) {
+            const lines = String(value || "").replace(/\r\n?/g, "\n").split("\n");
+            const output = [];
+            let listType = null;
+            let inCodeBlock = false;
+            const codeLines = [];
+
+            function closeList() {
+                if (listType) output.push(`</${listType}>`);
+                listType = null;
+            }
+
+            lines.forEach(function (line) {
+                if (/^\s*```/.test(line)) {
+                    closeList();
+                    if (inCodeBlock) {
+                        output.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+                        codeLines.length = 0;
+                    }
+                    inCodeBlock = !inCodeBlock;
+                    return;
+                }
+                if (inCodeBlock) {
+                    codeLines.push(line);
+                    return;
+                }
+
+                const unordered = line.match(/^\s*[-*+]\s+(.+)$/);
+                const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+                const nextListType = unordered ? "ul" : (ordered ? "ol" : null);
+                if (nextListType) {
+                    if (listType !== nextListType) {
+                        closeList();
+                        listType = nextListType;
+                        output.push(`<${listType}>`);
+                    }
+                    output.push(`<li>${renderInlineMarkdown((unordered || ordered)[1])}</li>`);
+                    return;
+                }
+
+                closeList();
+                if (!line.trim()) return;
+                const heading = line.match(/^\s*(#{1,4})\s+(.+)$/);
+                if (heading) {
+                    const level = Math.min(4, heading[1].length + 2);
+                    output.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+                } else if (/^\s*>\s?/.test(line)) {
+                    output.push(`<blockquote>${renderInlineMarkdown(line.replace(/^\s*>\s?/, ""))}</blockquote>`);
+                } else {
+                    output.push(`<p>${renderInlineMarkdown(line)}</p>`);
+                }
+            });
+            closeList();
+            if (inCodeBlock && codeLines.length) {
+                output.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+            }
+            return output.join("");
+        }
+
+        document.querySelectorAll(".message.assistant .ai-markdown").forEach(function (element) {
+            element.innerHTML = renderMarkdown(element.textContent || "");
+        });
+
+        // Há»— trá»£ gá»­i tin nháº¯n báº±ng tá»• há»£p phÃ­m Enter (nhÆ°ng cho phÃ©p Shift+Enter Ä‘á»ƒ xuá»‘ng dÃ²ng)
+        const textarea = document.getElementById("chatQuestionTextarea");
+        if (textarea) {
+            textarea.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    // KÃ­ch hoáº¡t submit form Ä‘Æ°á»£c xá»­ lÃ½ báº±ng AJAX á»Ÿ dÆ°á»›i
+                    this.form.dispatchEvent(new Event("submit", { cancelable: true }));
+                }
+            });
+        }
+
+        // Xá»­ lÃ½ gá»­i tin nháº¯n báº±ng AJAX (KhÃ´ng táº£i láº¡i trang)
+        const questionSuggestions = document.querySelector("[data-question-suggestions]");
+        const suggestionList = document.querySelector("[data-suggestion-list]");
+        const suggestionHelper = document.querySelector("[data-suggestion-helper]");
+        const generateQuestionsButton = document.querySelector("[data-generate-questions]");
+
+        document.addEventListener("click", function(e) {
+            const chip = e.target.closest("[data-question-template]");
+            if (!chip || !textarea) return;
+
+            textarea.value = chip.getAttribute("data-question-template") || chip.textContent.trim();
+            textarea.focus();
+            textarea.style.height = "auto";
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        });
+
+        if (generateQuestionsButton && questionSuggestions && suggestionList) {
+            generateQuestionsButton.addEventListener("click", function () {
+                const datasetId = questionSuggestions.getAttribute("data-dataset-id");
+                if (!datasetId) return;
+
+                generateQuestionsButton.disabled = true;
+                generateQuestionsButton.textContent = "Đang tạo...";
+                if (suggestionHelper) {
+                    suggestionHelper.textContent = "Đang tìm tài liệu và tạo gợi ý học tập...";
+                }
+
+                fetch(`?handler=SuggestQuestions&datasetId=${encodeURIComponent(datasetId)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => { throw new Error(data.error || "Không thể tạo gợi ý câu hỏi.") });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const questions = data.questions || [];
+                        if (questions.length === 0) {
+                            throw new Error("Chưa tạo được gợi ý câu hỏi cho môn học này.");
+                        }
+
+                        suggestionList.innerHTML = questions.map(q => `
+                            <button type="button" class="suggestion-chip" data-question-template="${escapeHtml(q)}">${escapeHtml(q)}</button>
+                        `).join("");
+
+                        if (suggestionHelper) {
+                            suggestionHelper.textContent = "Chọn một gợi ý để điền vào ô chat.";
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        if (suggestionHelper) {
+                            suggestionHelper.textContent = "Không thể tạo gợi ý câu hỏi. Vui lòng thử lại.";
+                        }
+                    })
+                    .finally(() => {
+                        generateQuestionsButton.disabled = false;
+                        generateQuestionsButton.textContent = "Gợi ý câu hỏi";
+                    });
+            });
+        }
+
+        let chatConnectionReady = Promise.resolve(false);
+        const composerForm = document.querySelector(".composer");
+        if (composerForm) {
+            composerForm.addEventListener("submit", async function(e) {
+                e.preventDefault();
+                
+                const questionInput = document.getElementById("chatQuestionTextarea");
+                if (!questionInput) return;
+                const question = questionInput.value.trim();
+                if (!question) return;
+
+                // Do not start the HTTP request until the browser has joined the
+                // SignalR session group; otherwise the first streamed chunks are lost.
+                const streamingReady = await chatConnectionReady;
+                if (!streamingReady) {
+                    console.warn("Không thể thiết lập kết nối streaming; yêu cầu vẫn tiếp tục bằng phản hồi hoàn chỉnh.");
+                }
+                
+                // Clear vÃ  reset textarea ngay láº­p tá»©c
+                questionInput.value = "";
+                questionInput.style.height = "auto";
+                
+                // 1. Hiá»ƒn thá»‹ tin nháº¯n cá»§a User ngay láº­p tá»©c lÃªn mÃ n hÃ¬nh
+                appendMessage("user", question, formatVietnamTime(new Date()));
+                
+                // 2. ThÃªm bong bÃ³ng chá» tráº£ lá»i (Loading) tá»« Assistant
+                const loadingBubble = appendLoadingBubble();
+                
+                // Cuá»™n xuá»‘ng cuá»‘i
+                if (chatStream) {
+                    chatStream.scrollTop = chatStream.scrollHeight;
+                }
+                
+                // 3. Gá»­i yÃªu cáº§u qua Fetch API tá»›i Backend
+                const formData = new FormData(composerForm);
+                formData.set("question", question);
+                composerForm.dataset.realtimeSuppress = "true";
+                
+                fetch("?handler=SendMessageAjax", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            const requestError = new Error(data.error || "Gửi tin nhắn thất bại.");
+                            requestError.code = data.code;
+                            requestError.status = response.status;
+                            throw requestError;
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // XÃ³a bong bÃ³ng loading
+                    if (loadingBubble && loadingBubble.classList.contains("loading-bubble")) loadingBubble.remove();
+                    
+                    // ThÃªm cÃ¢u tráº£ lá» i cá»§a AI vÃ o giao diá»‡n
+                    const assistantId = String(data.assistantMessage.messageId);
+                    if (!document.querySelector(`[data-message-id="${assistantId}"]`)) {
+                        appendMessage("assistant", data.assistantMessage.content, data.assistantMessage.createdAt, data.assistantMessage.messageId, data.citations && data.citations.length > 0);
+                    }
+                    
+                    // Hiá»ƒn thá»‹ ngay cÃ¡c nguá»…n trÃ­ch dáº«n tÆ°Æ¡ng á»©ng bÃªn cá»™t pháº£i
+                    if (data.citations && data.citations.length > 0) {
+                        renderCitationsDirectly(data.citations);
+                    }
+                    
+                    // Cap nhat Token Usage dynamic
+                    if (data.dailyTokensUsed !== null && data.dailyTokensUsed !== undefined &&
+                        data.dailyTokenLimit !== null && data.dailyTokenLimit !== undefined) {
+                        const progressText = document.getElementById("dailyTokenProgressText");
+                        const progressBar = document.getElementById("dailyTokenProgressBar");
+                        if (progressText && progressBar) {
+                            progressText.textContent = `${Number(data.dailyTokensUsed).toLocaleString()} / ${Number(data.dailyTokenLimit).toLocaleString()}`;
+                            const pct = Math.min(100, Math.max(0, (data.dailyTokensUsed / data.dailyTokenLimit) * 100));
+                            progressBar.style.width = `${pct}%`;
+                            progressBar.setAttribute("aria-valuenow", data.dailyTokensUsed);
+                            progressBar.className = "progress-bar";
+                            if (pct > 85) {
+                                progressBar.classList.add("bg-danger");
+                            } else if (pct > 60) {
+                                progressBar.classList.add("bg-warning");
+                            } else {
+                                progressBar.classList.add("bg-primary");
+                            }
+                        }
+                    }
+                    
+                    // Cuá»™n xuá»‘ng cuá»‘i
+                    updateCreditBalanceDisplay(data.creditBalance);
+
+                    if (data.creditSpend) {
+                        updateCreditSpendDisplay(data.creditSpend);
+                    }
+
+                    if (chatStream) {
+                        chatStream.scrollTop = chatStream.scrollHeight;
+                    }
+                    setTimeout(function () { delete composerForm.dataset.realtimeSuppress; }, 750);
+                })
+                .catch(err => {
+                    if (!err.code) console.error(err);
+                    // ReceiveChatFailed normally handles this first. If the HTTP response
+                    // arrives first, convert this request's loading bubble in place instead
+                    // of creating a second assistant bubble.
+                    if (loadingBubble && !loadingBubble.classList.contains("failed-message")) {
+                        markAssistantBubbleAsFailed(loadingBubble, err.message || friendlyAiUnavailableMessage);
+                    }
+                    
+                    if (chatStream) {
+                        chatStream.scrollTop = chatStream.scrollHeight;
+                    }
+                    delete composerForm.dataset.realtimeSuppress;
+                });
+            });
+        }
+
+        window.addEventListener("rag:document-progress", function (event) {
+            const payload = event.detail;
+            if (!payload) return;
+
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            if (workspaceEl && workspaceEl.dataset.selectedDatasetId && payload.datasetId && workspaceEl.dataset.selectedDatasetId !== String(payload.datasetId)) {
+                return;
+            }
+
+            const documentRow = document.querySelector(`[data-document-id="${payload.documentId}"]`);
+            if (payload.action === "deleted") {
+                if (documentRow) documentRow.remove();
+                return;
+            }
+
+            if (!documentRow) {
+                const list = document.querySelector("[data-document-list]");
+                if (list && (payload.action === "completed" || payload.action === "uploaded" || payload.action === "processing")) {
+                    const emptyState = list.querySelector(".helper-text");
+                    if (emptyState) emptyState.remove();
+                    list.prepend(createDocumentRow(payload));
+                }
+                return;
+            }
+
+            const status = documentRow.querySelector("[data-document-status]");
+            if (status) {
+                status.textContent = localizeDocumentStatus(payload.status || payload.action);
+                status.className = `status-pill ${(payload.status || "").toLowerCase()}`;
+            }
+
+            const progress = documentRow.querySelector("[data-document-progress]");
+            if (progress) {
+                progress.style.width = `${Math.max(0, Math.min(100, payload.percentComplete || 0))}%`;
+            }
+        });
+
+        function createDocumentRow(payload) {
+            const item = document.createElement("div");
+            item.className = "document-item";
+            item.dataset.documentId = payload.documentId;
+            const status = payload.status || "uploaded";
+            const sizeKb = Math.ceil((payload.fileSize || 0) / 1024);
+            item.innerHTML = `
+                <div class="document-card-header">
+                    <div class="document-card-main">
+                        <strong class="document-name" title="${escapeHtml(payload.fileName || "Tài liệu")}">${escapeHtml(payload.fileName || "Tài liệu")}</strong>
+                        <span class="document-meta">${escapeHtml(String(payload.fileType || "")).toUpperCase()} - ${sizeKb} KB</span>
+                    </div>
+                </div>
+                <div class="progress-track" aria-hidden="true">
+                    <span class="progress-fill" data-document-progress style="width: ${Math.max(0, Math.min(100, payload.percentComplete || 0))}%"></span>
+                </div>
+                <div class="document-actions-row">
+                    <span class="status-pill ${escapeHtml(status.toLowerCase())}" data-document-status>${escapeHtml(localizeDocumentStatus(status))}</span>
+                    <a class="document-preview-link" href="/Documents/Preview?documentId=${encodeURIComponent(payload.documentId)}" title="Xem các đoạn đã lập chỉ mục và thông tin tài liệu">Xem đoạn nội dung</a>
+                    <form method="post" action="?handler=DeleteDocument" style="margin: 0; padding: 0;" onsubmit="return confirm('Tài liệu này sẽ bị ẩn khỏi cuộc trò chuyện và xóa khỏi chỉ mục RAG. Bạn có muốn tiếp tục?');">
+                        ${antiForgeryInput()}
+                        <input type="hidden" name="datasetId" value="${escapeHtml(payload.datasetId)}" />
+                        <input type="hidden" name="documentId" value="${escapeHtml(payload.documentId)}" />
+                        <button class="document-delete-button" type="submit" title="Ẩn tài liệu">Ẩn</button>
+                    </form>
+                </div>
+            `;
+            return item;
+        }
+
+        function antiForgeryInput() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? `<input name="__RequestVerificationToken" type="hidden" value="${escapeHtml(token.value)}" />` : "";
+        }
+
+        // =====================================================================
+        // Real-time: Dataset Changed (created / updated / deleted / approved)
+        // Admin thay đổi dataset → tự động cập nhật sidebar của Teacher/Student
+        // =====================================================================
+        window.addEventListener("rag:dataset-changed", function (event) {
+            const payload = event.detail;
+            if (!payload || !payload.datasetId) return;
+
+            const datasetId = String(payload.datasetId);
+            const action = payload.action;
+            const datasetList = document.querySelector("[data-dataset-list]");
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            const existingEntry = datasetList
+                ? Array.from(datasetList.querySelectorAll("[data-dataset-id]"))
+                    .find(function (el) { return el.dataset.datasetId === datasetId; })
+                : null;
+
+            if (action === "deleted") {
+                const deletedName = escapeHtml(payload.name || "Môn học");
+                // Xóa dataset khỏi sidebar
+                if (existingEntry) existingEntry.remove();
+                // Nếu user đang xem dataset bị xóa → redirect về trang chủ
+                if (workspaceEl && workspaceEl.dataset.selectedDatasetId === datasetId) {
+                    if (window.showToastNotification) {
+                        window.showToastNotification(`Môn học "${deletedName}" đã được quản trị viên xóa.`);
+                    }
+                    setTimeout(function () { window.location.assign("/"); }, 1500);
+                } else if (existingEntry && window.showToastNotification) {
+                    // Dataset bị xóa nhưng user không đang xem → vẫn báo
+                    window.showToastNotification(`Môn học "${deletedName}" đã bị xóa.`);
+                }
+                // Cập nhật counter
+                if (datasetList) {
+                    const count = document.querySelector("[data-dataset-count]");
+                    if (count) {
+                        count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
+                    }
+                }
+                return;
+            }
+
+            if (action === "created") {
+                // Thêm dataset mới vào đầu sidebar
+                if (!existingEntry && datasetList) {
+                    const emptyState = datasetList.querySelector(".helper-text");
+                    if (emptyState) emptyState.remove();
+
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "dataset-entry";
+                    wrapper.dataset.datasetId = datasetId;
+
+                    const link = document.createElement("a");
+                    link.className = "dataset-item";
+                    link.href = "/?datasetId=" + encodeURIComponent(datasetId);
+
+                    const isPublicIcon = !payload.isPublic ? ' <span title="Môn học riêng tư" style="font-size: 0.8rem; color: var(--muted); border: 1px solid var(--muted); padding: 1px 4px; border-radius: 4px; margin-left: 4px;">Riêng tư</span>' : "";
+                    const isApprovedIcon = !payload.isApproved ? '<span title="Đang chờ duyệt" style="color: var(--warning); font-size: 0.8rem; border: 1px solid var(--warning); padding: 1px 4px; border-radius: 4px; margin-right: 4px;">Chờ duyệt</span> ' : "";
+
+                    link.innerHTML = `
+                        <span class="dataset-name">${isApprovedIcon}${escapeHtml(payload.name || "Môn học mới")}${isPublicIcon}</span>
+                        <span class="dataset-meta">0 tài liệu</span>
+                    `;
+                    wrapper.appendChild(link);
+                    datasetList.prepend(wrapper);
+
+                    const count = document.querySelector("[data-dataset-count]");
+                    if (count) {
+                        count.textContent = String(datasetList.querySelectorAll("[data-dataset-id]").length);
+                    }
+
+                    // Notify teacher/student when a new subject becomes available.
+                    if (window.showToastNotification) {
+                        window.showToastNotification(`Đã thêm môn học mới: "${escapeHtml(payload.name || "Môn học mới")}"`);
+                    }
+                }
+                return;
+            }
+
+            if ((action === "updated" || action === "approved" || action === "unapproved") && existingEntry) {
+                const subjectName = escapeHtml(payload.name || "Môn học");
+
+                // Cập nhật tên môn học (Hỗ trợ cả Card Grid và Sidebar)
+                const nameEl = existingEntry.querySelector(".subject-card-title") || existingEntry.querySelector(".dataset-name");
+                if (nameEl && payload.name) {
+                    nameEl.textContent = payload.name;
+                }
+
+                // Cập nhật mô tả (Chỉ cho Card Grid)
+                const descEl = existingEntry.querySelector(".card-body p");
+                if (descEl && payload.description) {
+                    descEl.textContent = payload.description;
+                }
+
+                // Cập nhật Pending Badge cho Card Grid
+                const headerEl = existingEntry.querySelector(".card-body > div");
+                if (headerEl) {
+                    let badgeEl = headerEl.querySelector(".badge");
+                    if (!payload.isApproved) {
+                        if (!badgeEl) {
+                            badgeEl = document.createElement("span");
+                            badgeEl.className = "badge";
+                            badgeEl.style.fontSize = "0.75rem";
+                            badgeEl.style.borderRadius = "4px";
+                            badgeEl.style.background = "var(--warning-soft)";
+                            badgeEl.style.color = "var(--warning)";
+                            badgeEl.style.fontWeight = "600";
+                            badgeEl.textContent = "Chờ duyệt";
+                            headerEl.appendChild(badgeEl);
+                        }
+                    } else {
+                        if (badgeEl) {
+                            badgeEl.remove();
+                        }
+                    }
+                }
+
+                // Nếu đang xem chính dataset này → cũng highlight lại link
+                const link = existingEntry.querySelector(".dataset-item");
+                if (link && workspaceEl && workspaceEl.dataset.selectedDatasetId === datasetId) {
+                    link.classList.add("active");
+                }
+
+                // Toast thông báo theo action
+                if (window.showToastNotification) {
+                    if (action === "updated") {
+                        window.showToastNotification(`Quản trị viên đã cập nhật môn học "${subjectName}".`);
+                    } else if (action === "approved") {
+                        window.showToastNotification(`Môn học "${subjectName}" đã được duyệt và đang hoạt động.`);
+                    } else if (action === "unapproved") {
+                        window.showToastNotification(`Môn học "${subjectName}" đã tạm ngưng hoạt động.`);
+                    }
+                }
+                return;
+            }
+        });
+
+        window.addEventListener("rag:chat-session-changed", function (event) {
+            const payload = event.detail;
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            const sessionList = document.querySelector("[data-session-list]");
+            if (!payload || !workspaceEl || !sessionList || workspaceEl.dataset.selectedDatasetId !== String(payload.datasetId)) {
+                return;
+            }
+
+            if (sessionList.querySelector(`[data-session-id="${payload.sessionId}"]`)) {
+                return;
+            }
+
+            const emptyState = sessionList.querySelector(".helper-text");
+            if (emptyState) emptyState.remove();
+
+            const link = document.createElement("a");
+            link.className = "session-item";
+            link.dataset.sessionId = payload.sessionId;
+            link.href = `?datasetId=${encodeURIComponent(payload.datasetId)}&sessionId=${encodeURIComponent(payload.sessionId)}`;
+            link.style.textDecoration = "none";
+            link.innerHTML = `
+                <span class="session-name">${escapeHtml(localizeSessionTitle(payload.title))}</span>
+                <span class="session-meta">Cập nhật ${formatVietnamTime(new Date(payload.updatedAt || payload.changedAt))}</span>
+            `;
+            sessionList.prepend(link);
+        });
+
+        window.addEventListener("rag:chat-message-saved", function (event) {
+            const payload = event.detail;
+            const workspaceEl = document.querySelector("[data-rag-app]");
+            if (!payload || !workspaceEl || workspaceEl.dataset.selectedSessionId !== String(payload.sessionId)) {
+                return;
+            }
+
+            if (composerForm && composerForm.dataset.realtimeSuppress === "true") {
+                return;
+            }
+
+            appendRealtimeMessage(payload.userMessage);
+            appendRealtimeMessage(payload.assistantMessage, payload.citations && payload.citations.length > 0);
+
+            if (payload.citations && payload.citations.length > 0) {
+                renderCitationsDirectly(payload.citations);
+            }
+
+            if (chatStream) {
+                chatStream.scrollTop = chatStream.scrollHeight;
+            }
+        });
+
+        function appendMessage(role, content, time, messageId = null, hasCitations = false) {
+            if (messageId && document.querySelector(`[data-message-id="${messageId}"]`)) {
+                const existing = document.querySelector(`[data-message-id="${messageId}"]`);
+                const existingText = existing.querySelector(".message-bubble .message-content");
+                if (existingText && content) {
+                    if (role === "assistant") {
+                        existingText.innerHTML = renderMarkdown(content);
+                    } else {
+                        existingText.textContent = content;
+                    }
+                }
+                return existing;
+            }
+
+            const emptyState = chatStream.querySelector(".empty-state");
+            if (emptyState) emptyState.remove();
+
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message flex flex-col ${role} ${role === 'user' ? 'items-end' : 'items-start'}`;
+            if (messageId) {
+                messageDiv.dataset.messageId = messageId;
+            }
+            
+            let citationHtml = "";
+            if (role === "assistant" && messageId && hasCitations) {
+                citationHtml = `
+                    <div class="citation-row mt-2">
+                        <button class="citation-chip view-sources-btn inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-ink hover:border-gray-400 transition-colors shadow-sm" 
+                                data-message-id="${messageId}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                             Xem nguồn trích dẫn
+                        </button>
+                    </div>
+                `;
+            }
+
+            const bubbleClass = role === 'user' 
+                ? 'bg-accent-strong text-white rounded-br-sm' 
+                : 'bg-white border border-gray-200 text-ink rounded-bl-sm';
+            
+            const contentClass = role === 'assistant' ? 'ai-markdown prose prose-sm prose-indigo max-w-none' : 'user-message-text whitespace-pre-wrap';
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm ${bubbleClass}">
+                    <div class="message-content text-[15px] leading-relaxed ${contentClass}">${role === "assistant" ? renderMarkdown(content) : escapeHtml(content)}</div>
+                </div>
+                <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
+                    ${role === "user" ? "Bạn" : "Trợ lý"} &bull; ${time}
+                </div>
+                ${citationHtml}
+            `;
+            chatStream.appendChild(messageDiv);
+            return messageDiv;
+        }
+
+        function appendRealtimeMessage(message, hasCitations = false) {
+            if (!message) return;
+
+            const role = String(message.role || "").toLowerCase();
+            appendMessage(
+                role === "assistant" ? "assistant" : "user",
+                message.content || "",
+                formatVietnamTime(new Date(message.createdAt)),
+                message.messageId,
+                hasCitations
+            );
+        }
+
+        function updateCreditBalanceDisplay(creditBalance) {
+            if (!creditBalance) return;
+            const totalCredits = creditBalance.totalCredits ?? creditBalance.TotalCredits;
+            const freeCredits = creditBalance.freeCredits ?? creditBalance.FreeCredits;
+            const paidCredits = creditBalance.paidCredits ?? creditBalance.PaidCredits;
+            const creditTotalText = document.getElementById("creditTotalText");
+            const creditFreeText = document.getElementById("creditFreeText");
+            const creditPaidText = document.getElementById("creditPaidText");
+            const creditTotalPortal = document.getElementById("creditTotalPortal");
+            const creditFreePortal = document.getElementById("creditFreePortal");
+            const creditPaidPortal = document.getElementById("creditPaidPortal");
+            if (creditTotalText) creditTotalText.textContent = Number(totalCredits || 0).toLocaleString();
+            if (creditFreeText) creditFreeText.textContent = Number(freeCredits || 0).toLocaleString();
+            if (creditPaidText) creditPaidText.textContent = Number(paidCredits || 0).toLocaleString();
+            if (creditTotalPortal) creditTotalPortal.textContent = Number(totalCredits || 0).toLocaleString();
+            if (creditFreePortal) creditFreePortal.textContent = Number(freeCredits || 0).toLocaleString();
+            if (creditPaidPortal) creditPaidPortal.textContent = Number(paidCredits || 0).toLocaleString();
+        }
+
+        function updateCreditSpendDisplay(creditSpend) {
+            if (!creditSpend) return;
+            const latestCreditChargeText = document.getElementById("latestCreditChargeText");
+            if (!latestCreditChargeText) return;
+            const calculatedValue = creditSpend.calculatedCredits ?? creditSpend.CalculatedCredits ?? 0;
+            const chargedValue = creditSpend.chargedCredits ?? creditSpend.ChargedCredits ?? 0;
+            const insufficient = creditSpend.wasInsufficientBalance ?? creditSpend.WasInsufficientBalance;
+            const calculated = Number(calculatedValue).toLocaleString();
+            const charged = Number(chargedValue).toLocaleString();
+            latestCreditChargeText.textContent = insufficient
+                ? `Câu trả lời gần nhất cần ${calculated} Credit, đã dùng ${charged} Credit còn lại.`
+                : `Câu trả lời gần nhất đã dùng ${charged} Credit.`;
+        }
+
+        function formatVietnamTime(value) {
+            return new Intl.DateTimeFormat("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            }).format(value);
+        }
+
+        function appendLoadingBubble() {
+            const emptyState = chatStream.querySelector(".empty-state");
+            if (emptyState) emptyState.remove();
+
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "message flex flex-col items-start assistant loading-bubble";
+            loadingDiv.innerHTML = `
+                <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm bg-white border border-gray-200 text-ink rounded-bl-sm flex items-center gap-2">
+                    <span style="display: inline-block; animation: spin 1s linear infinite;">&#9203;</span>
+                    <span class="text-sm italic text-gray-500">Đang tìm tài liệu và tạo câu trả lời...</span>
+                </div>
+                <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
+                    Trợ lý &bull; Đang chuẩn bị
+                </div>
+            `;
+            chatStream.appendChild(loadingDiv);
+            return loadingDiv;
+        }
+
+        function getOrCreatePendingAssistant(messageId) {
+            const key = String(messageId);
+            if (pendingAssistantMessages.has(key)) {
+                return pendingAssistantMessages.get(key);
+            }
+
+            let pending = chatStream ? chatStream.querySelector(".loading-bubble") : null;
+            if (!pending) {
+                pending = appendMessage("assistant", "", formatVietnamTime(new Date()));
+            }
+
+            pending.classList.remove("loading-bubble");
+            pending.classList.add("pending-message");
+            pending.dataset.pendingMessageId = key;
+            pending.innerHTML = `
+                <div class="message-bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 shadow-sm bg-white border border-gray-200 text-ink rounded-bl-sm">
+                    <div class="message-content text-[15px] leading-relaxed ai-markdown prose prose-sm prose-indigo max-w-none"></div>
+                </div>
+                <div class="message-meta text-[11px] font-medium text-gray-400 mt-1.5 px-1">
+                    Trợ lý &bull; Đang trả lời
+                </div>
+            `;
+            pendingAssistantMessages.set(key, pending);
+            return pending;
+        }
+
+        function appendPendingAssistantChunk(messageId, chunk) {
+            const pending = getOrCreatePendingAssistant(messageId);
+            const text = pending.querySelector(".message-bubble .message-content");
+            if (text) {
+                text._rawMarkdown = (text._rawMarkdown || "") + (chunk || "");
+                text.innerHTML = renderMarkdown(text._rawMarkdown);
+            }
+            if (chatStream) {
+                chatStream.scrollTop = chatStream.scrollHeight;
+            }
+        }
+
+        function finalizePendingAssistant(message, citations) {
+            if (!message) return;
+            const key = String(message.messageId || message.MessageId);
+            let pending = pendingAssistantMessages.get(key);
+            if (!pending && key) {
+                pending = document.querySelector(`[data-pending-message-id="${key}"]`);
+            }
+
+            if (!pending) {
+                appendRealtimeMessage(message, citations && citations.length > 0);
+                return;
+            }
+
+            pendingAssistantMessages.delete(key);
+            pending.classList.remove("pending-message");
+            pending.dataset.messageId = key;
+            delete pending.dataset.pendingMessageId;
+            const content = message.content ?? message.Content ?? "";
+            const createdAt = message.createdAt ?? message.CreatedAt ?? new Date();
+            const hasCitations = citations && citations.length > 0;
+            let citationHtml = "";
+            if (hasCitations) {
+                citationHtml = `
+                    <div class="citation-row" style="margin-top: 8px;">
+                        <button class="citation-chip view-sources-btn"
+                                data-message-id="${key}"
+                                style="background: none; border: none; font: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+                            &#128269; Xem nguồn trích dẫn
+                        </button>
+                    </div>
+                `;
+            }
+
+            pending.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-content ai-markdown">${renderMarkdown(content)}</div>
+                </div>
+                <div class="message-meta">
+                    Trợ lý &bull; ${formatVietnamTime(new Date(createdAt))}
+                </div>
+                ${citationHtml}
+            `;
+        }
+
+        function markAssistantBubbleAsFailed(bubble, errorMessage) {
+            bubble.classList.remove("pending-message", "loading-bubble");
+            bubble.classList.add("failed-message");
+            bubble.innerHTML = `
+                <div class="message-bubble">
+                    <p style="margin: 0; white-space: pre-wrap;">${escapeHtml(errorMessage || friendlyAiUnavailableMessage)}</p>
+                </div>
+                <div class="message-meta">
+                    Trợ lý &bull; Thất bại
+                </div>
+            `;
+        }
+
+        function failPendingAssistant(messageId, errorMessage) {
+            const key = String(messageId);
+            if (failedAssistantMessageIds.has(key)) {
+                return;
+            }
+
+            const pending = pendingAssistantMessages.get(key) ||
+                document.querySelector(`[data-pending-message-id="${key}"]`) ||
+                (chatStream ? chatStream.querySelector(".loading-bubble") : null);
+            pendingAssistantMessages.delete(key);
+            if (pending) {
+                markAssistantBubbleAsFailed(pending, errorMessage || friendlyAiUnavailableMessage);
+            }
+
+            failedAssistantMessageIds.add(key);
+        }
+
+        const workspaceForChatHub = document.querySelector("[data-rag-app]");
+        if (workspaceForChatHub && workspaceForChatHub.dataset.selectedSessionId && window.signalR) {
+            const chatConnection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/chat")
+                .withAutomaticReconnect()
+                .build();
+
+            chatConnection.on("ReceiveChatChunk", function (messageId, chunk) {
+                appendPendingAssistantChunk(messageId, chunk);
+            });
+
+            chatConnection.on("ReceiveChatComplete", function (message, citations, creditInfo) {
+                finalizePendingAssistant(message, citations || []);
+                if (citations && citations.length > 0) {
+                    renderCitationsDirectly(citations);
+                }
+                if (creditInfo) {
+                    updateCreditBalanceDisplay(creditInfo.creditBalance || creditInfo.CreditBalance);
+                    updateCreditSpendDisplay(creditInfo.creditSpend || creditInfo.CreditSpend);
+                }
+                if (chatStream) {
+                    chatStream.scrollTop = chatStream.scrollHeight;
+                }
+            });
+
+            chatConnection.on("ReceiveChatFailed", function (messageId, errorMessage) {
+                failPendingAssistant(messageId, errorMessage);
+                if (chatStream) {
+                    chatStream.scrollTop = chatStream.scrollHeight;
+                }
+            });
+
+            chatConnectionReady = chatConnection.start()
+                .then(function () {
+                    return chatConnection.invoke("JoinSession", workspaceForChatHub.dataset.selectedSessionId);
+                })
+                .then(function () { return true; })
+                .catch(function (error) {
+                    console.warn("Không thể thiết lập kết nối streaming cho cuộc trò chuyện.", error);
+                    return false;
+                });
+        }
+
+        // Láº¯ng nghe sá»± kiá»‡n click vÃ o nÃºt xem trÃ­ch dáº«n (Event Delegation Ä‘á»ƒ há»— trá»£ cáº£ tin nháº¯n má»›i)
+        document.addEventListener("click", function(e) {
+            const btn = e.target.closest(".view-sources-btn");
+            if (btn) {
+                e.preventDefault();
+                const messageId = btn.getAttribute("data-message-id");
+                fetchCitations(messageId);
+            }
+        });
+
+        function fetchCitations(messageId) {
+            openReferencePanel();
+
+            const referencePanel = document.querySelector(".reference-panel");
+            if (!referencePanel) return;
+
+            // Render giao diá»‡n chá» táº£i trÃ­ch dáº«n bÃªn cá»™t pháº£i
+            referencePanel.innerHTML = `
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">TÀI LIỆU THAM KHẢO</p>
+                        <h2>Nguồn trích dẫn</h2>
+                    </div>
+                    <button type="button" class="reference-close-btn" aria-label="Đóng nguồn trích dẫn" title="Đóng nguồn trích dẫn" data-close-references>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div style="padding: 24px; text-align: center; color: var(--muted);">
+                    <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">&#9203;</span>
+                    <p style="font-size: 0.85rem; margin: 0;">Đang tải nguồn trích dẫn...</p>
+                </div>
+            `;
+
+            // Tá»± Ä‘á»™ng chuyá»ƒn tab trÃªn Mobile sang tab "Sources"
+            const workspace = document.querySelector(".workspace");
+            if (workspace && window.innerWidth <= 820) {
+                workspace.setAttribute("data-active-tab", "reference-panel");
+                const refTabBtn = document.querySelector('.mobile-tab-btn[data-target="reference-panel"]');
+                if (refTabBtn) {
+                    document.querySelectorAll(".mobile-tab-btn").forEach(b => b.classList.remove("active"));
+                    refTabBtn.classList.add("active");
+                }
+            }
+
+            // Gá»i API láº¥y thÃ´ng tin trÃ­ch dáº«n
+            fetch(`?handler=GetCitations&messageId=${messageId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Không thể tải nguồn trích dẫn.");
+                    return response.json();
+                })
+                .then(citations => {
+                    renderCitationsDirectly(citations);
+                })
+                .catch(err => {
+                    console.error(err);
+                    referencePanel.innerHTML = `
+                        <div class="panel-header">
+                            <div>
+                                <p class="eyebrow">TÀI LIỆU THAM KHẢO</p>
+                                <h2>Nguồn trích dẫn</h2>
+                            </div>
+                            <button type="button" class="reference-close-btn" aria-label="Đóng nguồn trích dẫn" title="Đóng nguồn trích dẫn" data-close-references>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <div style="padding: 24px; text-align: center; color: var(--danger);">
+                            <p style="font-size: 0.85rem; margin: 0;">Không thể tải nguồn trích dẫn. Vui lòng thử lại.</p>
+                        </div>
+                    `;
+                });
+        }
+
+        function renderCitationsDirectly(citations) {
+            openReferencePanel();
+
+            const referencePanel = document.querySelector(".reference-panel");
+            if (!referencePanel) return;
+
+            let html = `
+                <div class="panel-header">
+                    <div>
+                        <p class="eyebrow">TÀI LIỆU THAM KHẢO</p>
+                        <h2>Nguồn trích dẫn</h2>
+                    </div>
+                    <button type="button" class="reference-close-btn" aria-label="Đóng nguồn trích dẫn" title="Đóng nguồn trích dẫn" data-close-references>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            `;
+
+            if (!citations || citations.length === 0) {
+                html += `
+                    <div class="reference-empty">
+                        <h3>Không có nguồn trích dẫn</h3>
+                        <p>Không tìm thấy đoạn tài liệu cụ thể cho câu trả lời này.</p>
+                    </div>
+                `;
+            } else {
+                html += `<div class="reference-content">`;
+                citations.forEach(c => {
+                    const docId = c.documentId || '';
+                    const chunkId = c.chunkId || '';
+                    const quoteText = c.quoteText || '';
+                    const isPdf = String(c.fileType || '').toLowerCase() === 'pdf';
+                    const locationLabel = isPdf
+                        ? `<p><strong>Trang:</strong> ${c.pageNumber > 0 ? c.pageNumber : 'Không xác định'}</p>`
+                        : `<p><strong>Đoạn:</strong> ${c.chunkIndex || 'Không xác định'}</p>`;
+                    
+                    let previewBtn = '';
+                    if (docId && chunkId) {
+                        previewBtn = `
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2 d-flex align-items-center justify-content-center gap-1 preview-evidence-btn"
+                                    data-document-id="${escapeHtml(docId)}"
+                                    data-chunk-id="${escapeHtml(chunkId)}"
+                                    data-quote="${escapeHtml(quoteText)}"
+                                    style="border-radius: 6px; font-size: 0.8rem; font-weight: 600; padding: 6px 12px; border: 1.5px solid var(--accent); color: var(--accent); background: transparent; transition: all 0.2s;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                Xem trong tài liệu
+                            </button>
+                        `;
+                    }
+
+                    html += `
+                        <div class="reference-card">
+                            <h3 title="${escapeHtml(c.fileName)}">${escapeHtml(c.fileName)}</h3>
+                            ${locationLabel}
+                            <p><strong>Nhãn nguồn:</strong> ${escapeHtml(c.sourceLabel || "Không có")}</p>
+                            <p style="margin-top: 6px; font-style: italic; background: var(--surface-muted); padding: 8px; border-radius: 6px; border-left: 3px solid var(--accent); margin-bottom: 8px;">
+                                "${escapeHtml(quoteText)}"
+                            </p>
+                            ${previewBtn}
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+            referencePanel.innerHTML = html;
+        }
+
+        // Event delegation cho preview evidence button
+        document.addEventListener("click", function(e) {
+            const btn = e.target.closest(".preview-evidence-btn");
+            if (btn) {
+                e.preventDefault();
+                const docId = btn.getAttribute("data-document-id");
+                const chunkId = btn.getAttribute("data-chunk-id");
+                const quote = btn.getAttribute("data-quote");
+                previewDocument(docId, chunkId, quote);
+            }
+        });
+
+        function previewDocument(documentId, targetChunkId, quoteText) {
+            const body = document.getElementById("docPreviewBody");
+            const modal = document.getElementById("docPreviewModal");
+            const title = document.getElementById("docPreviewTitle");
+
+            title.textContent = "Đang tải xem trước tài liệu...";
+            body.innerHTML = `
+                <div style="text-align: center; color: var(--muted); padding: 40px;">
+                    <span style="display: inline-block; font-size: 1.5rem; margin-bottom: 8px; animation: spin 1.2s linear infinite;">&#9203;</span>
+                    <p style="font-size: 0.85rem; margin: 0;">Đang tải các đoạn nội dung...</p>
+                </div>
+            `;
+            modal.style.display = "flex";
+
+            fetch(`?handler=DocumentChunks&documentId=${documentId}`)
+                .then(r => {
+                    if (!r.ok) throw new Error("Không thể tải các đoạn nội dung.");
+                    return r.json();
+                })
+                .then(data => {
+                    title.textContent = data.fileName;
+                    body.innerHTML = "";
+                    
+                    data.chunks.forEach(chunk => {
+                        const chunkDiv = document.createElement("div");
+                        chunkDiv.className = "preview-chunk-item";
+                        chunkDiv.style.padding = "16px";
+                        chunkDiv.style.border = "1.5px solid var(--line)";
+                        chunkDiv.style.borderRadius = "8px";
+                        chunkDiv.style.transition = "all 0.3s ease";
+                        
+                        const isTarget = chunk.chunkId === targetChunkId;
+                        let contentHtml = escapeHtml(chunk.content);
+                        
+                        if (isTarget) {
+                            chunkDiv.style.background = "rgba(245, 158, 11, 0.05)";
+                            chunkDiv.style.borderColor = "var(--accent)";
+                            chunkDiv.style.boxShadow = "0 0 12px rgba(37, 99, 235, 0.15)";
+                            if (quoteText) {
+                                const escapedQuote = escapeHtml(quoteText.trim());
+                                if (contentHtml.includes(escapedQuote)) {
+                                    contentHtml = contentHtml.replace(escapedQuote, `<mark class="highlight-evidence" style="background: #fef08a; color: #854d0e; padding: 2px 4px; border-radius: 4px; font-weight: 600; border-bottom: 1.5px solid #ca8a04;">${escapedQuote}</mark>`);
+                                } else {
+                                    // Case insensitive check
+                                    const lowerContent = contentHtml.toLowerCase();
+                                    const lowerQuote = escapedQuote.toLowerCase();
+                                    const idx = lowerContent.indexOf(lowerQuote);
+                                    if (idx >= 0) {
+                                        const originalQuotePart = contentHtml.substring(idx, idx + escapedQuote.length);
+                                        contentHtml = contentHtml.substring(0, idx) + 
+                                                      `<mark class="highlight-evidence" style="background: #fef08a; color: #854d0e; padding: 2px 4px; border-radius: 4px; font-weight: 600; border-bottom: 1.5px solid #ca8a04;">${originalQuotePart}</mark>` + 
+                                                      contentHtml.substring(idx + escapedQuote.length);
+                                    }
+                                }
+                            }
+                        } else {
+                            chunkDiv.style.background = "var(--surface-muted)";
+                        }
+                        
+                        chunkDiv.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; border-bottom: 1px dashed var(--line); padding-bottom: 6px;">
+                                <strong style="display: flex; align-items: center; gap: 4px;">
+                                    Đoạn #${chunk.chunkIndex}
+                                    ${isTarget ? '<span style="color: var(--accent); font-weight: 700; background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">★ Nội dung đối chiếu</span>' : ''}
+                                </strong>
+                                <span>Trang ${chunk.pageNumber}</span>
+                            </div>
+                            <pre style="white-space: pre-wrap; font-family: inherit; color: var(--ink); margin: 0; font-size: 0.88rem; line-height: 1.6;">${contentHtml}</pre>
+                        `;
+                        
+                        body.appendChild(chunkDiv);
+                        
+                        if (isTarget) {
+                            setTimeout(() => {
+                                chunkDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 150);
+                        }
+                    });
+                })
+                .catch(err => {
+                    title.textContent = "Không thể tải tài liệu";
+                    body.innerHTML = `<p style="color: var(--danger); text-align: center; padding: 20px;">Không thể tải nội dung tài liệu. Vui lòng thử lại.</p>`;
+                });
+        }
+        
+        function closeDocPreviewModal() {
+            document.getElementById("docPreviewModal").style.display = "none";
+        }
+
+        // Logic chuyá»ƒn Ä‘á»•i Tab trÃªn thiáº¿t bá»‹ di Ä‘á»™ng
+        function openReferencePanel() {
+            const workspace = document.querySelector(".workspace");
+            if (workspace) {
+                workspace.classList.add("citations-active");
+            }
+        }
+
+        function closeReferencePanel() {
+            const workspace = document.querySelector(".workspace");
+            if (workspace) {
+                workspace.classList.remove("citations-active");
+            }
+        }
+
+        document.addEventListener("click", function(e) {
+            const closeBtn = e.target.closest("[data-close-references]");
+            if (closeBtn) {
+                e.preventDefault();
+                closeReferencePanel();
+            }
+        });
+
+        const tabBtns = document.querySelectorAll(".mobile-tab-btn");
+        const workspace = document.querySelector(".workspace");
+        if (tabBtns && workspace) {
+            tabBtns.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    tabBtns.forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    const target = btn.getAttribute("data-target");
+                    workspace.setAttribute("data-active-tab", target);
+                });
+            });
+        }
+
+        function triggerUpload() {
+            const fileInput = document.getElementById('file-upload');
+            const uploadForm = document.getElementById('upload-doc-form');
+            if (!fileInput || !uploadForm || uploadForm.dataset.submitting === "true") {
+                return;
+            }
+
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                if (file.size > maxSize) {
+                    alert('Tệp vượt quá dung lượng cho phép (tối đa 50 MB). Vui lòng chọn tệp nhỏ hơn.');
+                    fileInput.value = ""; // Reset
+                    return;
+                }
+            } else {
+                return;
+            }
+
+            const dropzone = document.getElementById('upload-dropzone');
+            const idleState = document.getElementById('upload-idle-state');
+            const loadingState = document.getElementById('upload-loading-state');
+
+            uploadForm.dataset.submitting = "true";
+            if (dropzone) {
+                dropzone.dataset.uploading = "true";
+                dropzone.style.cursor = "not-allowed";
+                dropzone.style.borderColor = "var(--accent)";
+            }
+            if (idleState) idleState.style.display = "none";
+            if (loadingState) loadingState.style.display = "flex";
+            if (processingOverlay) processingOverlay.style.display = "flex";
+
+            uploadForm.requestSubmit();
+        }
+
+    </script>
+}
