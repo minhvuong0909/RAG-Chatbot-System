@@ -17,6 +17,8 @@
     var statLatency = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgLatencyMs, 0)));
     var statScore = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgQualityScore.HasValue ? Math.Round(s.AvgQualityScore.Value, 1) : (double?)null));
     var statTokens = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgTotalTokens, 0)));
+    var statFaithfulness = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgFaithfulness.HasValue ? Math.Round(s.AvgFaithfulness.Value, 3) : (double?)null));
+    var statRelevance = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgRelevance.HasValue ? Math.Round(s.AvgRelevance.Value, 3) : (double?)null));
 }
 
 <section class="admin-page" data-admin-page>
@@ -40,6 +42,7 @@
                 <div class="mc-history-chart-frame"><canvas id="tokensChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="latencyChart"></canvas></div>
                 <div class="mc-history-chart-frame"><canvas id="scoreChart"></canvas></div>
+                <div class="mc-history-chart-frame"><canvas id="ragasChart"></canvas></div>
             </div>
         }
         else
@@ -72,6 +75,8 @@
                             <th class="text-end">Thời gian (ms)</th>
                             <th class="text-end">Token</th>
                             <th class="text-end">Điểm</th>
+                            <th class="text-end">Bám TL</th>
+                            <th class="text-end">Liên quan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -92,6 +97,8 @@
                                     <td class="text-end">@result.LatencyMs</td>
                                     <td class="text-end">@result.TotalTokens</td>
                                     <td class="text-end">@(result.QualityScore.HasValue ? $"{result.QualityScore}/10" : "-")</td>
+                                    <td class="text-end">@(result.Faithfulness.HasValue ? result.Faithfulness.Value.ToString("0.00") : "-")</td>
+                                    <td class="text-end">@(result.Relevance.HasValue ? result.Relevance.Value.ToString("0.00") : "-")</td>
                                 </tr>
                             }
                         }
@@ -179,6 +186,26 @@
                             maintainAspectRatio: false,
                             scales: { y: { min: 0, max: 10 } },
                             plugins: { title: { display: true, text: "Điểm chất lượng trung bình theo model" } }
+                        }
+                    });
+                }
+
+                const ragasCanvas = document.getElementById("ragasChart");
+                if (ragasCanvas && typeof Chart !== "undefined") {
+                    new Chart(ragasCanvas, {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: "Độ bám tài liệu", data: @Html.Raw(statFaithfulness), backgroundColor: "#7c3aed" },
+                                { label: "Độ liên quan", data: @Html.Raw(statRelevance), backgroundColor: "#c026d3" }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { min: 0, max: 1 } },
+                            plugins: { title: { display: true, text: "Chỉ số khách quan RAGAS (embedding, 0–1)" } }
                         }
                     });
                 }

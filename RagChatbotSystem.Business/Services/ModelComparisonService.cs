@@ -130,11 +130,30 @@ namespace RagChatbotSystem.Business.Services
             {
                 if (pa.Answer == null)
                 {
-                    results.Add(new ModelComparisonResultDto(pa.ProviderKey, pa.ModelName, string.Empty, pa.LatencyMs, 0, 0, 0, false, pa.ErrorMessage, null, null));
+                    results.Add(new ModelComparisonResultDto(pa.ProviderKey, pa.ModelName, string.Empty, pa.LatencyMs, 0, 0, 0, false, pa.ErrorMessage, null, null, null, null));
                     continue;
                 }
 
                 var (score, reasoning) = judgeScores.TryGetValue(pa.ProviderKey, out var js) ? js : (null, null);
+
+                // Chấm điểm khách quan bằng embedding cosine (chuẩn RAGAS) qua RAG API.
+                // Best-effort: nếu RAG API lỗi thì để null, không làm sập luồng so sánh.
+                double? faithfulness = null, relevance = null;
+                if (pa.Answer.IsSuccess && !string.IsNullOrWhiteSpace(pa.Answer.Content))
+                {
+                    var embedScore = await _ragApiClient.ScoreAsync(new ScoreRequestDto
+                    {
+                        Answer = pa.Answer.Content,
+                        Context = contextText,
+                        Question = question
+                    });
+                    if (embedScore != null)
+                    {
+                        faithfulness = Math.Round(embedScore.Faithfulness, 3);
+                        relevance = Math.Round(embedScore.Relevance, 3);
+                    }
+                }
+
                 results.Add(new ModelComparisonResultDto(
                     pa.ProviderKey,
                     pa.Answer.ModelName,
@@ -146,7 +165,9 @@ namespace RagChatbotSystem.Business.Services
                     pa.Answer.IsSuccess,
                     pa.Answer.ErrorMessage,
                     score,
-                    reasoning));
+                    reasoning,
+                    faithfulness,
+                    relevance));
             }
 
             await PersistRunAsync(datasetId, question, contextDocs.Count, retrievalStopwatch.ElapsedMilliseconds, runByUserId, results, cancellationToken);
@@ -190,7 +211,9 @@ namespace RagChatbotSystem.Business.Services
                     res.IsSuccess,
                     res.ErrorMessage,
                     res.QualityScore,
-                    res.QualityReasoning)).ToList())).ToList();
+                    res.QualityReasoning,
+                    res.Faithfulness,
+                    res.Relevance)).ToList())).ToList();
         }
 
         public async Task<ModelComparisonStatsDto> GetStatsAsync(
@@ -214,7 +237,9 @@ namespace RagChatbotSystem.Business.Services
                     g.Count(),
                     g.Average(x => x.IsSuccess ? (double?)x.LatencyMs : null) ?? 0,
                     g.Average(x => x.IsSuccess ? (double?)x.QualityScore : null),
-                    g.Average(x => x.IsSuccess ? (double?)x.TotalTokens : null) ?? 0))
+                    g.Average(x => x.IsSuccess ? (double?)x.TotalTokens : null) ?? 0,
+                    g.Average(x => x.IsSuccess ? x.Faithfulness : null),
+                    g.Average(x => x.IsSuccess ? x.Relevance : null)))
                 .ToListAsync(cancellationToken);
 
             return new ModelComparisonStatsDto(grouped);
@@ -269,7 +294,9 @@ namespace RagChatbotSystem.Business.Services
                     IsSuccess = r.IsSuccess,
                     ErrorMessage = r.ErrorMessage,
                     QualityScore = r.QualityScore,
-                    QualityReasoning = r.QualityReasoning
+                    QualityReasoning = r.QualityReasoning,
+                    Faithfulness = r.Faithfulness,
+                    Relevance = r.Relevance
                 }).ToList()
             };
 

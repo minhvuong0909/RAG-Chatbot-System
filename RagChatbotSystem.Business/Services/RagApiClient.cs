@@ -37,6 +37,25 @@ namespace RagChatbotSystem.Business.Services
             return result ?? throw new InvalidOperationException("Python /retrieve returned an empty response body.");
         }
 
+        public async Task<ScoreResponseDto?> ScoreAsync(ScoreRequestDto request)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("/score", request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Python RAG API /score returned {Status}.", (int)response.StatusCode);
+                    return null;
+                }
+                return await response.Content.ReadFromJsonAsync<ScoreResponseDto>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to call Python RAG API /score (embedding scoring).");
+                return null;
+            }
+        }
+
         public async Task<bool> DeleteDocumentAsync(Guid documentId)
         {
             try

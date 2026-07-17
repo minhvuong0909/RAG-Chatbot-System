@@ -3,8 +3,8 @@ from fastapi import FastAPI, HTTPException
 
 from langchain_core.documents import Document
 
-from schemas import IndexRequest, RetrieveRequest, RetrieveResponse, DocumentModel
-from service import get_retriever, RerankerService, hybrid_retrieve
+from schemas import IndexRequest, RetrieveRequest, RetrieveResponse, DocumentModel, ScoreRequest, ScoreResponse
+from service import get_retriever, RerankerService, hybrid_retrieve, score_answer
 from config import settings
 
 @asynccontextmanager
@@ -65,6 +65,20 @@ async def retrieve(request: RetrieveRequest):
             scores=results["scores"],
             trace=results["trace"]
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/score", response_model=ScoreResponse)
+async def score(request: ScoreRequest):
+    """Chấm điểm câu trả lời bằng embedding cosine (chuẩn RAGAS):
+    faithfulness (bám tài liệu) và relevance (liên quan câu hỏi)."""
+    try:
+        result = score_answer(
+            answer=request.answer,
+            context=request.context,
+            question=request.question
+        )
+        return ScoreResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

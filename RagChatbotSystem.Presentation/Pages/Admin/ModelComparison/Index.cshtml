@@ -100,6 +100,14 @@
                             {
                                 <span><strong>Điểm chất lượng (AI chấm):</strong> @result.QualityScore/10</span>
                             }
+                            @if (result.Faithfulness.HasValue)
+                            {
+                                <span><strong>Độ bám tài liệu (thuật toán):</strong> @result.Faithfulness.Value.ToString("0.00")</span>
+                            }
+                            @if (result.Relevance.HasValue)
+                            {
+                                <span><strong>Độ liên quan (thuật toán):</strong> @result.Relevance.Value.ToString("0.00")</span>
+                            }
                         </div>
                         @if (!string.IsNullOrWhiteSpace(result.QualityReasoning))
                         {
