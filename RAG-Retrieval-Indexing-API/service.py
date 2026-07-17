@@ -366,3 +366,40 @@ def hybrid_retrieve(
         "scores": scores,
         "trace": trace
     }
+
+
+def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
+    """Cosine similarity giữa 2 vector, ép về khoảng [0, 1].
+    Trả 0.0 nếu một trong hai vector rỗng/toàn số 0."""
+    a = np.asarray(vec_a, dtype=np.float32)
+    b = np.asarray(vec_b, dtype=np.float32)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    cos = float(np.dot(a, b) / (norm_a * norm_b))
+    # Cosine ∈ [-1, 1]; với văn bản thường ≥ 0, nhưng clamp cho an toàn
+    return max(0.0, min(1.0, cos))
+
+
+def score_answer(answer: str, context: str, question: str) -> dict[str, float]:
+    """Chấm điểm câu trả lời bằng embedding (chuẩn RAGAS):
+    - faithfulness = cosine(answer, context): độ bám tài liệu (chống bịa)
+    - relevance    = cosine(answer, question): độ liên quan tới câu hỏi
+    Tái dùng mô hình embedding đã load sẵn trong retriever (không load lại)."""
+    answer = (answer or "").strip()
+    context = (context or "").strip()
+    question = (question or "").strip()
+
+    if not answer:
+        return {"faithfulness": 0.0, "relevance": 0.0}
+
+    embeddings = get_retriever().embeddings
+    # Nhúng cả 3 đoạn trong 1 lần gọi cho nhanh
+    vecs = embeddings.embed_documents([answer, context if context else " ", question if question else " "])
+    answer_vec, context_vec, question_vec = vecs[0], vecs[1], vecs[2]
+
+    return {
+        "faithfulness": _cosine_similarity(answer_vec, context_vec) if context else 0.0,
+        "relevance": _cosine_similarity(answer_vec, question_vec) if question else 0.0,
+    }

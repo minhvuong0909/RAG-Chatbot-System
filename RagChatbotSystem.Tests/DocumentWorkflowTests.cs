@@ -248,6 +248,11 @@ public class DocumentWorkflowTests
         {
             return Task.FromResult(new RetrieveResponseDto());
         }
+
+        public Task<ScoreResponseDto?> ScoreAsync(ScoreRequestDto request)
+        {
+            return Task.FromResult<ScoreResponseDto?>(null);
+        }
     }
 
     private sealed class FakeRealtimeService : IRealtimeService
