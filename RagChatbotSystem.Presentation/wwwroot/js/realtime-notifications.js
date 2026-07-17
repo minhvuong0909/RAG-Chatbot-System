@@ -43,6 +43,7 @@
 
     connection.on("DocumentProgress", function (payload) {
         window.dispatchEvent(new CustomEvent("rag:document-progress", { detail: payload }));
+        showDocumentProgressToast(payload);
         console.info("Document progress:", payload);
     });
 
@@ -123,6 +124,34 @@
         setTimeout(function () {
             toast.remove();
         }, 4500);
+    }
+
+    function showDocumentProgressToast(payload) {
+        if (!payload || !payload.action || !payload.fileName) {
+            return;
+        }
+
+        const action = String(payload.action).toLowerCase();
+        let message = "";
+        if (action === "uploaded") {
+            message = `Tài liệu "${payload.fileName}" vừa được tải lên và đang xử lý.`;
+        } else if (action === "completed") {
+            message = `Tài liệu "${payload.fileName}" đã xử lý xong và sẵn sàng để tra cứu.`;
+        } else if (action === "failed") {
+            message = `Không thể xử lý tài liệu "${payload.fileName}".`;
+        } else if (action === "deleted") {
+            message = `Tài liệu "${payload.fileName}" đã được xóa khỏi môn học.`;
+        }
+
+        if (!message) {
+            return;
+        }
+
+        if (window.showToastNotification) {
+            window.showToastNotification(message);
+        } else {
+            showRealtimeToast(message);
+        }
     }
 
     function updateWorkspaceDatasetAccess(payload) {

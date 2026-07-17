@@ -30,6 +30,7 @@ public sealed class DatasetArchivalTests
         Assert.Equal(1, await context.Citations.CountAsync());
         Assert.False(await service.CanAccessActiveDatasetAsync(ids.StudentId, "Student", ids.DatasetId));
         Assert.Empty(await service.GetDatasetsForUserAsync(ids.StudentId, "Student"));
+        Assert.Empty(await service.GetAccessibleDatasetIdsAsync(ids.StudentId, "Student"));
     }
 
     [Fact]

@@ -22,6 +22,7 @@ namespace RagChatbotSystem.Business.Services
     public class DocumentService : IDocumentService
     {
         private const string EmbeddingModel = "sentence-transformers/all-MiniLM-L6-v2";
+        private const int UnknownPageNumber = 0;
         private const long MaxFileSizeBytes = 52_428_800;
         private static readonly HashSet<string> SupportedFileTypes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -597,7 +598,7 @@ namespace RagChatbotSystem.Business.Services
             var text = await reader.ReadToEndAsync(cancellationToken);
             return string.IsNullOrWhiteSpace(text)
                 ? new List<ExtractedTextSegment>()
-                : new List<ExtractedTextSegment> { new(text, 1) };
+                : new List<ExtractedTextSegment> { new(text, UnknownPageNumber) };
         }
 
         private static List<ExtractedTextSegment> ExtractPdf(Stream stream)
@@ -630,7 +631,7 @@ namespace RagChatbotSystem.Business.Services
             var text = string.Join("\n", body.Descendants<WordText>().Select(t => t.Text));
             return string.IsNullOrWhiteSpace(text)
                 ? new List<ExtractedTextSegment>()
-                : new List<ExtractedTextSegment> { new(text, 1) };
+                : new List<ExtractedTextSegment> { new(text, UnknownPageNumber) };
         }
 
         private static int ResolveDominantPage(int chunkStart, int chunkEnd, IReadOnlyList<PageTextRange> ranges)
@@ -651,7 +652,7 @@ namespace RagChatbotSystem.Business.Services
             }
 
             return pageScores.Count == 0
-                ? 1
+                ? UnknownPageNumber
                 : pageScores.OrderByDescending(p => p.Value).ThenBy(p => p.Key).First().Key;
         }
 

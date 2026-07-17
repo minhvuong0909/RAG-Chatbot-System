@@ -251,6 +251,63 @@ public class CreditChatFlowTests
         Assert.Empty(context.CreditLedgers.Where(l => l.Type == CreditLedgerType.SPEND));
     }
 
+    [Fact]
+    public async Task SendChatMessageAsync_DatasetOverviewCoversEveryActiveDocument()
+    {
+        await using var context = CreateContext();
+        var ids = SeedChatReadyStudent(context, freeCredits: 60, paidCredits: 0);
+        var secondDocumentId = AddCompletedDocumentWithChunk(
+            context,
+            ids,
+            "registration.docx",
+            "Registration rules and enrollment deadlines.");
+        var thirdDocumentId = AddCompletedDocumentWithChunk(
+            context,
+            ids,
+            "writing-guide.docx",
+            "IELTS writing task two structure and assessment criteria.");
+
+        // Simulate retrieval being dominated by one document, which is what the reported bug exposed.
+        var rag = CreateSuccessfulRag(ids);
+        var llm = new Mock<ILlmService>();
+        string? capturedPrompt = null;
+        SetupLlmStream(llm, new[] { "A synthesized overview across the uploaded documents." });
+        llm.Setup(l => l.GenerateAnswerStreamAsync(It.IsAny<string>()))
+            .Callback<string>(prompt => capturedPrompt = prompt)
+            .Returns(StreamChunks(new[] { "A synthesized overview across the uploaded documents." }));
+        var service = CreateChatService(context, rag.Object, llm.Object);
+
+        var response = await service.SendChatMessageAsync(
+            ids.SessionId,
+            "Tom tat y chinh cua mon hoc nay theo tat ca tai lieu da tai len");
+
+        Assert.NotNull(capturedPrompt);
+        Assert.Contains("Dependency injection helps manage dependencies", capturedPrompt);
+        Assert.Contains("Registration rules and enrollment deadlines", capturedPrompt);
+        Assert.Contains("IELTS writing task two structure", capturedPrompt);
+        Assert.Equal(3, response.Citations.Select(c => c.DocumentId).Distinct().Count());
+        Assert.All(response.Citations, citation => Assert.Equal(0, citation.PageNumber));
+        Assert.Contains(secondDocumentId, response.Citations.Select(c => c.DocumentId));
+        Assert.Contains(thirdDocumentId, response.Citations.Select(c => c.DocumentId));
+    }
+
+    [Fact]
+    public async Task SendChatMessageAsync_DoesNotReplaceModelAnswerWithRawChunks()
+    {
+        await using var context = CreateContext();
+        var ids = SeedChatReadyStudent(context, freeCredits: 60, paidCredits: 0);
+        var rag = CreateSuccessfulRag(ids);
+        var llm = new Mock<ILlmService>();
+        const string modelAnswer = "Toi khong tim thay thong tin nay trong tai lieu cua ban.";
+        SetupLlmStream(llm, new[] { modelAnswer });
+        var service = CreateChatService(context, rag.Object, llm.Object);
+
+        var response = await service.SendChatMessageAsync(ids.SessionId, "dependency injection PRN222");
+
+        Assert.Equal(modelAnswer, response.AssistantMessage.Content);
+        Assert.DoesNotContain("cac y chinh co the rut ra", response.AssistantMessage.Content, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static ChatService CreateChatService(AppDbContext context, IRagApiClient rag, ILlmService llm, IRealtimeService? realtime = null)
     {
         var unitOfWork = new UnitOfWork(context);
@@ -262,6 +319,38 @@ public class CreditChatFlowTests
             new TokenUsageService(unitOfWork),
             new CreditService(context),
             NullLogger<ChatService>.Instance);
+    }
+
+    private static Guid AddCompletedDocumentWithChunk(
+        AppDbContext context,
+        ChatSeedIds ids,
+        string fileName,
+        string content)
+    {
+        var documentId = Guid.NewGuid();
+        context.Documents.Add(new Document
+        {
+            DocumentId = documentId,
+            DatasetId = ids.DatasetId,
+            FileName = fileName,
+            FilePath = fileName,
+            FileType = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant(),
+            FileSize = content.Length,
+            Status = "Completed",
+            UploadedBy = ids.UserId,
+            IsDeleted = false
+        });
+        context.Chunks.Add(new Chunk
+        {
+            ChunkId = Guid.NewGuid(),
+            DatasetId = ids.DatasetId,
+            DocumentId = documentId,
+            ChunkIndex = 1,
+            Content = content,
+            PageNumber = 0
+        });
+        context.SaveChanges();
+        return documentId;
     }
 
     private static AppDbContext CreateContext()

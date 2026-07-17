@@ -14,10 +14,12 @@ namespace RagChatbotSystem.Presentation.Pages.Account
     public class LoginModel : PageModel
     {
         private readonly IUserService _userService;
+        private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(IUserService userService)
+        public LoginModel(IUserService userService, ILogger<LoginModel> logger)
         {
             _userService = userService;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -82,7 +84,8 @@ namespace RagChatbotSystem.Presentation.Pages.Account
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                _logger.LogError(ex, "Login failed while authenticating {Identifier}.", Email);
+                ModelState.AddModelError(string.Empty, "Không thể đăng nhập lúc này. Vui lòng thử lại sau.");
                 return Page();
             }
         }

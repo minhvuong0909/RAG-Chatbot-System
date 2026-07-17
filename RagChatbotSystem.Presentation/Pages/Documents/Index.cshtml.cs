@@ -140,6 +140,7 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                         HttpContext.RequestAborted);
                     uploadedDocument = doc;
                     await _realtimeNotifier.DocumentProgressAsync(datasetId, doc, "uploaded", 15, HttpContext.RequestAborted);
+                    await NotifyDatasetDocumentCountChangedAsync(datasetId, HttpContext.RequestAborted);
 
                     await _realtimeNotifier.DocumentProgressAsync(datasetId, doc with { Status = "Processing" }, "processing", 45, HttpContext.RequestAborted);
                     var processedDoc = await _documentService.ProcessUploadedDocumentAsync(doc.DocumentId, HttpContext.RequestAborted);
@@ -196,7 +197,8 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
                 var deleted = await _documentService.DeleteDocumentAsync(documentId, currentUserId, HttpContext.RequestAborted);
                 if (deleted)
                 {
-                    await _realtimeNotifier.DocumentProgressAsync(datasetId, document with { Status = "Deleted" }, "deleted", 100, HttpContext.RequestAborted);
+                    await _realtimeNotifier.DocumentProgressAsync(document.DatasetId, document with { Status = "Deleted" }, "deleted", 100, HttpContext.RequestAborted);
+                    await NotifyDatasetDocumentCountChangedAsync(document.DatasetId, HttpContext.RequestAborted);
                 }
 
                 return RedirectToPage("/Documents/Index", new
@@ -210,6 +212,15 @@ namespace RagChatbotSystem.Presentation.Pages.Documents
             {
                 _logger.LogError(ex, "Failed to delete document.");
                 return RedirectToPage("/Documents/Index", new { datasetId, error = "Không thể xóa tài liệu. Vui lòng thử lại sau." });
+            }
+        }
+
+        private async Task NotifyDatasetDocumentCountChangedAsync(Guid datasetId, CancellationToken cancellationToken)
+        {
+            var refreshedDataset = await _datasetService.GetDatasetAsync(datasetId, cancellationToken);
+            if (refreshedDataset != null)
+            {
+                await _realtimeNotifier.DatasetChangedAsync("documents-changed", refreshedDataset, cancellationToken);
             }
         }
 
