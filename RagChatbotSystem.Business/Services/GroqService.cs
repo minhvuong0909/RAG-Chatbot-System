@@ -72,7 +72,7 @@ namespace RagChatbotSystem.Business.Services
                 };
 
                 var response = await _httpClient.PostAsJsonAsync("chat/completions", payload);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response);
 
                 var result = await response.Content.ReadFromJsonAsync<GroqResponse>();
                 var content = StripReasoning(result?.Choices?[0]?.Message?.Content ?? string.Empty);
@@ -159,7 +159,7 @@ namespace RagChatbotSystem.Business.Services
                     request,
                     HttpCompletionOption.ResponseHeadersRead,
                     CancellationToken.None);
-                response.EnsureSuccessStatusCode();
+                await EnsureSuccessOrThrowAsync(response);
             }
             catch (Exception ex)
             {
@@ -295,6 +295,21 @@ namespace RagChatbotSystem.Business.Services
         private static int EstimateTokens(string value)
         {
             return Math.Max(0, (int)Math.Ceiling((value?.Length ?? 0) / 4.0));
+        }
+
+        // EnsureSuccessStatusCode chỉ trả về mã lỗi (vd 404) mà bỏ qua body — nơi Groq ghi lý do
+        // thật (model không tồn tại / hết quyền truy cập...). Đọc kèm body để lỗi hiển thị có ích.
+        private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response)
+        {
+            if (response.IsSuccessStatusCode) return;
+
+            var body = await response.Content.ReadAsStringAsync();
+            var detail = string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body.Trim();
+            if (!string.IsNullOrEmpty(detail) && detail.Length > 500)
+            {
+                detail = detail.Substring(0, 500) + "…";
+            }
+            throw new HttpRequestException($"Groq API {(int)response.StatusCode} {response.StatusCode}: {detail}");
         }
 
         // Một số model (ví dụ qwen/qwen3-32b) trả về block suy luận <think>...</think> lẫn trong content.

@@ -22,3 +22,13 @@ class RetrieveResponse(BaseModel):
     documents: list[DocumentModel]
     scores: list[float]
     trace: list[str]
+
+class ScoreRequest(BaseModel):
+    answer: str
+    context: str
+    question: str
+
+class ScoreResponse(BaseModel):
+    # Cosine similarity (0..1) trên embedding — dùng chuẩn RAGAS.
+    faithfulness: float  # answer vs context: câu trả lời bám sát tài liệu tới đâu (chống bịa)
+    relevance: float     # answer vs question: câu trả lời đúng trọng tâm câu hỏi tới đâu

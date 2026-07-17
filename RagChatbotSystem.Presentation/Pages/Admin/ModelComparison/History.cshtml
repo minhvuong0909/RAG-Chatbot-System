@@ -8,7 +8,7 @@
     {
         "Groq" => "Groq (Llama 3.3 70B)",
         "Qwen" => "Groq (Qwen 32B)",
-        // "Gemini" => "Google Gemini",
+        "Gemini" => "Google Gemini",
         _ => key
     };
 
@@ -17,6 +17,8 @@
     var statLatency = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgLatencyMs, 0)));
     var statScore = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgQualityScore.HasValue ? Math.Round(s.AvgQualityScore.Value, 1) : (double?)null));
     var statTokens = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => Math.Round(s.AvgTotalTokens, 0)));
+    var statFaithfulness = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgFaithfulness.HasValue ? Math.Round(s.AvgFaithfulness.Value, 3) : (double?)null));
+    var statRelevance = JsonSerializer.Serialize(Model.Stats.ProviderStats.Select(s => s.AvgRelevance.HasValue ? Math.Round(s.AvgRelevance.Value, 3) : (double?)null));
 }
 
 <div class="space-y-6" data-admin-page>
@@ -50,7 +52,7 @@
                 Tổng hợp theo model
             </h2>
         </div>
-        
+
         <div class="p-6">
             @if (hasStats)
             {
@@ -63,6 +65,11 @@
                     </div>
                     <div class="h-64 relative border border-gray-100 rounded-xl p-4 bg-gray-50/30">
                         <canvas id="scoreChart"></canvas>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 gap-6 mt-6">
+                    <div class="h-72 relative border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+                        <canvas id="ragasChart"></canvas>
                     </div>
                 </div>
             }
@@ -112,6 +119,8 @@
                             <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Thời gian (ms)</th>
                             <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Token</th>
                             <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Điểm</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Bám TL</th>
+                            <th class="py-3 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Liên quan</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -156,6 +165,8 @@
                                             <span class="text-gray-400">-</span>
                                         }
                                     </td>
+                                    <td class="py-3 px-6 text-right text-sm text-gray-600 font-medium">@(result.Faithfulness.HasValue ? result.Faithfulness.Value.ToString("0.00") : "-")</td>
+                                    <td class="py-3 px-6 text-right text-sm text-gray-600 font-medium">@(result.Relevance.HasValue ? result.Relevance.Value.ToString("0.00") : "-")</td>
                                 </tr>
                             }
                         }
@@ -190,9 +201,9 @@
                     const options = {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { 
-                            title: { 
-                                display: true, 
+                        plugins: {
+                            title: {
+                                display: true,
                                 text: title,
                                 font: { family: "'Inter', sans-serif", size: 14, weight: 'bold' },
                                 padding: { bottom: 15 }
@@ -204,13 +215,13 @@
                                 bodyColor: '#4b5563',
                                 borderColor: '#e5e7eb',
                                 borderWidth: 1,
-                                padding: 12, 
+                                padding: 12,
                                 cornerRadius: 8
                             }
                         },
                         scales: {
                             x: { grid: { display: false } },
-                            y: { 
+                            y: {
                                 grid: { color: "#f3f4f6" },
                                 beginAtZero: true,
                                 ...(max ? { max } : {})
@@ -237,6 +248,38 @@
                 createChart("tokensChart", "Token trung bình", @Html.Raw(statTokens), "rgba(245, 158, 11, 0.8)", "Token trung bình theo model (chi phí)");
                 createChart("latencyChart", "Độ trễ trung bình (ms)", @Html.Raw(statLatency), "rgba(59, 130, 246, 0.8)", "Độ trễ trung bình theo model");
                 createChart("scoreChart", "Điểm trung bình (/10)", @Html.Raw(statScore), "rgba(16, 185, 129, 0.8)", "Điểm chất lượng trung bình theo model", 10);
+
+                // Biểu đồ RAGAS (2 chỉ số embedding) — dùng riêng vì có 2 dataset, không qua helper createChart.
+                const ragasCanvas = document.getElementById("ragasChart");
+                if (ragasCanvas && typeof Chart !== "undefined") {
+                    new Chart(ragasCanvas, {
+                        type: "bar",
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: "Độ bám tài liệu", data: @Html.Raw(statFaithfulness), backgroundColor: "rgba(124, 58, 237, 0.8)", borderRadius: 6, maxBarThickness: 50 },
+                                { label: "Độ liên quan", data: @Html.Raw(statRelevance), backgroundColor: "rgba(192, 38, 211, 0.8)", borderRadius: 6, maxBarThickness: 50 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: "Chỉ số khách quan RAGAS (embedding, 0–1)",
+                                    font: { family: "'Inter', sans-serif", size: 14, weight: 'bold' },
+                                    padding: { bottom: 15 }
+                                },
+                                legend: { display: true, position: 'bottom' }
+                            },
+                            scales: {
+                                x: { grid: { display: false } },
+                                y: { grid: { color: "#f3f4f6" }, beginAtZero: true, max: 1 }
+                            }
+                        }
+                    });
+                }
             });
         </script>
     }

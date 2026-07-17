@@ -11,5 +11,7 @@ namespace RagChatbotSystem.Business.DTOs
         bool IsSuccess,
         string? ErrorMessage,
         int? QualityScore,
-        string? QualityReasoning);
+        string? QualityReasoning,
+        double? Faithfulness,
+        double? Relevance);
 }
