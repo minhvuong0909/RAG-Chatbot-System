@@ -16,6 +16,11 @@ An enterprise-grade, high-performance **Retrieval-Augmented Generation (RAG) Cha
 - **RAG API** (`RAG-Retrieval-Indexing-API`): High-performance Python FastAPI service responsible for tokenization, smart chunking, FAISS index management, BM25 indexing, hybrid search (RRF), and cross-encoder reranking.
 - **Tests Suite** (`RagChatbotSystem.Tests`): xUnit testing suite covering core retrieval, credit, and message logic.
 
+#### 📊 System Architecture & Application Flow
+![System Architecture Diagram](docs/system_architecture_prn.jpg)
+![Razor Pages Application Flow](docs/system_architecture_razorpages.jpg)
+
+
 ### 🚀 Getting Started
 
 #### 1. Docker Compose Quickstart
@@ -76,6 +81,11 @@ Hệ thống **RAG Chatbot (Retrieval-Augmented Generation)** cấp doanh nghi�
 - **Data Access Layer** (`RagChatbotSystem.DataAccess`): Ánh xạ thực thể Entity Framework Core, lưu trữ PostgreSQL, quản lý migrations và định nghĩa schema cơ sở dữ liệu.
 - **RAG API** (`RAG-Retrieval-Indexing-API`): Dịch vụ Python FastAPI hiệu năng cao đảm nhiệm phân tách câu, chia nhỏ chunk thông minh, quản lý chỉ mục FAISS, chỉ mục BM25, tìm kiếm lai (RRF), và tái sắp xếp độ liên quan (reranking).
 - **Tests Suite** (`RagChatbotSystem.Tests`): Bộ kiểm thử tự động xUnit bao gồm các test case cho các chức năng cốt lõi.
+
+#### 📊 Sơ đồ Kiến trúc & Luồng ứng dụng
+![Sơ đồ kiến trúc hệ thống](docs/system_architecture_prn.jpg)
+![Luồng xử lý ứng dụng Razor Pages](docs/system_architecture_razorpages.jpg)
+
 
 ### 🚀 Khởi chạy hệ thống
 
