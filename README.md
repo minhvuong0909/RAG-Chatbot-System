@@ -1,144 +1,142 @@
-# RAG Chatbot System
+# 🏢 Enterprise RAG Chatbot System
 
-Hệ thống chatbot hỏi đáp thông minh dựa trên kiến thức tùy chỉnh, được xây dựng bằng cách kết hợp công nghệ Retrieval-Augmented Generation (RAG) với các thành phần backend hiện đại. Dự án này hướng tới việc cung cấp trải nghiệm tra cứu thông minh, chính xác và có thể mở rộng cho các ứng dụng doanh nghiệp.
+[🌐 English](#english) | [🇻🇳 Tiếng Việt](#tiếng-việt)
 
-## 🎯 Mục tiêu dự án
+---
 
-- Cung cấp một chatbot có thể trả lời dựa trên tài liệu riêng của doanh nghiệp hoặc tổ chức.
-- Hỗ trợ xử lý tài liệu đa định dạng như PDF, DOCX và TXT.
-- Tích hợp tìm kiếm ngữ nghĩa, tìm kiếm từ khóa và sắp xếp lại kết quả để nâng cao chất lượng phản hồi.
-- Cho phép triển khai linh hoạt trên môi trường phát triển cục bộ hoặc production.
+## English
 
-## ✨ Tính năng chính
+An enterprise-grade, high-performance **Retrieval-Augmented Generation (RAG) Chatbot System** designed for smart search and precise document answering. The system combines modern .NET and Python service-oriented architectures with hybrid retrieval search (lexical + semantic) and cross-encoder reranking.
 
-- Tải lên và xử lý tài liệu từ nhiều định dạng khác nhau.
-- Tạo chỉ mục và chia nhỏ tài liệu thông minh để tối ưu hóa truy xuất.
-- Hỗ trợ tìm kiếm lai (hybrid search) kết hợp lexical và semantic retrieval.
-- Sử dụng reranking để cải thiện độ liên quan của kết quả.
-- Cung cấp câu trả lời có trích dẫn nguồn để người dùng dễ kiểm chứng.
-- Hỗ trợ tích hợp với nhiều mô hình LLM và cơ chế fallback khi dịch vụ chính gặp sự cố.
+### 🏗️ Architecture & Core Components
 
-## 🏗️ Kiến trúc hệ thống
+- **Presentation Layer** (`RagChatbotSystem.Presentation`): ASP.NET Core Razor Pages application managing sessions, user accounts, UI, SignalR progress notifications, and PayOS integration.
+- **Business Layer** (`RagChatbotSystem.Business`): Decoupled business logic, chat processing coordination, credit ledger, and AI orchestration.
+- **Data Access Layer** (`RagChatbotSystem.DataAccess`): Entity Framework Core mapping, PostgreSQL database storage, migrations, and schema definitions.
+- **RAG API** (`RAG-Retrieval-Indexing-API`): High-performance Python FastAPI service responsible for tokenization, smart chunking, FAISS index management, BM25 indexing, hybrid search (RRF), and cross-encoder reranking.
+- **Tests Suite** (`RagChatbotSystem.Tests`): xUnit testing suite covering core retrieval, credit, and message logic.
 
-Dự án được tổ chức theo mô hình phân tầng với các thành phần chính:
+### 🚀 Getting Started
 
-- Presentation Layer: ứng dụng ASP.NET Core web interface.
-- Business Layer: xử lý nghiệp vụ, dịch vụ chatbot và logic ứng dụng.
-- Data Access Layer: quản lý dữ liệu, repository và mapping với cơ sở dữ liệu.
-- RAG API: service Python FastAPI chịu trách nhiệm indexing, retrieval và ranking.
-
-## 2. Cấu trúc thư mục dự án
-
-- Backend chính: C# / ASP.NET Core
-- RAG API: Python / FastAPI
-- Cơ sở dữ liệu: PostgreSQL với pgvector
-- Tìm kiếm và embedding: FAISS, BM25, sentence-transformers
-- Containerization: Docker, Docker Compose
-- Xác thực và quản lý dự án: .NET SDK, Git, EF Core
-
-## 💻 Yêu cầu hệ thống
-
-Trước khi bắt đầu, hãy đảm bảo hệ thống đã cài đặt:
-
-- .NET 9 SDK
-- Python 3.10+
-- Docker Desktop (khuyến nghị)
-- PostgreSQL hoặc Docker để chạy database
-
-## 🚀 Cài đặt và khởi chạy nhanh
-
-### 1. Sử dụng Docker Compose
-
-Tại thư mục gốc của dự án, chạy:
-
+#### 1. Docker Compose Quickstart
+Run the following command at the root directory:
 ```bash
 docker-compose up --build -d
 ```
+- **Web App**: http://localhost:5259
+- **RAG API**: http://localhost:8000
 
-Sau khi khởi động thành công, hệ thống sẽ sẵn sàng tại các địa chỉ:
+#### 2. Manual Setup
+1. **Start Database**: Start PostgreSQL with pgvector enabled (e.g. `ankane/pgvector`).
+2. **Apply Migrations**: 
+   ```bash
+   dotnet ef database update --project RagChatbotSystem.DataAccess --startup-project RagChatbotSystem.Presentation
+   ```
+3. **Start Python RAG API**: Set up python environment, run `pip install -r requirements.txt`, then run:
+   ```bash
+   uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+4. **Start C# Web App**: Run the C# application:
+   ```bash
+   dotnet run --project RagChatbotSystem.Presentation/RagChatbotSystem.Presentation.csproj --launch-profile http
+   ```
 
-- Web application: http://localhost:5259
-- FastAPI service: http://localhost:8000
+### ⚙️ Environment Configuration
 
-### 2. Chạy thủ công cho môi trường phát triển
-
-#### Bước 1: Khởi động database
-
-```bash
-docker run --name rag-postgres-db -e POSTGRES_PASSWORD=your_secure_password -e POSTGRES_DB=RagChatbotSystemDb -p 5432:5432 -d ankane/pgvector:latest
-```
-
-#### Bước 2: Cập nhật cơ sở dữ liệu
-
-```bash
-dotnet ef database update --project RagChatbotSystem.DataAccess --startup-project RagChatbotSystem.Presentation
-```
-
-#### Bước 3: Khởi động Python RAG API
-
-```bash
-cd RAG-Retrieval-Indexing-API
-pip install -r requirements.txt
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-#### Bước 4: Khởi động ứng dụng C#
-
-```bash
-dotnet run --project RagChatbotSystem.Presentation/RagChatbotSystem.Presentation.csproj --launch-profile http
-```
-
-## ⚙️ Cấu hình môi trường
-
-Tạo file .env ở thư mục gốc với các biến môi trường cần thiết như:
-
+Create a `.env` file at the root directory:
 ```bash
 DB_PASSWORD=your_db_password
-GROQ_API_KEY=
-GEMINI_API_KEY=
-OPENAI_API_KEY=
-HF_TOKEN=
+GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+HF_TOKEN=your_huggingface_token
 GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
 ```
 
-Ngoài ra, cấu hình kết nối và API trong file appsettings.json của ứng dụng Presentation.
+### 📚 Technical Documentation & Guides
 
-## 🧪 Chạy tests
+Detailed system design, pipeline details, and reference guides are linked below:
+- 🗺️ [Database Schema & ERD Explanation](docs/ERD_RAG_Chatbot_Explanation.md)
+- 🔌 [API Endpoints Overview](docs/API_OVERVIEW.md)
+- ⚙️ [RAG Retrieval & Indexing Pipeline](docs/RAG_PIPELINE.md)
+- 🌐 [Deployment & Hosting Notes](docs/DEPLOYMENT_NOTES.md)
+- 🛠️ [Troubleshooting & FAQ](docs/TROUBLESHOOTING.md)
+- 📊 [Model Comparison Benchmark Suite](docs/model-comparison/)
 
-Để chạy bộ kiểm thử tự động của dự án:
+---
 
+## Tiếng Việt
+
+Hệ thống **RAG Chatbot (Retrieval-Augmented Generation)** cấp doanh nghiệp, hiệu năng cao, được thiết kế cho mục đích tra cứu thông minh và hỏi đáp chính xác dựa trên tài liệu tùy chỉnh. Hệ thống kết hợp kiến trúc hướng dịch vụ hiện đại giữa .NET và Python, tích hợp tìm kiếm lai (hybrid search kết hợp từ khóa + ngữ nghĩa) và sắp xếp lại kết quả (cross-encoder reranking).
+
+### 🏗️ Kiến trúc & Các thành phần chính
+
+- **Presentation Layer** (`RagChatbotSystem.Presentation`): Ứng ứng ASP.NET Core Razor Pages quản lý phiên làm việc, tài khoản người dùng, giao diện UI, SignalR cập nhật tiến trình thực tế, và tích hợp thanh toán PayOS.
+- **Business Layer** (`RagChatbotSystem.Business`): Xử lý nghiệp vụ tách biệt, điều phối hội thoại chat, quản lý số dư tín dụng (credit ledger) và điều phối các dịch vụ AI.
+- **Data Access Layer** (`RagChatbotSystem.DataAccess`): Ánh xạ thực thể Entity Framework Core, lưu trữ PostgreSQL, quản lý migrations và định nghĩa schema cơ sở dữ liệu.
+- **RAG API** (`RAG-Retrieval-Indexing-API`): Dịch vụ Python FastAPI hiệu năng cao đảm nhiệm phân tách câu, chia nhỏ chunk thông minh, quản lý chỉ mục FAISS, chỉ mục BM25, tìm kiếm lai (RRF), và tái sắp xếp độ liên quan (reranking).
+- **Tests Suite** (`RagChatbotSystem.Tests`): Bộ kiểm thử tự động xUnit bao gồm các test case cho các chức năng cốt lõi.
+
+### 🚀 Khởi chạy hệ thống
+
+#### 1. Khởi chạy nhanh bằng Docker Compose
+Tại thư mục gốc của dự án, chạy lệnh:
 ```bash
-dotnet test RagChatbotSystem.sln
+docker-compose up --build -d
+```
+- **Ứng dụng Web**: http://localhost:5259
+- **RAG API**: http://localhost:8000
+
+#### 2. Cấu hình thủ công
+1. **Khởi chạy Database**: Chạy PostgreSQL hỗ trợ extension pgvector (khuyên dùng `ankane/pgvector`).
+2. **Cập nhật Database Migrations**:
+   ```bash
+   dotnet ef database update --project RagChatbotSystem.DataAccess --startup-project RagChatbotSystem.Presentation
+   ```
+3. **Khởi động Python RAG API**: Cài đặt môi trường Python, thực thi `pip install -r requirements.txt`, sau đó chạy:
+   ```bash
+   uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+4. **Khởi động C# Web App**: Khởi chạy ứng dụng Web C#:
+   ```bash
+   dotnet run --project RagChatbotSystem.Presentation/RagChatbotSystem.Presentation.csproj --launch-profile http
+   ```
+
+### ⚙️ Cấu hình môi trường
+
+Tạo tệp `.env` tại thư mục gốc của dự án:
+```bash
+DB_PASSWORD=your_db_password
+GROQ_API_KEY=your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+HF_TOKEN=your_huggingface_token
+GOOGLE_DRIVE_FOLDER_ID=your_google_drive_folder_id
 ```
 
-## 📁 Cấu trúc thư mục chính
+### 📚 Tài liệu hướng dẫn kỹ thuật
 
-- RagChatbotSystem.Presentation: ứng dụng web và controller
-- RagChatbotSystem.Business: business logic và service interface
-- RagChatbotSystem.DataAccess: model, repository và migration
-- RAG-Retrieval-Indexing-API: service Python phục vụ indexing và retrieval
-- RagChatbotSystem.Tests: test cases cho các chức năng cốt lõi
+Thông tin chi tiết về thiết kế, API và triển khai vận hành được liên kết bên dưới:
+- 🗺️ [Sơ đồ CSDL & Giải thích ERD](docs/ERD_RAG_Chatbot_Explanation.md)
+- 🔌 [Tổng quan API Endpoints](docs/API_OVERVIEW.md)
+- ⚙️ [Quy trình xử lý RAG Pipeline](docs/RAG_PIPELINE.md)
+- 🌐 [Hướng dẫn triển khai (Deployment)](docs/DEPLOYMENT_NOTES.md)
+- 🛠️ [Khắc phục sự cố & FAQs](docs/TROUBLESHOOTING.md)
+- 📊 [Nền tảng so sánh đánh giá Model Benchmark](docs/model-comparison/)
 
-## 📚 Tài liệu tham khảo
-
-Thông tin chi tiết về kiến trúc, quy trình xử lý tài liệu, deployment và troubleshooting có thể tìm thấy trong thư mục docs.
-
-## 📝 Ghi chú
-
-- Nếu sử dụng môi trường phát triển cục bộ, hãy đảm bảo PostgreSQL đã được cấu hình đúng và mở rộng vector đã được kích hoạt.
-- Nếu muốn làm mới chỉ mục tìm kiếm, có thể xóa thư mục cache trước khi khởi động lại API.
+---
 
 > [!TIP]
-> **Kích hoạt Extension Vector trong PostgreSQL**:
-> Nếu tự cài đặt PostgreSQL cục bộ mà không sử dụng Docker image `ankane/pgvector`, bạn bắt buộc phải cài đặt extension này trên máy chủ và chạy câu lệnh SQL sau trước khi áp dụng migrations:
-> ```sql
-> CREATE EXTENSION IF NOT EXISTS vector;
-> ```
+> **PostgreSQL Vector Extension**:
+> If you are setting up local PostgreSQL without the `ankane/pgvector` image, you must install the extension on the database server and run: `CREATE EXTENSION IF NOT EXISTS vector;` before applying migrations.
+> *(Nếu tự cấu hình PostgreSQL cục bộ không qua Docker, bạn bắt buộc phải cài đặt extension này và chạy: `CREATE EXTENSION IF NOT EXISTS vector;` trước khi apply migrations).*
 
 > [!WARNING]
-> **Xóa Cache của RAG API**:
-> Python API lưu bộ nhớ đệm chỉ mục tìm kiếm FAISS & BM25 tại thư mục `cache/`. Khi muốn làm sạch dữ liệu để lập chỉ mục lại hoàn toàn, hãy xóa thư mục này trước khi chạy lại service Python.
+> **RAG API Cache Cleaning**:
+> The Python API stores search indexes in the `cache/` directory. Delete this folder before restarting the API if you want to rebuild indexes from scratch.
+> *(Python API lưu bộ nhớ đệm chỉ mục tại thư mục `cache/`. Hãy xóa thư mục này trước khi khởi chạy lại service nếu muốn làm sạch và lập chỉ mục lại).*
 
 > [!IMPORTANT]
-> **Vấn đề kết nối SignalR WebSockets qua Nginx**:
-> Khi triển khai qua Nginx, kết nối WebSocket có thể bị lỗi hoặc tự động hạ cấp xuống Long Polling nếu các headers Upgrade không được cấu hình chính xác. Hãy tham khảo mẫu cấu hình tại [nginx.conf](nginx.conf). Để đảm bảo kết nối hoạt động ổn định, bạn nên thay đổi dòng `proxy_set_header Connection keep-alive;` trong Nginx cấu hình thực tế thành `proxy_set_header Connection $http_connection;`.
+> **SignalR WebSockets over Nginx**:
+> When using Nginx, configure connection upgrade headers correctly to prevent websocket handshake errors. Please refer to [nginx.conf](nginx.conf) for details.
+> *(Khi chạy sau proxy Nginx, vui lòng cấu hình đúng Upgrade headers để tránh lỗi kết nối WebSockets cho SignalR. Tham khảo chi tiết tại [nginx.conf](nginx.conf)).*
