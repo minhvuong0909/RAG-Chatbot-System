@@ -17,7 +17,6 @@ An enterprise-grade, high-performance **Retrieval-Augmented Generation (RAG) Cha
 - **Tests Suite** (`RagChatbotSystem.Tests`): xUnit testing suite covering core retrieval, credit, and message logic.
 
 #### 📊 System Architecture & Application Flow
-![System Architecture Diagram](docs/system_architecture_prn.jpg)
 ![Razor Pages Application Flow](docs/system_architecture_razorpages.jpg)
 
 
