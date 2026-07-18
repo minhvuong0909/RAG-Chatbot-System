@@ -1,5 +1,0 @@
-﻿sort_order,is_holdout,status,question,answer,reference_answer,context_precision,context_recall,retrieval_latency_ms,generation_latency_ms,total_tokens,error
-17,True,Completed,Tesla đã hợp tác với ai vào năm 1886?,,Robert Lane và Benjamin Vail,0.3333333333333333,1.0,1145,0,0,
-18,True,Completed,Khi nào Tesla đạt được bằng sáng chế máy phát điện của mình?,,Năm 1900,0.3333333333333333,1.0,1432,0,0,
-19,True,Completed,Có bao nhiêu đề nghị có thể có cho giải thưởng vào năm 1915?,,38,0.3333333333333333,1.0,1184,0,0,
-20,True,Completed,Bài báo nào được xuất bản năm 1937?,,"""Một cỗ máy để Kết thúc Chiến tranh"",",0.3333333333333333,1.0,1208,0,0,
