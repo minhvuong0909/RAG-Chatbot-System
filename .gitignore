@@ -36,6 +36,12 @@ output/
 # Runtime uploaded files
 **/wwwroot/uploads/
 
+# Python general ignores
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
 # Python RAG API local/runtime files
 RAG-Retrieval-Indexing-API/**/.env
 RAG-Retrieval-Indexing-API/**/.env.*

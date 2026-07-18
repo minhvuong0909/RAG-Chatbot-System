@@ -35,7 +35,7 @@ namespace RagChatbotSystem.Business.DTOs
         bool IsHoldout,
         string GeneratedAnswer,
         string Status,
-        string ErrorMessage,
+        string? ErrorMessage,
         double? ContextPrecision,
         double? ContextRecall,
         double? Faithfulness,
